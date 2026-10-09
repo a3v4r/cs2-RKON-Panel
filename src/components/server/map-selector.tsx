@@ -8,7 +8,7 @@ const MAP_DATA: Record<string, { label: string }> = {
   'de_inferno': { label: 'Inferno' },
   'de_mirage': { label: 'Mirage' },
   'de_nuke': { label: 'Nuke' },
-  'de_overpass': { label: 'Overpass' },
+  'de_cache': { label: 'Cache' },
   'de_ancient': { label: 'Ancient' },
   'de_anubis': { label: 'Anubis' },
   'de_dust2': { label: 'Dust 2' }

@@ -32,6 +32,7 @@ const COMMON_MAPS = [
   'de_vertigo',
   'de_train',
   'de_overpass',
+  'de_cache',
 ];
 
 export function ServerDashboard({ serverInfo, onSendCommand }: ServerDashboardProps) {

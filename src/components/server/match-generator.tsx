@@ -60,7 +60,7 @@ export function MatchGenerator({ onStartMatch, onLaunchMatch, onStopMatch }: Mat
   }
 
   const AVAILABLE_MAPS = [
-    'de_inferno', 'de_mirage', 'de_nuke', 'de_overpass', 
+    'de_inferno', 'de_mirage', 'de_nuke', 'de_cache', 
     'de_ancient', 'de_anubis', 'de_dust2'
   ]
 
@@ -251,7 +251,7 @@ export function MatchGenerator({ onStartMatch, onLaunchMatch, onStopMatch }: Mat
                     matchConfig.maplist[1] || 'de_inferno',
                     matchConfig.maplist[2] || 'de_dust2',
                     matchConfig.maplist[3] || 'de_nuke',
-                    matchConfig.maplist[4] || 'de_overpass'
+                    matchConfig.maplist[4] || 'de_cache'
                   ]})}
                   className="flex-1"
                 >BO5</Button>
