@@ -3,16 +3,13 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   release:
     permissions:
       contents: write
-    strategy:
-      fail-fast: false
-      matrix:
-        platform: [windows-latest]
-    runs-on: ${{ matrix.platform }}
+    runs-on: windows-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -20,43 +17,25 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: lts/*
+          node-version: 24
           cache: 'npm'
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: x86_64-pc-windows-msvc
-
-      - name: Rust cache
-        uses: swatinem/rust-cache@v2
-        with:
-          workspaces: './src-tauri -> target'
-
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
-      - name: Build and Release
-        uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tagName: v__VERSION__
-          releaseName: "Release v__VERSION__"
-          releaseBody: "Automated build from GitHub Actions"
-          releaseDraft: false
-          prerelease: false
+      - name: Build standalone panel
+        run: npm run package
 
-      - name: Get version from package.json
-        id: package_version
-        shell: bash
-        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+      - name: Zip
+        shell: pwsh
+        run: |
+          $version = node -p "require('./package.json').version"
+          "VERSION=$version" >> $env:GITHUB_ENV
+          Compress-Archive -Path .next/standalone/* -DestinationPath "cs2-rcon-panel-web-$version.zip"
 
-      - name: Upload standalone binary
+      - name: Release
         uses: softprops/action-gh-release@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v${{ steps.package_version.outputs.version }}
-          files: |
-            src-tauri/target/release/cs2-rcon-panel.exe
+          tag_name: v${{ env.VERSION }}
+          name: Release v${{ env.VERSION }}
+          files: cs2-rcon-panel-web-*.zip

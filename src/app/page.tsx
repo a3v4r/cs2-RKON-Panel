@@ -6,11 +6,11 @@ import { ServerDashboard } from '@/components/server/dashboard';
 import { RCONConsole } from '@/components/server/console';
 import { ServerChat } from '@/components/server/chat';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LayoutDashboard, Terminal, MessageSquare, Settings, Map as MapIcon, Trophy } from 'lucide-react';
+import { LayoutDashboard, Terminal, MessageSquare, Settings, Map as MapIcon, Trophy, Menu } from 'lucide-react';
 import { MatchGenerator } from '@/components/server/match-generator';
 import { GeneralSettings } from '@/components/settings/general-settings';
 import { db_helper, ServerProfile } from '@/lib/db';
-import { fetchServerInfo, ServerStatus, fetchServerPlayers, fetchRconPlayers } from '@/lib/a2s';
+import { fetchServerInfo } from '@/lib/a2s';
 import { sendRconCommand } from '@/lib/rcon';
 import { ServerModal } from '@/components/server/server-modal';
 import { MapSelector } from '@/components/server/map-selector';
@@ -31,6 +31,7 @@ export default function Home() {
   const [serverInfo, setServerInfo] = useState<any>(INITIAL_INFO);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingServer, setEditingServer] = useState<ServerProfile | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const loadServers = async () => {
     try {
@@ -53,7 +54,7 @@ export default function Home() {
 
     const updateInfo = async () => {
       try {
-        const info = await fetchServerInfo(server.host, server.port);
+        const info = await fetchServerInfo(server.id!);
         setServerInfo({
           ...info,
           status: 'online'
@@ -76,7 +77,7 @@ export default function Home() {
   const handleRconCommand = async (command: string) => {
     const server = servers.find(s => s.id === activeServerId);
     if (!server) throw new Error("No server selected");
-    return await sendRconCommand(server.host, server.port, server.rcon_password, command);
+    return await sendRconCommand(server.id!, command);
   };
 
   // Fetch servers from DB on mount
@@ -118,9 +119,7 @@ export default function Home() {
     if (!selectedServer) return;
     try {
       await sendRconCommand(
-        selectedServer.host, 
-        selectedServer.port, 
-        selectedServer.rcon_password, 
+        selectedServer.id!,
         `matchzy_loadmatch_json ${config}`
       );
     } catch (error) {
@@ -133,9 +132,7 @@ export default function Home() {
     if (!selectedServer) return;
     try {
       await sendRconCommand(
-        selectedServer.host, 
-        selectedServer.port, 
-        selectedServer.rcon_password, 
+        selectedServer.id!,
         'get5_endmatch'
       );
     } catch (error) {
@@ -148,9 +145,7 @@ export default function Home() {
     if (!selectedServer) return;
     try {
       await sendRconCommand(
-        selectedServer.host, 
-        selectedServer.port, 
-        selectedServer.rcon_password, 
+        selectedServer.id!,
         `matchzy_loadmatch_url "${url}"`
       );
     } catch (error) {
@@ -160,57 +155,74 @@ export default function Home() {
   };
 
   return (
-    <div className="flex h-screen w-full bg-[#09090b] text-white">
-      {/* Sidebar */}
-      <Sidebar 
-        servers={servers} 
-        activeServerId={activeServerId} 
-        onSelectServer={(id) => { setActiveServerId(id); setActiveTab('dashboard'); }}
-        onAddServer={() => { setEditingServer(null); setIsModalOpen(true); }}
-        onEditServer={(server) => { setEditingServer(server); setIsModalOpen(true); }}
-        onDeleteServer={handleDeleteServer}
-        onOpenGeneralSettings={() => { setActiveTab('general-settings'); }}
-      />
+    <div className="flex h-[100dvh] w-full bg-[#09090b] text-white">
+      {/* Sidebar: static on desktop, drawer on phones */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-40 bg-black/60 md:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
+      <div className={`fixed inset-y-0 left-0 z-50 transition-transform md:static md:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <Sidebar
+          servers={servers}
+          activeServerId={activeServerId}
+          onSelectServer={(id) => { setActiveServerId(id); setActiveTab('dashboard'); setSidebarOpen(false); }}
+          onAddServer={() => { setEditingServer(null); setIsModalOpen(true); setSidebarOpen(false); }}
+          onEditServer={(server) => { setEditingServer(server); setIsModalOpen(true); setSidebarOpen(false); }}
+          onDeleteServer={handleDeleteServer}
+          onOpenGeneralSettings={() => { setActiveTab('general-settings'); setSidebarOpen(false); }}
+        />
+      </div>
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Phone top bar */}
+        <div className="flex items-center gap-3 px-3 py-2 border-b border-border md:hidden">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="p-2 -ml-1 rounded-md text-muted-foreground hover:text-white"
+            aria-label="Открыть список серверов"
+          >
+            <Menu size={22} />
+          </button>
+          <span className="text-sm font-medium truncate">{selectedServer?.name ?? 'CS2 RCON'}</span>
+        </div>
+
         {activeTab === 'general-settings' ? (
           <GeneralSettings />
         ) : activeServerId ? (
           <>
             {/* Server Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-[#09090b]">
-              <div className="flex items-center space-x-4">
+            <div className="flex items-center justify-between gap-4 px-3 md:px-6 py-2 md:py-4 border-b border-border bg-[#09090b]">
+              <div className="hidden md:flex items-center space-x-4 shrink-0">
                 <div className="text-sm font-medium text-muted-foreground">
                   Selected: <span className="text-white">{selectedServer?.name}</span>
                 </div>
               </div>
-              
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-auto">
-                <TabsList className="bg-white/5 border border-border">
-                  <TabsTrigger value="dashboard" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-                    <LayoutDashboard size={14} className="mr-2" />
-                    Dashboard
+
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full md:w-auto overflow-x-auto">
+                <TabsList className="bg-white/5 border border-border w-max">
+                  <TabsTrigger value="dashboard" aria-label="Dashboard" title="Dashboard" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
+                    <LayoutDashboard size={14} className="sm:mr-2" />
+                    <span className="hidden sm:inline">Dashboard</span>
                   </TabsTrigger>
-                  <TabsTrigger value="console" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-                    <Terminal size={14} className="mr-2" />
-                    Console
+                  <TabsTrigger value="console" aria-label="Console" title="Console" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
+                    <Terminal size={14} className="sm:mr-2" />
+                    <span className="hidden sm:inline">Console</span>
                   </TabsTrigger>
-                  <TabsTrigger value="chat" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-                    <MessageSquare size={14} className="mr-2" />
-                    Chat
+                  <TabsTrigger value="chat" aria-label="Chat" title="Chat" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
+                    <MessageSquare size={14} className="sm:mr-2" />
+                    <span className="hidden sm:inline">Chat</span>
                   </TabsTrigger>
-                  <TabsTrigger value="maps" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-                    <MapIcon size={14} className="mr-2" />
-                    Maps
+                  <TabsTrigger value="maps" aria-label="Maps" title="Maps" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
+                    <MapIcon size={14} className="sm:mr-2" />
+                    <span className="hidden sm:inline">Maps</span>
                   </TabsTrigger>
-                  <TabsTrigger value="match" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-                    <Trophy size={14} className="mr-2" />
-                    Match
+                  <TabsTrigger value="match" aria-label="Match" title="Match" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
+                    <Trophy size={14} className="sm:mr-2" />
+                    <span className="hidden sm:inline">Match</span>
                   </TabsTrigger>
-                  <TabsTrigger value="settings" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-                    <Settings size={14} className="mr-2" />
-                    Settings
+                  <TabsTrigger value="settings" aria-label="Settings" title="Settings" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
+                    <Settings size={14} className="sm:mr-2" />
+                    <span className="hidden sm:inline">Settings</span>
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
@@ -225,7 +237,7 @@ export default function Home() {
                 />
               )}
               {activeTab === "console" && (
-                <div className="h-full p-6">
+                <div className="h-full p-3 md:p-6">
                   <RCONConsole onSendCommand={handleRconCommand} />
                 </div>
               )}
@@ -246,6 +258,7 @@ export default function Home() {
               )}
               {activeTab === "match" && (
                 <MatchGenerator 
+                  serverId={activeServerId}
                   onStartMatch={handleStartMatch} 
                   onLaunchMatch={handleLaunchMatch}
                   onStopMatch={handleStopMatch} 

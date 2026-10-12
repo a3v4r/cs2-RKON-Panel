@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 
 export function GeneralSettings() {
   return (
-    <div className="p-8 max-w-2xl mx-auto space-y-8">
+    <div className="p-4 md:p-8 max-w-2xl mx-auto space-y-8">
       <div>
         <h2 className="text-3xl font-bold text-white flex items-center">
           <Settings className="mr-3 text-primary" size={32} />

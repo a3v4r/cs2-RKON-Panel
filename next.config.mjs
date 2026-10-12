@@ -1,11 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
+  // Self-contained server (server.js + the node_modules it needs) for the portable tournament kit
+  output: 'standalone',
   images: {
     unoptimized: true,
   },
-  assetPrefix: './',
-  trailingSlash: true,
 };
 
 export default nextConfig;

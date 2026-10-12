@@ -1,124 +1,25 @@
-import Database from '@tauri-apps/plugin-sql';
+import { api } from './api';
 
 export interface ServerProfile {
   id?: number;
   name: string;
   host: string;
   port: number;
+  // Only sent when saving; the panel server never returns it (has_password instead)
   rcon_password: string;
+  has_password?: boolean;
   country_code?: string;
   created_at?: string;
 }
 
-let _db: Database | null = null;
-
-async function getDb() {
-  if (!_db) {
-    _db = await Database.load('sqlite:servers.db');
-    // Initialize schema
-    await _db.execute(`
-      CREATE TABLE IF NOT EXISTS servers (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        host TEXT NOT NULL,
-        port INTEGER NOT NULL,
-        rcon_password TEXT NOT NULL,
-        country_code TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-    await _db.execute(`
-      CREATE TABLE IF NOT EXISTS custom_commands (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        label TEXT NOT NULL,
-        command TEXT NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-  }
-  return _db;
-}
-
 export const db_helper = {
-  getServers: async (): Promise<ServerProfile[]> => {
-    const db = await getDb();
-    return await db.select<ServerProfile[]>('SELECT * FROM servers ORDER BY created_at DESC');
-  },
+  getServers: () => api<ServerProfile[]>('/api/servers'),
+  addServer: (server: ServerProfile) => api<ServerProfile>('/api/servers', { body: server }),
+  updateServer: (id: number, server: Partial<ServerProfile>) => api<ServerProfile>(`/api/servers/${id}`, { method: 'PUT', body: server }),
+  deleteServer: (id: number) => api(`/api/servers/${id}`, { method: 'DELETE' }),
 
-  addServer: async (server: ServerProfile) => {
-    try {
-      const db = await getDb();
-      console.log("Adding server:", server);
-      return await db.execute(
-        'INSERT INTO servers (name, host, port, rcon_password, country_code) VALUES (?, ?, ?, ?, ?)',
-        [server.name, server.host, server.port, server.rcon_password, server.country_code]
-      );
-    } catch (e) {
-      console.error("Failed to add server:", e);
-      throw e;
-    }
-  },
-
-  updateServer: async (id: number, server: Partial<ServerProfile>) => {
-    try {
-      const db = await getDb();
-      return await db.execute(
-        'UPDATE servers SET name = ?, host = ?, port = ?, rcon_password = ?, country_code = ? WHERE id = ?',
-        [server.name, server.host, server.port, server.rcon_password, server.country_code, id]
-      );
-    } catch (e) {
-      console.error("Failed to update server:", e);
-      throw e;
-    }
-  },
-
-  deleteServer: async (id: number) => {
-    try {
-      const db = await getDb();
-      return await db.execute('DELETE FROM servers WHERE id = ?', [id]);
-    } catch (e) {
-      console.error("Failed to delete server:", e);
-      throw e;
-    }
-  },
-
-  getCommands: async (): Promise<any[]> => {
-    try {
-      const db = await getDb();
-      return await db.select<any[]>('SELECT * FROM custom_commands ORDER BY created_at DESC');
-    } catch (e) {
-      console.error("Failed to get commands:", e);
-      return [];
-    }
-  },
-
-  addCommand: async (label: string, command: string) => {
-    try {
-      const db = await getDb();
-      return await db.execute('INSERT INTO custom_commands (label, command) VALUES (?, ?)', [label, command]);
-    } catch (e) {
-      console.error("Failed to add command:", e);
-      throw e;
-    }
-  },
-
-  updateCommand: async (id: number, label: string, command: string) => {
-    try {
-      const db = await getDb();
-      return await db.execute('UPDATE custom_commands SET label = ?, command = ? WHERE id = ?', [label, command, id]);
-    } catch (e) {
-      console.error("Failed to update command:", e);
-      throw e;
-    }
-  },
-
-  deleteCommand: async (id: number) => {
-    try {
-      const db = await getDb();
-      return await db.execute('DELETE FROM custom_commands WHERE id = ?', [id]);
-    } catch (e) {
-      console.error("Failed to delete command:", e);
-      throw e;
-    }
-  }
+  getCommands: () => api<any[]>('/api/commands').catch(() => []),
+  addCommand: (label: string, command: string) => api('/api/commands', { body: { label, command } }),
+  updateCommand: (id: number, label: string, command: string) => api(`/api/commands/${id}`, { method: 'PUT', body: { label, command } }),
+  deleteCommand: (id: number) => api(`/api/commands/${id}`, { method: 'DELETE' }),
 };

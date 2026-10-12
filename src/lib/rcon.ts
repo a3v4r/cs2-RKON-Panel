@@ -1,16 +1,6 @@
-import { invoke } from '@tauri-apps/api/core';
+import { api } from './api';
 
-export async function sendRconCommand(host: string, port: number, password: string, command: string): Promise<string> {
-  try {
-    const result: { success: boolean, data: string } = await invoke('rcon_command', { host, port, password, command });
-    
-    if (!result.success) {
-      throw new Error(result.data);
-    }
-    
-    return result.data;
-  } catch (error: any) {
-    console.error('RCON_COMMAND Error:', error);
-    throw error;
-  }
+export async function sendRconCommand(serverId: number, command: string): Promise<string> {
+  const { output } = await api<{ output: string }>(`/api/servers/${serverId}/rcon`, { body: { command } });
+  return output;
 }

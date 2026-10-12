@@ -12,7 +12,7 @@ interface ServerSettingsProps {
 
 export function ServerSettings({ server, onUpdate }: ServerSettingsProps) {
   return (
-    <div className="p-6 space-y-8 max-w-4xl">
+    <div className="p-3 md:p-6 space-y-8 max-w-4xl">
       <div className="flex items-center space-x-4">
         <div className="p-3 rounded-2xl bg-primary/10 border border-primary/20">
           <Settings size={32} className="text-primary" />

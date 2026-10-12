@@ -30,7 +30,7 @@ export function ServerChat({ onBroadcast }: ServerChatProps) {
   };
 
   return (
-    <div className="p-6 space-y-6 animate-in fade-in duration-500">
+    <div className="p-3 md:p-6 space-y-6 animate-in fade-in duration-500">
       <div className="grid gap-6 md:grid-cols-2">
         {/* Chat Input */}
         <div className="space-y-4">

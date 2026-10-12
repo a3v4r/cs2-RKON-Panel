@@ -23,7 +23,7 @@ interface MapSelectorProps {
 
 export function MapSelector({ currentMap, onChangeMap }: MapSelectorProps) {
   return (
-    <div className="p-6 space-y-6 h-full overflow-auto">
+    <div className="p-3 md:p-6 space-y-6 h-full overflow-auto">
       <div>
         <h3 className="text-xl font-bold mb-2 flex items-center text-white">
           <MapIcon className="mr-2 text-primary" />

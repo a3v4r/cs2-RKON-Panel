@@ -31,7 +31,8 @@ export function ServerModal({ open, onOpenChange, onSave, server }: ServerModalP
 
   useEffect(() => {
     if (server) {
-      setFormData(server)
+      // The stored password is never sent to the browser: empty field = keep it
+      setFormData({ ...server, rcon_password: '' })
     } else {
       setFormData({
         name: '',
@@ -97,11 +98,11 @@ export function ServerModal({ open, onOpenChange, onSave, server }: ServerModalP
             <Input
               id="password"
               type="password"
-              placeholder="••••••••"
+              placeholder={server ? 'Оставьте пустым, чтобы не менять' : '••••••••'}
               value={formData.rcon_password}
               onChange={(e) => setFormData({ ...formData, rcon_password: e.target.value })}
               className="bg-white/5 border-border"
-              required
+              required={!server}
             />
           </div>
           <div className="space-y-2">

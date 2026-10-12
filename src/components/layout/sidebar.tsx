@@ -15,7 +15,8 @@ import {
   Server,
   Edit,
   Trash2,
-  MoreVertical
+  MoreVertical,
+  LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -54,7 +55,7 @@ export function Sidebar({
           variant="ghost" 
           size="icon" 
           onClick={() => setCollapsed(!collapsed)}
-          className="text-muted-foreground hover:text-white"
+          className="hidden md:inline-flex text-muted-foreground hover:text-white"
         >
           {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
         </Button>
@@ -99,11 +100,11 @@ export function Sidebar({
                   </div>
                 )}
                 {!collapsed && (
-                  <div className="hidden group-hover:flex items-center space-x-1">
+                  <div className="flex md:hidden md:group-hover:flex items-center space-x-1">
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      className="h-6 w-6 text-muted-foreground hover:text-white"
+                      className="h-8 w-8 md:h-6 md:w-6 text-muted-foreground hover:text-white"
                       onClick={(e) => { e.stopPropagation(); onEditServer(server); }}
                     >
                       <Edit size={12} />
@@ -111,7 +112,7 @@ export function Sidebar({
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                      className="h-8 w-8 md:h-6 md:w-6 text-muted-foreground hover:text-destructive"
                       onClick={(e) => { e.stopPropagation(); onDeleteServer(server.id); }}
                     >
                       <Trash2 size={12} />
@@ -135,6 +136,16 @@ export function Sidebar({
         >
           <Settings size={18} />
           {!collapsed && <span className="text-sm font-medium">Settings</span>}
+        </button>
+        <button 
+          onClick={async () => { await fetch('/api/logout', { method: 'POST' }); window.location.href = '/login'; }}
+          className={cn(
+            "flex items-center w-full p-2 rounded-md text-muted-foreground hover:bg-white/5 hover:text-white transition-all",
+            collapsed ? "justify-center" : "space-x-3"
+          )}
+        >
+          <LogOut size={18} />
+          {!collapsed && <span className="text-sm font-medium">Выйти</span>}
         </button>
       </div>
     </div>

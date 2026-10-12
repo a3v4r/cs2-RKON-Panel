@@ -79,11 +79,11 @@ export function ServerDashboard({ serverInfo, onSendCommand }: ServerDashboardPr
   };
 
   return (
-    <div className="p-6 space-y-6 animate-in fade-in duration-500">
+    <div className="p-3 md:p-6 space-y-6 animate-in fade-in duration-500">
       {/* Hero Section / Status */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight text-white">{serverInfo.name}</h2>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="text-xl md:text-3xl font-bold tracking-tight text-white">{serverInfo.name}</h2>
           <div className="flex items-center mt-1 text-muted-foreground">
             <Globe size={14} className="mr-1" />
             <span className="text-sm">Public Server • {serverInfo.status === 'online' ? 'Connected' : 'Disconnected'}</span>
@@ -101,7 +101,7 @@ export function ServerDashboard({ serverInfo, onSendCommand }: ServerDashboardPr
       </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-3 gap-2 md:gap-4 md:grid-cols-2 lg:grid-cols-3">
         <StatCard 
           title="Current Map" 
           value={serverInfo.map} 
@@ -124,7 +124,7 @@ export function ServerDashboard({ serverInfo, onSendCommand }: ServerDashboardPr
 
       {/* Quick Actions */}
       <div className="grid gap-4 md:grid-cols-2">
-         <div className="p-6 rounded-xl border border-border bg-[#09090b]/50 backdrop-blur-sm flex flex-col">
+         <div className="p-4 md:p-6 rounded-xl border border-border bg-[#09090b]/50 backdrop-blur-sm flex flex-col">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold flex items-center">
                 <Activity size={18} className="mr-2 text-primary" />
@@ -152,7 +152,7 @@ export function ServerDashboard({ serverInfo, onSendCommand }: ServerDashboardPr
                   />
                   <button 
                     onClick={(e) => handleDeleteCommand(e, cmd.id)}
-                    className="absolute -top-1 -right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover/btn:opacity-100 transition-opacity"
+                    className="absolute -top-1 -right-1 p-1 bg-red-500 text-white rounded-full md:opacity-0 md:group-hover/btn:opacity-100 transition-opacity"
                   >
                     <Trash2 size={10} />
                   </button>
@@ -192,7 +192,7 @@ export function ServerDashboard({ serverInfo, onSendCommand }: ServerDashboardPr
             )}
          </div>
          
-         <div className="p-6 rounded-xl border border-border bg-[#09090b]/50 backdrop-blur-sm">
+         <div className="p-4 md:p-6 rounded-xl border border-border bg-[#09090b]/50 backdrop-blur-sm">
             <h3 className="text-lg font-semibold mb-4 flex items-center">
               <MapIcon size={18} className="mr-2 text-primary" />
               Map Control
@@ -227,15 +227,15 @@ export function ServerDashboard({ serverInfo, onSendCommand }: ServerDashboardPr
 
 function StatCard({ title, value, icon, description }: { title: string, value: string, icon: React.ReactNode, description: string }) {
   return (
-    <div className="p-6 rounded-xl border border-border bg-[#09090b] hover:border-primary/50 transition-colors group">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{title}</span>
-        <div className="p-2 rounded-lg bg-white/5 group-hover:bg-primary/10 transition-colors">
+    <div className="p-3 md:p-6 rounded-xl border border-border bg-[#09090b] hover:border-primary/50 transition-colors group min-w-0">
+      <div className="flex items-center justify-between mb-1 md:mb-2">
+        <span className="text-[10px] md:text-xs font-semibold text-muted-foreground uppercase tracking-wider truncate">{title}</span>
+        <div className="hidden md:block p-2 rounded-lg bg-white/5 group-hover:bg-primary/10 transition-colors">
           {icon}
         </div>
       </div>
-      <div className="text-2xl font-bold text-white">{value}</div>
-      <p className="text-xs text-muted-foreground mt-1">{description}</p>
+      <div className="text-base md:text-2xl font-bold text-white truncate">{value}</div>
+      <p className="hidden md:block text-xs text-muted-foreground mt-1">{description}</p>
     </div>
   );
 }

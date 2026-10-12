@@ -4,15 +4,16 @@ import React, { useState } from 'react'
 import { FileJson, Send, Users, Shield, Zap, Copy, Download, Map as MapIcon, ShieldOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { invoke } from '@tauri-apps/api/core'
+import { api } from '@/lib/api'
 
 interface MatchGeneratorProps {
+  serverId: number;
   onStartMatch: (config: string) => Promise<void>;
   onLaunchMatch: (config: string, url: string) => Promise<void>;
   onStopMatch: () => Promise<void>;
 }
 
-export function MatchGenerator({ onStartMatch, onLaunchMatch, onStopMatch }: MatchGeneratorProps) {
+export function MatchGenerator({ serverId, onStartMatch, onLaunchMatch, onStopMatch }: MatchGeneratorProps) {
   const [matchConfig, setMatchConfig] = useState({
     matchid: Math.floor(Date.now() / 1000) % 10000,
     team1: { name: "Team 1", tag: "T1" },
@@ -25,22 +26,8 @@ export function MatchGenerator({ onStartMatch, onLaunchMatch, onStopMatch }: Mat
   })
 
   const [jsonOutput, setJsonOutput] = useState("")
-  const [externalIp, setExternalIp] = useState("localhost")
   const [status, setStatus] = useState<{ type: 'success' | 'error' | 'idle', message: string }>({ type: 'idle', message: '' })
   const [isLoading, setIsLoading] = useState(false)
-
-  React.useEffect(() => {
-    // Detect local IP on mount
-    const detectIp = async () => {
-      try {
-        const ip: string = await invoke('get_local_ip');
-        setExternalIp(ip);
-      } catch (e) {
-        console.error("Failed to detect IP:", e);
-      }
-    };
-    detectIp();
-  }, []);
 
   React.useEffect(() => {
     generateJson();
@@ -115,13 +102,8 @@ export function MatchGenerator({ onStartMatch, onLaunchMatch, onStopMatch }: Mat
     setIsLoading(true)
     setStatus({ type: 'idle', message: '' })
     try {
-      // 1. Host the JSON in main process
-      await invoke('set_match_config', { config: json });
-
-      // 2. Generate URL
-      let matchId = "current";
-      try { matchId = JSON.parse(json).matchid || "current"; } catch(e) {}
-      const configUrl = `http://${externalIp}:3031/api/matches/config/${matchId}`;
+      // 1. Host the JSON on the panel server, 2. get the URL the game server can reach it at
+      const { url: configUrl } = await api<{ url: string }>('/api/matches/config', { body: { config: json, serverId } });
 
       // 3. Launch via RCON
       await onLaunchMatch(json, configUrl)
@@ -167,10 +149,10 @@ export function MatchGenerator({ onStartMatch, onLaunchMatch, onStopMatch }: Mat
   }
 
   return (
-    <div className="p-6 h-full flex flex-col space-y-6 overflow-auto">
-      <div className="flex items-center justify-between">
+    <div className="p-3 md:p-6 h-full flex flex-col space-y-6 overflow-auto">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-bold text-white flex items-center">
+          <h2 className="text-xl md:text-2xl font-bold text-white flex items-center">
             <FileJson size={24} className="mr-2 text-primary" />
             MatchZy Config Generator
           </h2>
@@ -282,7 +264,7 @@ export function MatchGenerator({ onStartMatch, onLaunchMatch, onStopMatch }: Mat
                         <option value="standard">Standard</option>
                       </select>
                     </div>
-                    <div className="grid grid-cols-4 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       {AVAILABLE_MAPS.map(map => (
                         <button
                           key={map}
