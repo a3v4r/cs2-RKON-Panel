@@ -15,6 +15,8 @@ import { sendRconCommand } from '@/lib/rcon';
 import { ServerModal } from '@/components/server/server-modal';
 import { MapSelector } from '@/components/server/map-selector';
 import { ServerSettings } from '@/components/server/server-settings';
+import { BroadcastView } from '@/components/broadcast/broadcast-view';
+import { fetchMe, Role } from '@/lib/api';
 
 const INITIAL_INFO = {
   name: "Loading...",
@@ -32,6 +34,7 @@ export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingServer, setEditingServer] = useState<ServerProfile | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [me, setMe] = useState<{ username: string; role: Role } | null>(null);
 
   const loadServers = async () => {
     try {
@@ -80,9 +83,12 @@ export default function Home() {
     return await sendRconCommand(server.id!, command);
   };
 
-  // Fetch servers from DB on mount
+  // Who is logged in decides what to show; servers are only loaded for admins and referees
   React.useEffect(() => {
-    loadServers();
+    fetchMe().then((user) => {
+      setMe(user);
+      if (user.role !== 'broadcast') loadServers();
+    }).catch(() => {});
   }, []);
 
   const handleSaveServer = async (server: ServerProfile) => {
@@ -154,6 +160,14 @@ export default function Home() {
     }
   };
 
+  if (!me) {
+    return <div className="h-[100dvh] bg-[#09090b]" />;
+  }
+  if (me.role === 'broadcast') {
+    return <BroadcastView username={me.username} />;
+  }
+  const isAdmin = me.role === 'admin';
+
   return (
     <div className="flex h-[100dvh] w-full bg-[#09090b] text-white">
       {/* Sidebar: static on desktop, drawer on phones */}
@@ -168,6 +182,8 @@ export default function Home() {
           onAddServer={() => { setEditingServer(null); setIsModalOpen(true); setSidebarOpen(false); }}
           onEditServer={(server) => { setEditingServer(server); setIsModalOpen(true); setSidebarOpen(false); }}
           onDeleteServer={handleDeleteServer}
+          canManage={isAdmin}
+          user={me}
           onOpenGeneralSettings={() => { setActiveTab('general-settings'); setSidebarOpen(false); }}
         />
       </div>
@@ -187,7 +203,9 @@ export default function Home() {
         </div>
 
         {activeTab === 'general-settings' ? (
-          <GeneralSettings />
+          <div className="flex-1 overflow-auto">
+            <GeneralSettings isAdmin={isAdmin} />
+          </div>
         ) : activeServerId ? (
           <>
             {/* Server Header */}
@@ -233,6 +251,7 @@ export default function Home() {
               {activeTab === "dashboard" && (
                 <ServerDashboard 
                   serverInfo={serverInfo} 
+                  canManage={isAdmin}
                   onSendCommand={handleRconCommand}
                 />
               )}

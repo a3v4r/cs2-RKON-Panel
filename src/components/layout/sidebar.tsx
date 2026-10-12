@@ -21,6 +21,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { ROLE_LABELS, Role } from '@/lib/api';
 
 interface SidebarProps {
   servers: any[];
@@ -30,6 +31,8 @@ interface SidebarProps {
   onEditServer: (server: any) => void;
   onDeleteServer: (id: number) => void;
   onOpenGeneralSettings: () => void;
+  canManage: boolean;
+  user: { username: string; role: Role };
 }
 
 export function Sidebar({ 
@@ -39,7 +42,9 @@ export function Sidebar({
   onAddServer,
   onEditServer,
   onDeleteServer,
-  onOpenGeneralSettings
+  onOpenGeneralSettings,
+  canManage,
+  user
 }: SidebarProps) {
   const [collapsed, setCollapsed] = React.useState(false);
 
@@ -65,9 +70,11 @@ export function Sidebar({
       <div className="flex flex-col flex-1 overflow-hidden">
         <div className="p-4 flex items-center justify-between">
           {!collapsed && <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Servers</span>}
-          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onAddServer}>
-            <Plus size={16} />
-          </Button>
+          {canManage && (
+            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onAddServer}>
+              <Plus size={16} />
+            </Button>
+          )}
         </div>
 
         <ScrollArea className="flex-1 px-3">
@@ -99,7 +106,7 @@ export function Sidebar({
                     <span className="text-[10px] opacity-50 truncate w-full">{server.host}:{server.port}</span>
                   </div>
                 )}
-                {!collapsed && (
+                {!collapsed && canManage && (
                   <div className="flex md:hidden md:group-hover:flex items-center space-x-1">
                     <Button 
                       variant="ghost" 
@@ -127,6 +134,11 @@ export function Sidebar({
 
       {/* Footer */}
       <div className="p-4 border-t border-border mt-auto">
+        {!collapsed && (
+          <div className="px-2 pb-2 text-xs text-muted-foreground truncate">
+            {user.username} • {ROLE_LABELS[user.role]}
+          </div>
+        )}
         <button 
           onClick={onOpenGeneralSettings}
           className={cn(

@@ -13,3 +13,13 @@ export async function api<T>(url: string, init?: { method?: string; body?: unkno
   if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
   return data as T;
 }
+
+export type Role = 'admin' | 'referee' | 'broadcast';
+
+export const ROLE_LABELS: Record<Role, string> = {
+  admin: 'Админ',
+  referee: 'Судья',
+  broadcast: 'Трансляция',
+};
+
+export const fetchMe = () => api<{ username: string; role: Role }>('/api/me');

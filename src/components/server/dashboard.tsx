@@ -20,6 +20,8 @@ interface ServerDashboardProps {
     status: 'online' | 'offline' | 'loading';
   };
   onSendCommand: (command: string) => Promise<string>;
+  // Custom quick commands can be added/removed by admins only
+  canManage: boolean;
 }
 
 const COMMON_MAPS = [
@@ -35,7 +37,7 @@ const COMMON_MAPS = [
   'de_cache',
 ];
 
-export function ServerDashboard({ serverInfo, onSendCommand }: ServerDashboardProps) {
+export function ServerDashboard({ serverInfo, onSendCommand, canManage }: ServerDashboardProps) {
   const [mapInput, setMapInput] = React.useState('');
   const [customCommands, setCustomCommands] = React.useState<any[]>([]);
   const [newCmdLabel, setNewCmdLabel] = React.useState('');
@@ -130,12 +132,12 @@ export function ServerDashboard({ serverInfo, onSendCommand }: ServerDashboardPr
                 <Activity size={18} className="mr-2 text-primary" />
                 Quick Actions
               </h3>
-              <button 
+              {canManage && <button 
                 onClick={() => setIsAddingCmd(!isAddingCmd)}
                 className="text-[10px] uppercase font-bold text-primary hover:text-primary/80 flex items-center bg-primary/10 px-2 py-1 rounded"
               >
                 <Plus size={12} className="mr-1" /> Custom
-              </button>
+              </button>}
             </div>
             
             <div className="grid grid-cols-2 gap-2 flex-1">
@@ -150,12 +152,12 @@ export function ServerDashboard({ serverInfo, onSendCommand }: ServerDashboardPr
                     label={cmd.label} 
                     onClick={() => onSendCommand(cmd.command)} 
                   />
-                  <button 
+                  {canManage && <button 
                     onClick={(e) => handleDeleteCommand(e, cmd.id)}
                     className="absolute -top-1 -right-1 p-1 bg-red-500 text-white rounded-full md:opacity-0 md:group-hover/btn:opacity-100 transition-opacity"
                   >
                     <Trash2 size={10} />
-                  </button>
+                  </button>}
                 </div>
               ))}
             </div>

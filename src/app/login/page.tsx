@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 export default function LoginPage() {
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -17,7 +18,7 @@ export default function LoginPage() {
     const res = await fetch('/api/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password }),
+      body: JSON.stringify({ username, password }),
     });
     if (res.ok) {
       window.location.href = '/';
@@ -36,10 +37,19 @@ export default function LoginPage() {
           <h1 className="text-xl font-bold">CS2 RCON Panel</h1>
         </div>
         <Input
-          type="password"
           autoFocus
+          autoCapitalize="none"
+          autoComplete="username"
+          placeholder="Логин"
+          required
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          className="h-11 bg-white/5 border-border text-white"
+        />
+        <Input
+          type="password"
           autoComplete="current-password"
-          placeholder="Пароль панели"
+          placeholder="Пароль"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           className="h-11 bg-white/5 border-border text-white"

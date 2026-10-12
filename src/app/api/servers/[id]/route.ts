@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
+import { audit, requireRole } from '@/server/auth';
 import { publicServer, servers } from '@/server/store';
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function PUT(req: Request, { params }: Params) {
+  const user = await requireRole(['admin']);
+  if (user instanceof NextResponse) return user;
   const id = Number((await params).id);
   const body = await req.json();
   const update: Record<string, unknown> = {};
@@ -15,10 +18,15 @@ export async function PUT(req: Request, { params }: Params) {
   if (body.rcon_password) update.rcon_password = String(body.rcon_password);
   const server = servers.update(id, update);
   if (!server) return NextResponse.json({ error: 'Сервер не найден' }, { status: 404 });
+  audit(user, `server edit #${id}`);
   return NextResponse.json(publicServer(server));
 }
 
 export async function DELETE(_req: Request, { params }: Params) {
-  servers.remove(Number((await params).id));
+  const user = await requireRole(['admin']);
+  if (user instanceof NextResponse) return user;
+  const id = Number((await params).id);
+  servers.remove(id);
+  audit(user, `server delete #${id}`);
   return NextResponse.json({ ok: true });
 }

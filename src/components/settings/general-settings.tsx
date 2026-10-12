@@ -4,8 +4,9 @@ import React from 'react'
 import { Settings, Moon, Sun, Bell, Shield, Info } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
+import { UsersSettings, AuditLog } from '@/components/settings/users-settings'
 
-export function GeneralSettings() {
+export function GeneralSettings({ isAdmin }: { isAdmin: boolean }) {
   return (
     <div className="p-4 md:p-8 max-w-2xl mx-auto space-y-8">
       <div>
@@ -17,6 +18,9 @@ export function GeneralSettings() {
       </div>
 
       <div className="space-y-6">
+        {isAdmin && <UsersSettings />}
+        {isAdmin && <AuditLog />}
+
         {/* Appearance */}
         <div className="space-y-4">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center">
