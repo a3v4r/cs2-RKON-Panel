@@ -28,9 +28,9 @@ export function MapSelector({ currentMap, onChangeMap, onCommand }: MapSelectorP
       <div>
         <h3 className="text-xl font-bold mb-2 flex items-center text-white">
           <MapIcon className="mr-2 text-primary" />
-          Map Management
+          Карты
         </h3>
-        <p className="text-sm text-muted-foreground">Change the current map or manage map cycle.</p>
+        <p className="text-sm text-muted-foreground">Смена карты на сервере. Во время матча карты меняет MatchZy - здесь только вне матча.</p>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -46,7 +46,7 @@ export function MapSelector({ currentMap, onChangeMap, onCommand }: MapSelectorP
             <div className="flex flex-col items-center justify-center h-full">
               <span className="text-sm font-bold text-white uppercase tracking-wider">{MAP_DATA[map].label}</span>
               {currentMap === map && (
-                <div className="text-[10px] text-primary font-bold mt-1">CURRENT</div>
+                <div className="text-[10px] text-primary font-bold mt-1">СЕЙЧАС</div>
               )}
             </div>
           </button>
@@ -56,11 +56,11 @@ export function MapSelector({ currentMap, onChangeMap, onCommand }: MapSelectorP
       <div className="flex space-x-4 pt-6 border-t border-border">
         <Button variant="outline" className="flex-1" onClick={() => onChangeMap(currentMap)}>
           <RotateCcw className="mr-2 h-4 w-4" />
-          Restart Level
+          Перезапустить карту
         </Button>
         <Button variant="destructive" className="flex-1" onClick={() => onCommand('mp_warmup_start')}>
           <Power className="mr-2 h-4 w-4" />
-          Force Warmup
+          Включить разминку
         </Button>
       </div>
     </div>

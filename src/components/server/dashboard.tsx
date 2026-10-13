@@ -88,7 +88,7 @@ export function ServerDashboard({ serverInfo, onSendCommand, canManage }: Server
           <h2 className="text-xl md:text-3xl font-bold tracking-tight text-white">{serverInfo.name}</h2>
           <div className="flex items-center mt-1 text-muted-foreground">
             <Globe size={14} className="mr-1" />
-            <span className="text-sm">{serverInfo.status === 'online' ? 'Connected' : 'Disconnected'}</span>
+            <span className="text-sm">{serverInfo.status === 'online' ? 'Подключено' : 'Нет связи'}</span>
           </div>
         </div>
         <div className={cn(
@@ -98,29 +98,29 @@ export function ServerDashboard({ serverInfo, onSendCommand, canManage }: Server
             : "bg-red-500/10 text-red-500 border-red-500/20"
         )}>
           <div className={cn("w-2 h-2 rounded-full", serverInfo.status === 'online' ? "bg-emerald-500 animate-pulse" : "bg-red-500")} />
-          <span className="text-xs font-bold uppercase tracking-wider">{serverInfo.status}</span>
+          <span className="text-xs font-bold uppercase tracking-wider">{serverInfo.status === 'online' ? 'онлайн' : serverInfo.status === 'offline' ? 'офлайн' : '...'}</span>
         </div>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-3 gap-2 md:gap-4 md:grid-cols-2 lg:grid-cols-3">
         <StatCard 
-          title="Current Map" 
+          title="Карта" 
           value={serverInfo.map} 
           icon={<MapIcon className="text-blue-500" size={20} />} 
-          description="Active map on server"
+          description="Текущая карта сервера"
         />
         <StatCard 
-          title="Players" 
+          title="Игроки" 
           value={`${serverInfo.players.online}/${serverInfo.players.max}`} 
           icon={<Users className="text-orange-500" size={20} />} 
-          description={`${serverInfo.players.bots} bots active`}
+          description={`ботов: ${serverInfo.players.bots}`}
         />
         <StatCard 
-          title="Ping" 
+          title="Пинг" 
           value={`${serverInfo.ping}ms`} 
           icon={<Wifi className="text-emerald-500" size={20} />} 
-          description="Network latency"
+          description="Задержка до сервера"
         />
       </div>
 
@@ -130,21 +130,21 @@ export function ServerDashboard({ serverInfo, onSendCommand, canManage }: Server
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold flex items-center">
                 <Activity size={18} className="mr-2 text-primary" />
-                Quick Actions
+                Быстрые действия
               </h3>
               {canManage && <button 
                 onClick={() => setIsAddingCmd(!isAddingCmd)}
                 className="text-[10px] uppercase font-bold text-primary hover:text-primary/80 flex items-center bg-primary/10 px-2 py-1 rounded"
               >
-                <Plus size={12} className="mr-1" /> Custom
+                <Plus size={12} className="mr-1" /> Своя
               </button>}
             </div>
             
             <div className="grid grid-cols-2 gap-2 flex-1">
-              <ActionButton label="Start Match" onClick={() => onSendCommand('css_start')} />
-              <ActionButton label="Restart Match" onClick={() => onSendCommand('mp_restartgame 1')} />
-              <ActionButton label="Pause Match" onClick={() => onSendCommand('css_forcepause')} />
-              <ActionButton label="Unpause Match" onClick={() => onSendCommand('css_forceunpause')} />
+              <ActionButton label="Старт матча" onClick={() => onSendCommand('css_start')} />
+              <ActionButton label="Рестарт матча" onClick={() => onSendCommand('mp_restartgame 1')} />
+              <ActionButton label="Пауза" onClick={() => onSendCommand('css_forcepause')} />
+              <ActionButton label="Снять паузу" onClick={() => onSendCommand('css_forceunpause')} />
               
               {customCommands.map(cmd => (
                 <div key={cmd.id} className="relative group/btn">
@@ -165,13 +165,13 @@ export function ServerDashboard({ serverInfo, onSendCommand, canManage }: Server
             {isAddingCmd && (
               <div className="mt-4 p-3 rounded-lg border border-primary/20 bg-primary/5 space-y-2 animate-in slide-in-from-top-2">
                 <input 
-                  placeholder="Label (e.g. Knife)" 
+                  placeholder="Название (например, Нож)" 
                   value={newCmdLabel}
                   onChange={e => setNewCmdLabel(e.target.value)}
                   className="w-full bg-black/40 border border-border rounded px-2 py-1 text-xs outline-none focus:border-primary"
                 />
                 <input 
-                  placeholder="Command (e.g. mp_warmup_start)" 
+                  placeholder="Команда (например, mp_warmup_start)" 
                   value={newCmdValue}
                   onChange={e => setNewCmdValue(e.target.value)}
                   className="w-full bg-black/40 border border-border rounded px-2 py-1 text-xs outline-none focus:border-primary"
@@ -181,13 +181,13 @@ export function ServerDashboard({ serverInfo, onSendCommand, canManage }: Server
                     onClick={handleAddCommand}
                     className="flex-1 bg-primary text-primary-foreground py-1 rounded text-[10px] font-bold"
                   >
-                    Save
+                    Сохранить
                   </button>
                   <button 
                     onClick={() => setIsAddingCmd(false)}
                     className="px-3 bg-white/5 py-1 rounded text-[10px] font-bold"
                   >
-                    Cancel
+                    Отмена
                   </button>
                 </div>
               </div>
@@ -197,12 +197,12 @@ export function ServerDashboard({ serverInfo, onSendCommand, canManage }: Server
          <div className="p-4 md:p-6 rounded-xl border border-border bg-[#09090b]/50 backdrop-blur-sm">
             <h3 className="text-lg font-semibold mb-4 flex items-center">
               <MapIcon size={18} className="mr-2 text-primary" />
-              Map Control
+              Смена карты
             </h3>
             <div className="flex items-center space-x-2">
               <input
                 type="text"
-                placeholder="Map name (e.g. de_dust2)..."
+                placeholder="Карта (например, de_dust2)..."
                 value={mapInput}
                 onChange={(e) => setMapInput(e.target.value)}
                 list="map-suggestions"
@@ -218,7 +218,7 @@ export function ServerDashboard({ serverInfo, onSendCommand, canManage }: Server
                 className="bg-primary text-primary-foreground px-4 py-2 rounded-md font-medium text-sm hover:bg-primary/90 transition-colors"
                 disabled={!mapInput}
               >
-                Change
+                Сменить
               </button>
             </div>
          </div>

@@ -229,7 +229,7 @@ function PlayersTable({ team, teamKey }: { team: LiveTeam; teamKey: 'team1' | 't
   const rows = [...team.players].sort((a, b) => (b.stats.kills ?? 0) - (a.stats.kills ?? 0) || (b.stats.damage ?? 0) - (a.stats.damage ?? 0));
   return (
     <section className="rounded-xl border border-border overflow-hidden">
-      <div className={cn('px-4 py-2 text-sm font-bold border-b border-border', TEAM_TEXT[teamKey])}>{team.name || (teamKey === 'team1' ? 'Team 1' : 'Team 2')}</div>
+      <div className={cn('px-4 py-2 text-sm font-bold border-b border-border', TEAM_TEXT[teamKey])}>{team.name || (teamKey === 'team1' ? 'Команда 1' : 'Команда 2')}</div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="text-xs text-muted-foreground">

@@ -10,9 +10,9 @@ export function GeneralSettings() {
       <div>
         <h2 className="text-3xl font-bold text-white flex items-center">
           <Settings className="mr-3 text-primary" size={32} />
-          General Settings
+          Настройки
         </h2>
-        <p className="text-muted-foreground mt-2">Panel activity log and version.</p>
+        <p className="text-muted-foreground mt-2">Журнал действий и версия панели.</p>
       </div>
 
       <div className="space-y-6">
@@ -22,11 +22,11 @@ export function GeneralSettings() {
         <div className="pt-6 border-t border-border">
           <div className="flex items-center space-x-2 text-muted-foreground mb-4">
             <Info size={14} />
-            <span className="text-xs font-semibold uppercase tracking-wider">About</span>
+            <span className="text-xs font-semibold uppercase tracking-wider">О панели</span>
           </div>
           <div className="text-sm text-muted-foreground">
-            <p>CS2 RCON Panel v{process.env.NEXT_PUBLIC_PANEL_VERSION}</p>
-            <p className="mt-1">Passwords and logins are set in settings.ini of the tournament kit.</p>
+            <p>CS2 RCON Panel, версия {process.env.NEXT_PUBLIC_PANEL_VERSION}</p>
+            <p className="mt-1">Логины и пароли задаются в settings.ini турнирного комплекта.</p>
           </div>
         </div>
       </div>

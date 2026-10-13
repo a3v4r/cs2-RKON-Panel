@@ -69,7 +69,7 @@ export function Sidebar({
       {/* Servers List */}
       <div className="flex flex-col flex-1 overflow-hidden">
         <div className="p-4 flex items-center justify-between">
-          {!collapsed && <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Servers</span>}
+          {!collapsed && <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Серверы</span>}
           {canManage && (
             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onAddServer}>
               <Plus size={16} />
@@ -147,7 +147,7 @@ export function Sidebar({
           )}
         >
           <Settings size={18} />
-          {!collapsed && <span className="text-sm font-medium">Settings</span>}
+          {!collapsed && <span className="text-sm font-medium">Настройки</span>}
         </button>
         <button 
           onClick={async () => { await fetch('/api/logout', { method: 'POST' }); window.location.href = '/login'; }}

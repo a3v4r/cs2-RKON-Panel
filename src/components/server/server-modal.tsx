@@ -54,14 +54,14 @@ export function ServerModal({ open, onOpenChange, onSave, server }: ServerModalP
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px] bg-[#09090b] border-border text-white">
         <DialogHeader>
-          <DialogTitle>{server ? 'Edit Server' : 'Add New Server'}</DialogTitle>
+          <DialogTitle>{server ? 'Изменить сервер' : 'Новый сервер'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Server Name</Label>
+            <Label htmlFor="name">Название</Label>
             <Input
               id="name"
-              placeholder="Cybersport Server #1"
+              placeholder="Турнирный сервер #1"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className="bg-white/5 border-border"
@@ -70,7 +70,7 @@ export function ServerModal({ open, onOpenChange, onSave, server }: ServerModalP
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div className="col-span-2 space-y-2">
-              <Label htmlFor="host">Host / IP</Label>
+              <Label htmlFor="host">Адрес / IP</Label>
               <Input
                 id="host"
                 placeholder="127.0.0.1"
@@ -81,7 +81,7 @@ export function ServerModal({ open, onOpenChange, onSave, server }: ServerModalP
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="port">Port</Label>
+              <Label htmlFor="port">Порт</Label>
               <Input
                 id="port"
                 type="number"
@@ -94,7 +94,7 @@ export function ServerModal({ open, onOpenChange, onSave, server }: ServerModalP
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">RCON Password</Label>
+            <Label htmlFor="password">RCON-пароль</Label>
             <Input
               id="password"
               type="password"
@@ -106,7 +106,7 @@ export function ServerModal({ open, onOpenChange, onSave, server }: ServerModalP
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="country">Country Code (ISO)</Label>
+            <Label htmlFor="country">Код страны (флаг)</Label>
             <Input
               id="country"
               placeholder="RU"
@@ -118,10 +118,10 @@ export function ServerModal({ open, onOpenChange, onSave, server }: ServerModalP
           </div>
           <DialogFooter className="pt-4">
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-              Cancel
+              Отмена
             </Button>
             <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground">
-              {server ? 'Update Server' : 'Add Server'}
+              {server ? 'Сохранить' : 'Добавить'}
             </Button>
           </DialogFooter>
         </form>

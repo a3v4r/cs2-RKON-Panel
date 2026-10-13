@@ -37,25 +37,25 @@ export function ServerSettings({ server, onEdit, onCommand }: ServerSettingsProp
           </div>
           <div>
             <h2 className="text-2xl font-bold text-white">{server.name}</h2>
-            <p className="text-sm text-muted-foreground">Configuration & Management</p>
+            <p className="text-sm text-muted-foreground">Настройки сервера</p>
           </div>
         </div>
         <Button variant="outline" onClick={onEdit}>
           <Pencil size={14} className="mr-2" />
-          Edit server
+          Изменить сервер
         </Button>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <SettingsGroup title="Connection" icon={<Zap size={18} />}>
-          <Row label="Host"><span className="text-sm text-white font-mono">{server.host}</span></Row>
-          <Row label="Port"><span className="text-sm text-white font-mono">{server.port}</span></Row>
+        <SettingsGroup title="Подключение" icon={<Zap size={18} />}>
+          <Row label="Адрес"><span className="text-sm text-white font-mono">{server.host}</span></Row>
+          <Row label="Порт"><span className="text-sm text-white font-mono">{server.port}</span></Row>
           <Row label="RCON" last>
             <div className="flex items-center gap-2 min-w-0">
-              {check.state === 'checking' && <span className="text-xs text-muted-foreground">checking...</span>}
-              {check.state === 'ok' && <span className="text-xs font-bold text-emerald-500 uppercase">Connected</span>}
-              {check.state === 'error' && <span className="text-xs font-bold text-red-500 uppercase">Error</span>}
-              <button onClick={runCheck} className="p-1 text-muted-foreground hover:text-white" title="Check again">
+              {check.state === 'checking' && <span className="text-xs text-muted-foreground">проверка...</span>}
+              {check.state === 'ok' && <span className="text-xs font-bold text-emerald-500 uppercase">Подключено</span>}
+              {check.state === 'error' && <span className="text-xs font-bold text-red-500 uppercase">Ошибка</span>}
+              <button onClick={runCheck} className="p-1 text-muted-foreground hover:text-white" title="Проверить ещё раз">
                 <RefreshCw size={14} />
               </button>
             </div>
@@ -67,14 +67,14 @@ export function ServerSettings({ server, onEdit, onCommand }: ServerSettingsProp
           )}
         </SettingsGroup>
 
-        <SettingsGroup title="Security" icon={<Shield size={18} />}>
-          <Row label="RCON password" last>
+        <SettingsGroup title="Безопасность" icon={<Shield size={18} />}>
+          <Row label="RCON-пароль" last>
             {server.has_password
-              ? <span className="text-xs px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-500">Set</span>
-              : <span className="text-xs px-2 py-0.5 rounded bg-red-500/20 text-red-500">Not set</span>}
+              ? <span className="text-xs px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-500">Задан</span>
+              : <span className="text-xs px-2 py-0.5 rounded bg-red-500/20 text-red-500">Не задан</span>}
           </Row>
           <p className="pt-2 text-xs text-muted-foreground">
-            Stored only on the panel server and never sent to browsers. Change it with &quot;Edit server&quot;.
+            Хранится только на сервере панели и не передаётся в браузер. Сменить - кнопкой «Изменить сервер».
           </p>
         </SettingsGroup>
       </div>

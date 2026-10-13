@@ -21,7 +21,7 @@ import { LiveMatch } from '@/components/server/live-match';
 import { fetchMe, Role } from '@/lib/api';
 
 const INITIAL_INFO = {
-  name: "Loading...",
+  name: "Загрузка...",
   map: "---",
   players: { online: 0, max: 0, bots: 0 },
   ping: 0,
@@ -81,7 +81,7 @@ export default function Home() {
 
   const handleRconCommand = async (command: string) => {
     const server = servers.find(s => s.id === activeServerId);
-    if (!server) throw new Error("No server selected");
+    if (!server) throw new Error("Сервер не выбран");
     return await sendRconCommand(server.id!, command);
   };
 
@@ -108,7 +108,7 @@ export default function Home() {
   };
 
   const handleDeleteServer = async (id: number) => {
-    if (confirm("Are you sure you want to delete this server?")) {
+    if (confirm("Удалить этот сервер?")) {
       try {
         await db_helper.deleteServer(id);
         await loadServers();
@@ -216,39 +216,39 @@ export default function Home() {
             <div className="flex items-center justify-between gap-4 px-3 md:px-6 py-2 md:py-4 border-b border-border bg-[#09090b]">
               <div className="hidden md:flex items-center space-x-4 shrink-0">
                 <div className="text-sm font-medium text-muted-foreground">
-                  Selected: <span className="text-white">{selectedServer?.name}</span>
+                  Сервер: <span className="text-white">{selectedServer?.name}</span>
                 </div>
               </div>
 
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full md:w-auto overflow-x-auto">
                 <TabsList className="bg-white/5 border border-border w-max">
-                  <TabsTrigger value="dashboard" aria-label="Dashboard" title="Dashboard" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
+                  <TabsTrigger value="dashboard" aria-label="Обзор" title="Обзор" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
                     <LayoutDashboard size={14} className="sm:mr-2" />
-                    <span className="hidden sm:inline">Dashboard</span>
+                    <span className="hidden sm:inline">Обзор</span>
                   </TabsTrigger>
-                  <TabsTrigger value="live" aria-label="Live" title="Live" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
+                  <TabsTrigger value="live" aria-label="Матч" title="Матч: счёт и статистика" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
                     <Activity size={14} className="sm:mr-2" />
-                    <span className="hidden sm:inline">Live</span>
+                    <span className="hidden sm:inline">Матч</span>
                   </TabsTrigger>
-                  <TabsTrigger value="console" aria-label="Console" title="Console" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
+                  <TabsTrigger value="console" aria-label="Консоль" title="Консоль" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
                     <Terminal size={14} className="sm:mr-2" />
-                    <span className="hidden sm:inline">Console</span>
+                    <span className="hidden sm:inline">Консоль</span>
                   </TabsTrigger>
-                  <TabsTrigger value="chat" aria-label="Chat" title="Chat" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
+                  <TabsTrigger value="chat" aria-label="Чат" title="Чат" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
                     <MessageSquare size={14} className="sm:mr-2" />
-                    <span className="hidden sm:inline">Chat</span>
+                    <span className="hidden sm:inline">Чат</span>
                   </TabsTrigger>
-                  <TabsTrigger value="maps" aria-label="Maps" title="Maps" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
+                  <TabsTrigger value="maps" aria-label="Карты" title="Карты" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
                     <MapIcon size={14} className="sm:mr-2" />
-                    <span className="hidden sm:inline">Maps</span>
+                    <span className="hidden sm:inline">Карты</span>
                   </TabsTrigger>
-                  <TabsTrigger value="match" aria-label="Match" title="Match" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
+                  <TabsTrigger value="match" aria-label="Запуск" title="Запуск матча" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
                     <Trophy size={14} className="sm:mr-2" />
-                    <span className="hidden sm:inline">Match</span>
+                    <span className="hidden sm:inline">Запуск</span>
                   </TabsTrigger>
-                  <TabsTrigger value="settings" aria-label="Settings" title="Settings" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
+                  <TabsTrigger value="settings" aria-label="Настройки" title="Настройки сервера" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
                     <Settings size={14} className="sm:mr-2" />
-                    <span className="hidden sm:inline">Settings</span>
+                    <span className="hidden sm:inline">Настройки</span>
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
@@ -302,7 +302,7 @@ export default function Home() {
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center text-muted-foreground italic">
-            Select a server from the sidebar to start managing.
+            Выберите сервер в списке слева.
           </div>
         )}
       </main>

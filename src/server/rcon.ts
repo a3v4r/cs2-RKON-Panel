@@ -44,6 +44,18 @@ function parsePackets(buffer: Buffer): { packets: Packet[]; rest: Buffer } {
 
 export class RconError extends Error {}
 
+function networkError(e: NodeJS.ErrnoException, host: string, port: number): string {
+  switch (e.code) {
+    case 'ECONNREFUSED': return `RCON: сервер ${host}:${port} не принимает подключения (выключен или неверный порт)`;
+    case 'ETIMEDOUT':
+    case 'EHOSTUNREACH':
+    case 'ENETUNREACH': return `RCON: ${host}:${port} недоступен по сети`;
+    case 'ENOTFOUND': return `RCON: адрес ${host} не найден`;
+    case 'ECONNRESET': return 'RCON: сервер разорвал соединение';
+    default: return `RCON: ${e.message}`;
+  }
+}
+
 export function rconCommand(host: string, port: number, password: string, command: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const socket = net.createConnection({ host, port });
@@ -69,7 +81,7 @@ export function rconCommand(host: string, port: number, password: string, comman
     });
 
     socket.on('connect', () => socket.write(packet(1, SERVERDATA_AUTH, password)));
-    socket.on('error', (e) => finish(new RconError(`RCON: ${e.message}`)));
+    socket.on('error', (e) => finish(new RconError(networkError(e as NodeJS.ErrnoException, host, port))));
     socket.on('close', () => finish(authed ? undefined : new RconError('RCON: соединение закрыто сервером')));
 
     socket.on('data', (chunk) => {
