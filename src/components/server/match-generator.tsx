@@ -32,7 +32,12 @@ const storageKey = (serverId: number) => `cs2panel.match.${serverId}`
 function loadMatchConfig(serverId: number): MatchFormConfig {
   try {
     const saved = localStorage.getItem(storageKey(serverId))
-    if (saved) return { ...defaultMatchConfig(), ...JSON.parse(saved) }
+    if (saved) {
+      const config: MatchFormConfig = { ...defaultMatchConfig(), ...JSON.parse(saved) }
+      // "standard" was offered by older versions but MatchZy rejects it in map_sides
+      config.map_sides = config.map_sides.map((side) => (side === 'standard' ? 'knife' : side))
+      return config
+    }
   } catch {
     // storage unavailable (private mode): start from defaults
   }
@@ -302,7 +307,6 @@ export function MatchGenerator({ serverId, onStartMatch, onLaunchMatch, onStopMa
                         <option value="team1_t">{team1Label} T</option>
                         <option value="team2_ct">{team2Label} CT</option>
                         <option value="team2_t">{team2Label} T</option>
-                        <option value="standard">Standard</option>
                       </select>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
