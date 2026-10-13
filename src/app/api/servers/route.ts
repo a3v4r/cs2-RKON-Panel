@@ -1,17 +1,17 @@
 import { NextResponse } from 'next/server';
-import { STAFF, audit, requireRole } from '@/server/auth';
+import { JUDGE, audit, requireRole } from '@/server/auth';
 import { publicServer, servers } from '@/server/store';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const user = await requireRole(STAFF);
+  const user = await requireRole(JUDGE);
   if (user instanceof NextResponse) return user;
   return NextResponse.json(servers.list().map(publicServer));
 }
 
 export async function POST(req: Request) {
-  const user = await requireRole(['admin']);
+  const user = await requireRole(JUDGE);
   if (user instanceof NextResponse) return user;
   const body = await req.json();
   if (!body.name || !body.host || !body.port) {

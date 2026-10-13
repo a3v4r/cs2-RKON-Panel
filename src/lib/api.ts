@@ -14,12 +14,22 @@ export async function api<T>(url: string, init?: { method?: string; body?: unkno
   return data as T;
 }
 
-export type Role = 'admin' | 'referee' | 'broadcast';
+export type Role = 'judge' | 'broadcast';
 
 export const ROLE_LABELS: Record<Role, string> = {
-  admin: 'Админ',
-  referee: 'Судья',
+  judge: 'Судья',
   broadcast: 'Трансляция',
 };
 
-export const fetchMe = () => api<{ username: string; role: Role }>('/api/me');
+export const fetchMe = () => api<{ role: Role }>('/api/me');
+
+export interface BroadcastRequest {
+  id: number;
+  serverId: number;
+  serverName: string;
+  type: 'pause' | 'unpause';
+  reason: string;
+  status: 'pending' | 'accepted' | 'rejected' | 'cancelled';
+  createdAt: string;
+  resolvedAt?: string;
+}

@@ -32,7 +32,7 @@ interface SidebarProps {
   onDeleteServer: (id: number) => void;
   onOpenGeneralSettings: () => void;
   canManage: boolean;
-  user: { username: string; role: Role };
+  user: { role: Role };
 }
 
 export function Sidebar({ 
@@ -136,7 +136,7 @@ export function Sidebar({
       <div className="p-4 border-t border-border mt-auto">
         {!collapsed && (
           <div className="px-2 pb-2 text-xs text-muted-foreground truncate">
-            {user.username} • {ROLE_LABELS[user.role]}
+            {ROLE_LABELS[user.role]}
           </div>
         )}
         <button 

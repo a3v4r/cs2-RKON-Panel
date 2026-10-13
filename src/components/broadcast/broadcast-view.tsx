@@ -1,9 +1,9 @@
 "use client";
 
 import React from 'react';
-import { Copy, Check, Pause, Play, Radio, LogOut, Tv } from 'lucide-react';
+import { Copy, Check, Pause, Play, Radio, LogOut, Tv, Send, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { api } from '@/lib/api';
+import { api, BroadcastRequest } from '@/lib/api';
 
 interface Team {
   name: string;
@@ -21,10 +21,10 @@ interface BroadcastServer {
   players: number;
   connect: string;
   gotv: string | null;
+  request: BroadcastRequest | null;
   match: null | {
     state: string;
     paused: boolean;
-    pausedByBroadcast: boolean;
     mapNumber: number;
     round: number;
     team1: Team | null;
@@ -43,6 +43,10 @@ const STATE_LABELS: Record<string, string> = {
   post_game: 'Карта окончена',
 };
 
+const PAUSE_REASONS = ['Проблема со стримом', 'Проблема со звуком', 'Проблема у обсерверов'];
+// A judge's answer stays visible this long
+const ANSWER_VISIBLE_MS = 60_000;
+
 // Clipboard API needs HTTPS or localhost; the panel is opened over plain http on the LAN, so fall back to execCommand.
 async function copyText(text: string) {
   if (navigator.clipboard && window.isSecureContext) {
@@ -59,11 +63,9 @@ async function copyText(text: string) {
   document.body.removeChild(area);
 }
 
-export function BroadcastView({ username }: { username: string }) {
+export function BroadcastView() {
   const [servers, setServers] = React.useState<BroadcastServer[] | null>(null);
   const [error, setError] = React.useState('');
-  const [busy, setBusy] = React.useState<number | null>(null);
-  const [notice, setNotice] = React.useState('');
 
   const load = React.useCallback(async () => {
     try {
@@ -76,27 +78,9 @@ export function BroadcastView({ username }: { username: string }) {
 
   React.useEffect(() => {
     load();
-    const timer = setInterval(load, 5000);
+    const timer = setInterval(load, 3000);
     return () => clearInterval(timer);
   }, [load]);
-
-  const pauseAction = async (server: BroadcastServer, action: 'pause' | 'unpause') => {
-    const question = action === 'pause'
-      ? `Поставить матч на сервере «${server.name}» на паузу?`
-      : `Продолжить матч на сервере «${server.name}»?`;
-    if (!confirm(question)) return;
-    setBusy(server.id);
-    try {
-      await api(`/api/servers/${server.id}/pause`, { body: { action } });
-      setNotice(action === 'pause' ? 'Пауза поставлена' : 'Матч продолжается');
-      setTimeout(() => setNotice(''), 4000);
-      await load();
-    } catch (e) {
-      setNotice(`Ошибка: ${(e as Error).message}`);
-    } finally {
-      setBusy(null);
-    }
-  };
 
   return (
     <div className="min-h-[100dvh] bg-[#09090b] text-white">
@@ -105,46 +89,68 @@ export function BroadcastView({ username }: { username: string }) {
           <Radio size={18} className="text-red-500" />
           Трансляция
         </div>
-        <div className="flex items-center gap-3 text-sm text-muted-foreground">
-          <span className="truncate">{username}</span>
-          <button
-            onClick={async () => { await fetch('/api/logout', { method: 'POST' }); window.location.href = '/login'; }}
-            className="p-2 rounded-md hover:bg-white/5 hover:text-white"
-            aria-label="Выйти"
-          >
-            <LogOut size={18} />
-          </button>
-        </div>
+        <button
+          onClick={async () => { await fetch('/api/logout', { method: 'POST' }); window.location.href = '/login'; }}
+          className="p-2 rounded-md text-muted-foreground hover:bg-white/5 hover:text-white"
+          aria-label="Выйти"
+        >
+          <LogOut size={18} />
+        </button>
       </header>
 
-      {notice && (
-        <div className="mx-4 mt-3 rounded-lg border border-primary/40 bg-primary/10 px-3 py-2 text-sm">{notice}</div>
-      )}
       {error && (
         <div className="mx-4 mt-3 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-400">{error}</div>
       )}
 
       <main className="grid gap-4 p-4 md:grid-cols-2">
         {servers === null && <p className="text-muted-foreground">Загрузка...</p>}
-        {servers?.length === 0 && <p className="text-muted-foreground">Серверов пока нет - их добавляет админ.</p>}
-        {servers?.map((s) => (
-          <ServerCard key={s.id} server={s} busy={busy === s.id} onPause={pauseAction} />
-        ))}
+        {servers?.length === 0 && <p className="text-muted-foreground">Серверов пока нет.</p>}
+        {servers?.map((s) => <ServerCard key={s.id} server={s} onChange={load} />)}
       </main>
     </div>
   );
 }
 
-function ServerCard({ server: s, busy, onPause }: {
-  server: BroadcastServer;
-  busy: boolean;
-  onPause: (s: BroadcastServer, action: 'pause' | 'unpause') => void;
-}) {
+function ServerCard({ server: s, onChange }: { server: BroadcastServer; onChange: () => void }) {
+  const [choosing, setChoosing] = React.useState(false);
+  const [custom, setCustom] = React.useState('');
+  const [busy, setBusy] = React.useState(false);
+  const [error, setError] = React.useState('');
+
   const m = s.match;
+  const r = s.request;
+  const pending = r?.status === 'pending';
   const stateLabel = m ? (m.paused ? 'ПАУЗА' : STATE_LABELS[m.state] ?? m.state) : 'Матч не загружен';
-  // Pause only a running match; lift only a pause the broadcast set itself
-  const canPause = s.online && !!m && !m.paused && ['knife', 'going_live', 'live'].includes(m.state);
-  const canUnpause = s.online && !!m?.pausedByBroadcast;
+  const canRequestPause = s.online && !!m && !m.paused && !pending && ['knife', 'going_live', 'live'].includes(m.state);
+  const canRequestContinue = s.online && !!m?.paused && !pending;
+
+  const send = async (type: 'pause' | 'unpause', reason = '') => {
+    setBusy(true);
+    setError('');
+    try {
+      await api('/api/requests', { body: { serverId: s.id, type, reason } });
+      setChoosing(false);
+      setCustom('');
+      onChange();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const cancel = async () => {
+    if (!r) return;
+    setBusy(true);
+    try {
+      await api(`/api/requests/${r.id}`, { body: { decision: 'cancel' } });
+      onChange();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <section className="rounded-xl border border-border p-4 space-y-4">
@@ -184,26 +190,89 @@ function ServerCard({ server: s, busy, onPause }: {
         {s.gotv && <ConnectRow label="GOTV" value={s.gotv} icon={<Tv size={14} />} />}
       </div>
 
-      {m?.paused && !m.pausedByBroadcast && (
-        <p className="text-xs text-amber-400">Паузу поставили игроки или судья - снять её может только судья.</p>
+      <RequestStatus request={r} busy={busy} onCancel={cancel} />
+
+      {choosing ? (
+        <div className="space-y-2 rounded-lg border border-amber-500/30 p-3">
+          <p className="text-xs text-muted-foreground">Причина паузы (судья увидит её и решит):</p>
+          <div className="grid gap-2">
+            {PAUSE_REASONS.map((reason) => (
+              <button
+                key={reason}
+                disabled={busy}
+                onClick={() => send('pause', reason)}
+                className="h-11 rounded-md border border-border bg-white/5 px-3 text-left text-sm disabled:opacity-50"
+              >
+                {reason}
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <input
+              value={custom}
+              onChange={(e) => setCustom(e.target.value)}
+              placeholder="Другое..."
+              maxLength={200}
+              className="h-11 flex-1 min-w-0 rounded-md border border-border bg-black/30 px-3 text-sm outline-none focus:border-amber-500"
+            />
+            <button
+              disabled={busy || !custom.trim()}
+              onClick={() => send('pause', custom)}
+              className="h-11 rounded-md bg-amber-500 px-3 text-black disabled:opacity-40"
+              aria-label="Отправить запрос"
+            >
+              <Send size={16} />
+            </button>
+          </div>
+          <button onClick={() => setChoosing(false)} className="w-full py-1 text-xs text-muted-foreground">Отмена</button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            disabled={busy || !canRequestPause}
+            onClick={() => setChoosing(true)}
+            className="flex h-12 items-center justify-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 text-sm font-bold text-amber-400 disabled:opacity-40"
+          >
+            <Pause size={18} /> Запросить паузу
+          </button>
+          <button
+            disabled={busy || !canRequestContinue}
+            onClick={() => send('unpause')}
+            className="flex h-12 items-center justify-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/10 text-sm font-bold text-emerald-400 disabled:opacity-40"
+          >
+            <Play size={18} /> Можно продолжать
+          </button>
+        </div>
       )}
-      <div className="grid grid-cols-2 gap-2">
-        <button
-          disabled={busy || !canPause}
-          onClick={() => onPause(s, 'pause')}
-          className="flex h-12 items-center justify-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 font-bold text-amber-400 disabled:opacity-40"
-        >
-          <Pause size={18} /> Пауза
-        </button>
-        <button
-          disabled={busy || !canUnpause}
-          onClick={() => onPause(s, 'unpause')}
-          className="flex h-12 items-center justify-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/10 font-bold text-emerald-400 disabled:opacity-40"
-        >
-          <Play size={18} /> Продолжить
+      {error && <p className="text-xs text-red-400">{error}</p>}
+    </section>
+  );
+}
+
+function RequestStatus({ request: r, busy, onCancel }: { request: BroadcastRequest | null; busy: boolean; onCancel: () => void }) {
+  if (!r) return null;
+  const what = r.type === 'pause' ? 'паузу' : 'продолжение';
+  if (r.status === 'pending') {
+    return (
+      <div className="flex items-center gap-2 rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-300">
+        <span className="flex-1">Запрос на {what} отправлен, ждём судью...</span>
+        <button disabled={busy} onClick={onCancel} className="flex items-center gap-1 text-xs text-muted-foreground disabled:opacity-50">
+          <X size={14} /> Отменить
         </button>
       </div>
-    </section>
+    );
+  }
+  if (!r.resolvedAt || Date.now() - new Date(r.resolvedAt).getTime() > ANSWER_VISIBLE_MS) return null;
+  const text = r.status === 'accepted'
+    ? (r.type === 'pause' ? 'Судья поставил паузу' : 'Судья продолжил матч')
+    : r.status === 'rejected' ? `Судья отклонил запрос на ${what}` : 'Запрос отменён';
+  return (
+    <div className={cn(
+      'rounded-lg px-3 py-2 text-sm',
+      r.status === 'accepted' ? 'bg-emerald-500/10 text-emerald-300' : 'bg-white/5 text-muted-foreground',
+    )}>
+      {text}
+    </div>
   );
 }
 

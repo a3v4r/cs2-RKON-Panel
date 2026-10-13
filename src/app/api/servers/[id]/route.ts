@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { audit, requireRole } from '@/server/auth';
+import { JUDGE, audit, requireRole } from '@/server/auth';
 import { publicServer, servers } from '@/server/store';
 
 type Params = { params: Promise<{ id: string }> };
 
 export async function PUT(req: Request, { params }: Params) {
-  const user = await requireRole(['admin']);
+  const user = await requireRole(JUDGE);
   if (user instanceof NextResponse) return user;
   const id = Number((await params).id);
   const body = await req.json();
@@ -23,7 +23,7 @@ export async function PUT(req: Request, { params }: Params) {
 }
 
 export async function DELETE(_req: Request, { params }: Params) {
-  const user = await requireRole(['admin']);
+  const user = await requireRole(JUDGE);
   if (user instanceof NextResponse) return user;
   const id = Number((await params).id);
   servers.remove(id);

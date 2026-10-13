@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { STAFF, requireRole } from '@/server/auth';
+import { JUDGE, requireRole } from '@/server/auth';
 import { queryInfo } from '@/server/a2s';
 import { servers } from '@/server/store';
 
@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_req: Request, { params }: Params) {
-  const user = await requireRole(STAFF);
+  const user = await requireRole(JUDGE);
   if (user instanceof NextResponse) return user;
   const server = servers.get(Number((await params).id));
   if (!server) return NextResponse.json({ error: 'Сервер не найден' }, { status: 404 });

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { ANY_ROLE, requireRole } from '@/server/auth';
 import { queryInfo } from '@/server/a2s';
 import { lanAddresses } from '@/server/network';
-import { pauses } from '@/server/pauses';
+import { requests } from '@/server/requests';
 import { rconCommand } from '@/server/rcon';
 import { servers } from '@/server/store';
 
@@ -47,9 +47,6 @@ export async function GET(req: Request) {
             .catch(() => undefined),
     ]);
 
-    // Someone else lifted our pause (or the match ended): forget it
-    if (!status?.paused) pauses.clear(s.id);
-
     const team = (t: TeamState | null | undefined) =>
       t ? { name: t.name, series: t.series_score, score: t.current_map_score, side: t.side } : null;
 
@@ -62,11 +59,11 @@ export async function GET(req: Request) {
       players: info ? Math.max(0, info.players - info.bots) : 0,
       connect: `connect ${host}:${s.port}`,
       gotv: tvPort ? `connect ${host}:${tvPort}` : null,
+      request: requests.latestFor(s.id) ?? null,
       match: status && status.gamestate && status.gamestate !== 'none'
         ? {
             state: status.gamestate as string,
             paused: !!status.paused,
-            pausedByBroadcast: !!status.paused && pauses.isBroadcast(s.id),
             mapNumber: status.map_number as number,
             round: status.round_number as number,
             team1: team(status.team1),

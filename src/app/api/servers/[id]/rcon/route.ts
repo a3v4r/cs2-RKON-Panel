@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { STAFF, audit, requireRole } from '@/server/auth';
+import { JUDGE, audit, requireRole } from '@/server/auth';
 import { rconCommand } from '@/server/rcon';
 import { servers } from '@/server/store';
 
@@ -9,7 +9,7 @@ type Params = { params: Promise<{ id: string }> };
 const QUIET_COMMANDS = new Set(['status', 'get5_status', 'hostname']);
 
 export async function POST(req: Request, { params }: Params) {
-  const user = await requireRole(STAFF);
+  const user = await requireRole(JUDGE);
   if (user instanceof NextResponse) return user;
   const server = servers.get(Number((await params).id));
   if (!server) return NextResponse.json({ error: 'Сервер не найден' }, { status: 404 });

@@ -1,20 +1,15 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { BUILTIN_ADMIN, Role, dataDir, users } from './users';
+import { Role, accountPassword, dataDir, roleByLogin } from './accounts';
 
-// Session cookie: base64url(JSON payload) + "." + HMAC. The payload carries a fingerprint of the user's current
-// password (or PANEL_PASSWORD for the built-in admin), so a password change, role change or deletion ends the session.
+// Session cookie: base64url(JSON payload) + "." + HMAC. The payload carries a fingerprint of the account's
+// current password, so changing a password in settings.ini ends that account's sessions.
 export const SESSION_COOKIE = 'cs2panel_session';
 const SESSION_DAYS = 30;
 
 export interface SessionUser {
-  username: string;
   role: Role;
-}
-
-export function panelPassword(): string {
-  return process.env.PANEL_PASSWORD ?? '';
 }
 
 let cachedSecret: Buffer | undefined;
@@ -32,54 +27,43 @@ function secret(): Buffer {
 }
 
 const hmac = (data: string) => crypto.createHmac('sha256', secret()).update(data).digest('hex');
-const fingerprint = (credential: string) => hmac('fp:' + credential).slice(0, 16);
+const fingerprint = (password: string) => hmac('fp:' + password).slice(0, 16);
 
-// Login is not needed at all only when nothing is configured (development).
-export function authDisabled(): boolean {
-  return !panelPassword() && users.list().length === 0;
-}
+// No judge password = development: everyone is a judge without logging in.
+export const authDisabled = () => !accountPassword('judge');
 
-export function createSession(username: string, credential: string): string {
+function createSession(role: Role): string {
   const payload = Buffer.from(JSON.stringify({
-    u: username,
-    f: fingerprint(credential),
+    r: role,
+    f: fingerprint(accountPassword(role)),
     exp: Date.now() + SESSION_DAYS * 24 * 3600 * 1000,
   })).toString('base64url');
   return `${payload}.${hmac(payload)}`;
 }
 
 export function resolveSession(token: string | undefined): SessionUser | null {
-  if (authDisabled()) return { username: BUILTIN_ADMIN, role: 'admin' };
+  if (authDisabled()) return { role: 'judge' };
   if (!token) return null;
   const [payload, sig] = token.split('.');
   if (!payload || !sig || sig.length !== 64) return null;
   if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(hmac(payload)))) return null;
 
-  let data: { u: string; f: string; exp: number };
+  let data: { r: Role; f: string; exp: number };
   try {
     data = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
   } catch {
     return null;
   }
-  if (Date.now() > data.exp) return null;
-
-  if (data.u === BUILTIN_ADMIN) {
-    const pw = panelPassword();
-    return pw && data.f === fingerprint(pw) ? { username: BUILTIN_ADMIN, role: 'admin' } : null;
-  }
-  const user = users.find(data.u);
-  return user && data.f === fingerprint(user.password_hash) ? { username: user.username, role: user.role } : null;
+  if (Date.now() > data.exp || (data.r !== 'judge' && data.r !== 'broadcast')) return null;
+  const password = accountPassword(data.r);
+  return password && data.f === fingerprint(password) ? { role: data.r } : null;
 }
 
 // Checks a login; returns the session token or null.
 export function login(username: string, password: string): string | null {
-  const name = username.trim();
-  if (!name) return null;
-  if (name.toLowerCase() === BUILTIN_ADMIN) {
-    const pw = panelPassword();
-    if (pw ? password === pw : authDisabled()) return createSession(BUILTIN_ADMIN, pw);
-    return null;
-  }
-  const user = users.verify(name, password);
-  return user ? createSession(user.username, user.password_hash) : null;
+  const role = roleByLogin(username);
+  if (!role) return null;
+  const expected = accountPassword(role);
+  if (!expected || password !== expected) return null; // an account without a password is switched off
+  return createSession(role);
 }
