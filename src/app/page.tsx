@@ -103,7 +103,7 @@ export default function Home() {
       await loadServers();
       setEditingServer(null);
     } catch (error) {
-      console.error("Failed to save server:", error);
+      alert(`Не удалось сохранить сервер: ${(error as Error).message}`);
     }
   };
 
@@ -116,7 +116,7 @@ export default function Home() {
           setActiveServerId(null);
         }
       } catch (error) {
-        console.error("Failed to delete server:", error);
+        alert(`Не удалось удалить сервер: ${(error as Error).message}`);
       }
     }
   };
