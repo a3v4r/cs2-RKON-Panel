@@ -88,7 +88,7 @@ export function ServerDashboard({ serverInfo, onSendCommand, canManage }: Server
           <h2 className="text-xl md:text-3xl font-bold tracking-tight text-white">{serverInfo.name}</h2>
           <div className="flex items-center mt-1 text-muted-foreground">
             <Globe size={14} className="mr-1" />
-            <span className="text-sm">Public Server • {serverInfo.status === 'online' ? 'Connected' : 'Disconnected'}</span>
+            <span className="text-sm">{serverInfo.status === 'online' ? 'Connected' : 'Disconnected'}</span>
           </div>
         </div>
         <div className={cn(

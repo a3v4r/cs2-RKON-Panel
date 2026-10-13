@@ -1,9 +1,21 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Terminal as TerminalIcon, Send, ChevronRight, History, Trash2, Copy } from 'lucide-react';
+import { Terminal as TerminalIcon, Send, ChevronRight, History, Trash2, Copy, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { copyText } from '@/lib/clipboard';
+
+// Command history survives tab switches and reloads (on phones there are no arrow keys to recall it)
+const HISTORY_KEY = 'cs2panel.console.history';
+
+function loadHistory(): string[] {
+  try {
+    return JSON.parse(localStorage.getItem(HISTORY_KEY) ?? '[]');
+  } catch {
+    return [];
+  }
+}
 
 interface LogEntry {
   id: string;
@@ -19,10 +31,20 @@ interface RCONConsoleProps {
 export function RCONConsole({ onSendCommand }: RCONConsoleProps) {
   const [input, setInput] = useState('');
   const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [history, setHistory] = useState<string[]>([]);
+  const [history, setHistory] = useState<string[]>(loadHistory);
+  const [showHistory, setShowHistory] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    } catch {
+      // not critical
+    }
+  }, [history]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -38,7 +60,7 @@ export function RCONConsole({ onSendCommand }: RCONConsoleProps) {
     
     // Add to history
     setHistory(prev => {
-      const newHistory = [...prev, command];
+      const newHistory = [...prev.filter(c => c !== command), command];
       // Limit history size
       if (newHistory.length > 50) newHistory.shift();
       return newHistory;
@@ -112,11 +134,30 @@ export function RCONConsole({ onSendCommand }: RCONConsoleProps) {
           <button onClick={clearLogs} className="p-1.5 rounded-md hover:bg-white/10 text-muted-foreground transition-colors" title="Clear Console">
             <Trash2 size={14} />
           </button>
-          <button className="p-1.5 rounded-md hover:bg-white/10 text-muted-foreground transition-colors" title="Command History">
+          <button
+            onClick={() => setShowHistory(!showHistory)}
+            className={cn("p-1.5 rounded-md hover:bg-white/10 transition-colors", showHistory ? "text-primary" : "text-muted-foreground")}
+            title="Command History"
+          >
             <History size={14} />
           </button>
         </div>
       </div>
+
+      {showHistory && (
+        <div className="max-h-48 overflow-auto border-b border-border bg-black/30 p-2 space-y-1">
+          {history.length === 0 && <div className="px-2 py-1 text-xs text-muted-foreground italic">No commands yet</div>}
+          {[...history].reverse().map((cmd) => (
+            <button
+              key={cmd}
+              onClick={() => { setInput(cmd); setShowHistory(false); inputRef.current?.focus(); }}
+              className="block w-full truncate rounded px-2 py-1.5 text-left font-mono text-xs text-white/80 hover:bg-white/10"
+            >
+              {cmd}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Logs Area */}
       <ScrollArea className="flex-1 p-4 font-mono text-xs overflow-auto">
@@ -146,8 +187,12 @@ export function RCONConsole({ onSendCommand }: RCONConsoleProps) {
               )}>
                 {log.content}
               </div>
-              <button className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1 text-muted-foreground hover:text-white transition-opacity">
-                <Copy size={12} />
+              <button
+                onClick={async () => { await copyText(log.content); setCopiedId(log.id); setTimeout(() => setCopiedId(null), 1500); }}
+                className="absolute top-2 right-2 md:opacity-0 md:group-hover:opacity-100 p-1 text-muted-foreground hover:text-white transition-opacity"
+                title="Copy"
+              >
+                {copiedId === log.id ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
               </button>
             </div>
           ))}

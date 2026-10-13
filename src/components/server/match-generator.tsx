@@ -90,8 +90,14 @@ export function MatchGenerator({ serverId, onStartMatch, onLaunchMatch, onStopMa
         players: {}
       },
       num_maps: matchConfig.num_maps,
-      maplist: matchConfig.maplist.slice(0, matchConfig.num_maps),
-      map_sides: matchConfig.map_sides.slice(0, matchConfig.num_maps),
+      // Veto: the whole pool goes to MatchZy and the captains ban/pick in game (sides too)
+      ...(matchConfig.skip_veto
+        ? {
+            maplist: matchConfig.maplist.slice(0, matchConfig.num_maps),
+            map_sides: matchConfig.map_sides.slice(0, matchConfig.num_maps),
+            skip_veto: true,
+          }
+        : { maplist: AVAILABLE_MAPS, skip_veto: false }),
       clinch_series: true,
       players_per_team: matchConfig.players_per_team,
       cvars: {
@@ -271,7 +277,13 @@ export function MatchGenerator({ serverId, onStartMatch, onLaunchMatch, onStopMa
                 <MapIcon size={14} className="mr-2" />
                 Map Selection & Sides
               </h3>
-              <div className="space-y-6">
+              {!matchConfig.skip_veto && (
+                <p className="text-xs text-muted-foreground">
+                  Veto in game: the captains ban and pick from all {AVAILABLE_MAPS.length} maps with chat commands, sides too.
+                  To set maps and sides here, choose &quot;Skip Veto: Yes&quot; below.
+                </p>
+              )}
+              <div className={matchConfig.skip_veto ? "space-y-6" : "hidden"}>
                 {Array.from({ length: matchConfig.num_maps }).map((_, i) => (
                   <div key={i} className="p-3 rounded-lg border border-border/50 bg-white/5 space-y-3">
                     <div className="flex items-center justify-between">

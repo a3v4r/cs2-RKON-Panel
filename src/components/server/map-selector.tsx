@@ -19,9 +19,10 @@ const POPULAR_MAPS = Object.keys(MAP_DATA)
 interface MapSelectorProps {
   currentMap: string
   onChangeMap: (map: string) => void
+  onCommand: (command: string) => void
 }
 
-export function MapSelector({ currentMap, onChangeMap }: MapSelectorProps) {
+export function MapSelector({ currentMap, onChangeMap, onCommand }: MapSelectorProps) {
   return (
     <div className="p-3 md:p-6 space-y-6 h-full overflow-auto">
       <div>
@@ -57,7 +58,7 @@ export function MapSelector({ currentMap, onChangeMap }: MapSelectorProps) {
           <RotateCcw className="mr-2 h-4 w-4" />
           Restart Level
         </Button>
-        <Button variant="destructive" className="flex-1" onClick={() => onChangeMap('warmup')}>
+        <Button variant="destructive" className="flex-1" onClick={() => onCommand('mp_warmup_start')}>
           <Power className="mr-2 h-4 w-4" />
           Force Warmup
         </Button>

@@ -164,18 +164,6 @@ export function Sidebar({
   );
 }
 
-function NavItem({ icon, label, active = false }: { icon: React.ReactNode, label: string, active?: boolean }) {
-  return (
-    <button className={cn(
-      "flex items-center w-full p-2 rounded-md transition-all",
-      active ? "bg-white/10 text-white" : "text-muted-foreground hover:text-white"
-    )}>
-      <span className="mr-3">{icon}</span>
-      <span className="text-sm font-medium">{label}</span>
-    </button>
-  );
-}
-
 function getFlagEmoji(countryCode: string) {
   const codePoints = countryCode
     .toUpperCase()

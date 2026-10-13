@@ -4,6 +4,7 @@ import React from 'react';
 import { Copy, Check, Pause, Play, Radio, LogOut, Tv, Send, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { api, BroadcastRequest } from '@/lib/api';
+import { copyText } from '@/lib/clipboard';
 
 interface Team {
   name: string;
@@ -46,22 +47,6 @@ const STATE_LABELS: Record<string, string> = {
 const PAUSE_REASONS = ['Проблема со стримом', 'Проблема со звуком', 'Проблема у обсерверов'];
 // A judge's answer stays visible this long
 const ANSWER_VISIBLE_MS = 60_000;
-
-// Clipboard API needs HTTPS or localhost; the panel is opened over plain http on the LAN, so fall back to execCommand.
-async function copyText(text: string) {
-  if (navigator.clipboard && window.isSecureContext) {
-    await navigator.clipboard.writeText(text);
-    return;
-  }
-  const area = document.createElement('textarea');
-  area.value = text;
-  area.style.position = 'fixed';
-  area.style.opacity = '0';
-  document.body.appendChild(area);
-  area.select();
-  document.execCommand('copy');
-  document.body.removeChild(area);
-}
 
 export function BroadcastView() {
   const [servers, setServers] = React.useState<BroadcastServer[] | null>(null);

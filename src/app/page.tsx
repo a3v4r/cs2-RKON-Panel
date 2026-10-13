@@ -270,12 +270,15 @@ export default function Home() {
                 <MapSelector 
                   currentMap={serverInfo.map} 
                   onChangeMap={(map) => handleRconCommand(`map ${map}`)} 
+                  onCommand={handleRconCommand}
                 />
               )}
               {activeTab === "settings" && selectedServer && (
                 <ServerSettings 
+                  key={selectedServer.id}
                   server={selectedServer} 
-                  onUpdate={handleSaveServer} 
+                  onEdit={() => { setEditingServer(selectedServer); setIsModalOpen(true); }}
+                  onCommand={handleRconCommand}
                 />
               )}
               {activeTab === "match" && (
