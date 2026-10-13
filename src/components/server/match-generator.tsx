@@ -50,6 +50,10 @@ export function MatchGenerator({ serverId, onStartMatch, onLaunchMatch, onStopMa
     }
   }, [serverId, matchConfig])
 
+  // Side options show the team names typed below
+  const team1Label = matchConfig.team1.name.trim() || 'Team 1'
+  const team2Label = matchConfig.team2.name.trim() || 'Team 2'
+
   const [jsonOutput, setJsonOutput] = useState("")
   const [status, setStatus] = useState<{ type: 'success' | 'error' | 'idle', message: string }>({ type: 'idle', message: '' })
   const [isLoading, setIsLoading] = useState(false)
@@ -291,13 +295,13 @@ export function MatchGenerator({ serverId, onStartMatch, onLaunchMatch, onStopMa
                       <select 
                         value={matchConfig.map_sides[i]}
                         onChange={(e) => updateSideForSlot(i, e.target.value)}
-                        className="bg-[#18181b] border border-border rounded px-2 py-1 text-[10px] text-primary font-bold outline-none"
+                        className="max-w-[60%] truncate bg-[#18181b] border border-border rounded px-2 py-1 text-[10px] text-primary font-bold outline-none"
                       >
                         <option value="knife">Knife Round</option>
-                        <option value="team1_ct">Team 1 CT</option>
-                        <option value="team1_t">Team 1 T</option>
-                        <option value="team2_ct">Team 2 CT</option>
-                        <option value="team2_t">Team 2 T</option>
+                        <option value="team1_ct">{team1Label} CT</option>
+                        <option value="team1_t">{team1Label} T</option>
+                        <option value="team2_ct">{team2Label} CT</option>
+                        <option value="team2_t">{team2Label} T</option>
                         <option value="standard">Standard</option>
                       </select>
                     </div>
