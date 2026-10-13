@@ -6,7 +6,7 @@ import { ServerDashboard } from '@/components/server/dashboard';
 import { RCONConsole } from '@/components/server/console';
 import { ServerChat } from '@/components/server/chat';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LayoutDashboard, Terminal, MessageSquare, Settings, Map as MapIcon, Trophy, Menu } from 'lucide-react';
+import { LayoutDashboard, Terminal, MessageSquare, Settings, Map as MapIcon, Trophy, Menu, Activity } from 'lucide-react';
 import { MatchGenerator } from '@/components/server/match-generator';
 import { GeneralSettings } from '@/components/settings/general-settings';
 import { db_helper, ServerProfile } from '@/lib/db';
@@ -17,6 +17,7 @@ import { MapSelector } from '@/components/server/map-selector';
 import { ServerSettings } from '@/components/server/server-settings';
 import { BroadcastView } from '@/components/broadcast/broadcast-view';
 import { RequestsBanner } from '@/components/server/requests-banner';
+import { LiveMatch } from '@/components/server/live-match';
 import { fetchMe, Role } from '@/lib/api';
 
 const INITIAL_INFO = {
@@ -225,6 +226,10 @@ export default function Home() {
                     <LayoutDashboard size={14} className="sm:mr-2" />
                     <span className="hidden sm:inline">Dashboard</span>
                   </TabsTrigger>
+                  <TabsTrigger value="live" aria-label="Live" title="Live" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
+                    <Activity size={14} className="sm:mr-2" />
+                    <span className="hidden sm:inline">Live</span>
+                  </TabsTrigger>
                   <TabsTrigger value="console" aria-label="Console" title="Console" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
                     <Terminal size={14} className="sm:mr-2" />
                     <span className="hidden sm:inline">Console</span>
@@ -257,6 +262,9 @@ export default function Home() {
                   canManage={isJudge}
                   onSendCommand={handleRconCommand}
                 />
+              )}
+              {activeTab === "live" && (
+                <LiveMatch key={activeServerId} serverId={activeServerId} />
               )}
               {activeTab === "console" && (
                 <div className="h-full p-3 md:p-6">

@@ -29,6 +29,9 @@ function secret(): Buffer {
 const hmac = (data: string) => crypto.createHmac('sha256', secret()).update(data).digest('hex');
 const fingerprint = (password: string) => hmac('fp:' + password).slice(0, 16);
 
+// Token MatchZy sends with its events (remote log header), one per game server
+export const eventToken = (serverId: number) => hmac('events:' + serverId);
+
 // No judge password = development: everyone is a judge without logging in.
 export const authDisabled = () => !accountPassword('judge');
 
