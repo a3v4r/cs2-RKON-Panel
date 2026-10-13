@@ -264,7 +264,7 @@ export default function Home() {
                 </div>
               )}
               {activeTab === "chat" && (
-                <ServerChat onBroadcast={(msg) => handleRconCommand(`say ${msg}`)} />
+                <ServerChat serverId={activeServerId} onBroadcast={(msg) => handleRconCommand(`say ${msg}`)} />
               )}
               {activeTab === "maps" && (
                 <MapSelector 
@@ -280,6 +280,7 @@ export default function Home() {
               )}
               {activeTab === "match" && (
                 <MatchGenerator 
+                  key={activeServerId}
                   serverId={activeServerId}
                   onStartMatch={handleStartMatch} 
                   onLaunchMatch={handleLaunchMatch}

@@ -80,3 +80,53 @@ export const commands = {
 export function publicServer({ rcon_password, ...rest }: StoredServer) {
   return { ...rest, has_password: rcon_password !== '' };
 }
+
+export interface StoredTemplate {
+  id: number;
+  name: string;
+  message: string;
+  created_at: string;
+}
+
+// Chat templates, shared by all judges
+export const templates = {
+  list: () => read<StoredTemplate>('templates.json'),
+  add(name: string, message: string) {
+    const items = read<StoredTemplate>('templates.json');
+    const item = { id: nextId(items), name, message, created_at: new Date().toISOString() };
+    write('templates.json', [...items, item]);
+    return item;
+  },
+  remove(id: number) {
+    write('templates.json', read<StoredTemplate>('templates.json').filter((t) => t.id !== id));
+  },
+};
+
+export interface StoredAutoMessage {
+  id: number;
+  serverId: number;
+  message: string;
+  intervalMinutes: number;
+  enabled: boolean;
+  // Interval counts from here after a restart or re-enable
+  updated_at: string;
+}
+
+// Messages the panel server repeats in a game server's chat (see scheduler.ts)
+export const autoMessages = {
+  list: () => read<StoredAutoMessage>('auto-messages.json'),
+  forServer: (serverId: number) => read<StoredAutoMessage>('auto-messages.json').filter((m) => m.serverId === serverId),
+  add(serverId: number, message: string, intervalMinutes: number) {
+    const items = read<StoredAutoMessage>('auto-messages.json');
+    const item = { id: nextId(items), serverId, message, intervalMinutes, enabled: true, updated_at: new Date().toISOString() };
+    write('auto-messages.json', [...items, item]);
+    return item;
+  },
+  setEnabled(id: number, enabled: boolean) {
+    write('auto-messages.json', read<StoredAutoMessage>('auto-messages.json').map((m) =>
+      m.id === id ? { ...m, enabled, updated_at: new Date().toISOString() } : m));
+  },
+  remove(id: number) {
+    write('auto-messages.json', read<StoredAutoMessage>('auto-messages.json').filter((m) => m.id !== id));
+  },
+};

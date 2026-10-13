@@ -13,17 +13,42 @@ interface MatchGeneratorProps {
   onStopMatch: () => Promise<void>;
 }
 
+const defaultMatchConfig = () => ({
+  matchid: Math.floor(Date.now() / 1000) % 10000,
+  team1: { name: "Team 1", tag: "T1" },
+  team2: { name: "Team 2", tag: "T2" },
+  maplist: ["de_mirage", "de_inferno", "de_dust2"],
+  map_sides: ["team1_ct", "team2_ct", "knife"],
+  num_maps: 1,
+  players_per_team: 5,
+  skip_veto: true
+})
+
+type MatchFormConfig = ReturnType<typeof defaultMatchConfig>
+
+// The form survives tab switches and page reloads (phones reload background tabs), per server, in this browser.
+const storageKey = (serverId: number) => `cs2panel.match.${serverId}`
+
+function loadMatchConfig(serverId: number): MatchFormConfig {
+  try {
+    const saved = localStorage.getItem(storageKey(serverId))
+    if (saved) return { ...defaultMatchConfig(), ...JSON.parse(saved) }
+  } catch {
+    // storage unavailable (private mode): start from defaults
+  }
+  return defaultMatchConfig()
+}
+
 export function MatchGenerator({ serverId, onStartMatch, onLaunchMatch, onStopMatch }: MatchGeneratorProps) {
-  const [matchConfig, setMatchConfig] = useState({
-    matchid: Math.floor(Date.now() / 1000) % 10000,
-    team1: { name: "Team 1", tag: "T1" },
-    team2: { name: "Team 2", tag: "T2" },
-    maplist: ["de_mirage", "de_inferno", "de_dust2"],
-    map_sides: ["team1_ct", "team2_ct", "knife"],
-    num_maps: 1,
-    players_per_team: 5,
-    skip_veto: true
-  })
+  const [matchConfig, setMatchConfig] = useState<MatchFormConfig>(() => loadMatchConfig(serverId))
+
+  React.useEffect(() => {
+    try {
+      localStorage.setItem(storageKey(serverId), JSON.stringify(matchConfig))
+    } catch {
+      // not critical
+    }
+  }, [serverId, matchConfig])
 
   const [jsonOutput, setJsonOutput] = useState("")
   const [status, setStatus] = useState<{ type: 'success' | 'error' | 'idle', message: string }>({ type: 'idle', message: '' })
