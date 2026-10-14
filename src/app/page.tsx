@@ -151,15 +151,25 @@ export default function Home() {
 
   const handleLaunchMatch = async (config: string, url: string) => {
     if (!selectedServer) return;
-    try {
-      await sendRconCommand(
-        selectedServer.id!,
-        `matchzy_loadmatch_url "${url}"`
-      );
-    } catch (error) {
-      console.error('Failed to launch match via URL:', error);
-      throw error;
+    const output = await sendRconCommand(
+      selectedServer.id!,
+      `matchzy_loadmatch_url "${url}"`
+    );
+    // MatchZy loads the config before answering, so the server must now report this match id;
+    // it refuses (in its console reply) while another match is loaded, including the ~2 min after a match ends.
+    const status = await sendRconCommand(selectedServer.id!, 'get5_status')
+      .then((out) => JSON.parse(out.slice(out.indexOf('{'))))
+      .catch(() => null);
+    const matchid = String(JSON.parse(config).matchid ?? '');
+    if (status && String(status.matchid) === matchid) return;
+    if (status?.gamestate === 'post_game') {
+      throw new Error(`сервер ещё завершает матч ${status.matchid}: GOTV дописывает демку (до ~2 минут после конца карты). Подождите и нажмите ещё раз.`);
     }
+    if (status && status.gamestate !== 'none') {
+      throw new Error(`на сервере уже загружен матч ${status.matchid}. Если он не нужен - сначала остановите его.`);
+    }
+    const reply = output.split('\n').map((line) => line.replace(/[\x00-\x1f]/g, '').trim()).filter(Boolean).join(' ');
+    throw new Error(`сервер не загрузил матч${reply ? `: ${reply}` : ''}`);
   };
 
   if (!me) {

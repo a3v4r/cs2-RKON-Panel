@@ -29,6 +29,7 @@ interface LiveTeam {
 }
 
 interface LiveData {
+  receivedAt: number;
   online: boolean;
   map: string | null;
   status: null | {
@@ -36,6 +37,7 @@ interface LiveData {
     paused: boolean;
     mapNumber: number;
     round: number;
+    clock: { phase: string; seconds: number } | null;
     team1: { name: string; score: number; series: number; side: string } | null;
     team2: { name: string; score: number; series: number; side: string } | null;
   };
@@ -89,7 +91,8 @@ export function LiveMatch({ serverId }: { serverId: number }) {
 
   const load = React.useCallback(async () => {
     try {
-      setData(await api<LiveData>(`/api/servers/${serverId}/live`));
+      const fresh = await api<LiveData>(`/api/servers/${serverId}/live`);
+      setData({ ...fresh, receivedAt: Date.now() });
       setError('');
     } catch (e) {
       setError((e as Error).message);
@@ -128,6 +131,7 @@ export function LiveMatch({ serverId }: { serverId: number }) {
             <div className="text-center">
               <div className="text-3xl md:text-4xl font-bold tabular-nums">{t1.score} : {t2.score}</div>
               <div className="text-xs text-muted-foreground">серия {t1.series}:{t2.series}</div>
+              {status?.clock && <RoundClock clock={status.clock} paused={status.paused} receivedAt={data.receivedAt} />}
             </div>
             <TeamHeader name={t2.name} side={t2.side} team="team2" align="right" />
           </div>
@@ -189,6 +193,36 @@ export function LiveMatch({ serverId }: { serverId: number }) {
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+const CLOCK_PHASES: Record<string, { label: string; className: string }> = {
+  live: { label: 'Раунд', className: 'text-white' },
+  freezetime: { label: 'Фризтайм', className: 'text-sky-300' },
+  bomb: { label: 'Бомба', className: 'text-red-400' },
+  round_over: { label: 'Конец раунда', className: 'text-muted-foreground' },
+  halftime: { label: 'Смена сторон', className: 'text-muted-foreground' },
+  timeout_ct: { label: 'Тайм-аут CT', className: 'text-amber-400' },
+  timeout_t: { label: 'Тайм-аут T', className: 'text-amber-400' },
+};
+
+// The server reports the timer every 3 s; in between it counts down here. A pause holds the freeze time.
+function RoundClock({ clock, paused, receivedAt }: { clock: { phase: string; seconds: number }; paused: boolean; receivedAt: number }) {
+  const [now, setNow] = React.useState(() => Date.now());
+  React.useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(timer);
+  }, []);
+  const frozen = paused && clock.phase === 'freezetime';
+  const left = Math.max(0, frozen ? clock.seconds : clock.seconds - Math.max(0, now - receivedAt) / 1000);
+  const whole = Math.ceil(left);
+  const phase = CLOCK_PHASES[clock.phase] ?? { label: clock.phase, className: 'text-white' };
+  return (
+    <div className={cn('mt-1 flex items-center justify-center gap-1.5 text-sm font-semibold tabular-nums', phase.className)}>
+      {clock.phase === 'bomb' ? <Bomb size={13} /> : <Timer size={13} />}
+      <span>{phase.label}</span>
+      <span>{Math.floor(whole / 60)}:{String(whole % 60).padStart(2, '0')}</span>
     </div>
   );
 }

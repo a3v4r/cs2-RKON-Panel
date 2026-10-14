@@ -85,9 +85,9 @@ export function MatchGenerator({ serverId, onStartMatch, onLaunchMatch, onStopMa
     'de_ancient', 'de_anubis', 'de_dust2'
   ]
 
-  const generateJson = () => {
+  const generateJson = (matchid = matchConfig.matchid) => {
     const config = {
-      matchid: matchConfig.matchid,
+      matchid,
       team1: {
         name: matchConfig.team1.name,
         tag: matchConfig.team1.tag,
@@ -135,8 +135,10 @@ export function MatchGenerator({ serverId, onStartMatch, onLaunchMatch, onStopMa
   }
 
   const handleLaunchUrlMatch = async () => {
-    // Force regeneration to be 100% sure we have the latest visual settings
-    const json = generateJson()
+    // A new id for every launch (the saved form would repeat it): backups, demos and live stats are keyed by it
+    const matchid = Math.floor(Date.now() / 1000) % 10000
+    setMatchConfig((c) => ({ ...c, matchid }))
+    const json = generateJson(matchid)
     if (!json.trim()) return;
 
     setIsLoading(true)

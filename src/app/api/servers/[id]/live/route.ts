@@ -38,6 +38,8 @@ export async function GET(_req: Request, { params }: Params) {
           matchid: status.matchid,
           mapNumber: status.map_number,
           round: status.round_number,
+          // Our MatchZy fork only: what the in-game timer shows (phase, seconds left)
+          clock: status.round_clock ?? null,
           team1: status.team1 ? { name: status.team1.name, score: status.team1.current_map_score, series: status.team1.series_score, side: status.team1.side } : null,
           team2: status.team2 ? { name: status.team2.name, score: status.team2.current_map_score, series: status.team2.series_score, side: status.team2.side } : null,
         }
