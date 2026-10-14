@@ -1,9 +1,10 @@
 "use client";
 
 import React from 'react';
-import { Activity, Crosshair, Skull, Bomb, ShieldCheck, Timer, Flag } from 'lucide-react';
+import { Activity, Crosshair, Skull, Bomb, ShieldCheck, Timer, Flag, History, Play, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
+import { sendRconCommand } from '@/lib/rcon';
 
 interface Stats {
   kills?: number;
@@ -135,6 +136,8 @@ export function LiveMatch({ serverId }: { serverId: number }) {
         )}
       </section>
 
+      {status?.state === 'live' && <RoundRestore serverId={serverId} paused={status.paused} round={status.round} onDone={load} />}
+
       {status && !live && (
         <p className="text-xs text-muted-foreground">
           Статистика игроков появится после первого раунда, если матч запущен из панели (вкладка Match).
@@ -187,6 +190,107 @@ export function LiveMatch({ serverId }: { serverId: number }) {
         </>
       )}
     </div>
+  );
+}
+
+interface Backup {
+  round: number;
+  time: string;
+  team1Score: number;
+  team2Score: number;
+}
+
+// Round restore: the list comes from the backups on the game server, so it works for any match MatchZy runs
+function RoundRestore({ serverId, paused, round, onDone }: { serverId: number; paused: boolean; round: number; onDone: () => void }) {
+  const [backups, setBackups] = React.useState<Backup[] | null>(null);
+  const [selected, setSelected] = React.useState('');
+  const [busy, setBusy] = React.useState(false);
+  const [message, setMessage] = React.useState<{ ok: boolean; text: string } | null>(null);
+
+  const loadBackups = React.useCallback(async () => {
+    try {
+      const { backups } = await api<{ backups: Backup[] }>(`/api/servers/${serverId}/restore`);
+      setBackups(backups);
+      // By default the start of the current round
+      setSelected((prev) => (backups.some((b) => String(b.round) === prev) ? prev : backups.length ? String(backups[backups.length - 1].round) : ''));
+    } catch (e) {
+      setMessage({ ok: false, text: (e as Error).message });
+    }
+  }, [serverId]);
+
+  // While the list is open, keep it in step with the rounds being played
+  React.useEffect(() => {
+    if (backups) loadBackups();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [round]);
+
+  const restore = async () => {
+    const backup = backups?.find((b) => String(b.round) === selected);
+    if (!backup) return;
+    if (!confirm(`Откатить игру к началу раунда ${backup.round + 1} (счёт ${backup.team1Score}:${backup.team2Score})?\nВсё, что было после, пропадёт. Матч встанет на паузу.`)) return;
+    setBusy(true);
+    setMessage(null);
+    try {
+      await api(`/api/servers/${serverId}/restore`, { body: { round: backup.round } });
+      setMessage({ ok: true, text: `Откат к раунду ${backup.round + 1} выполнен, матч на паузе. Когда игроки готовы - снимите паузу.` });
+      setTimeout(onDone, 1500);
+    } catch (e) {
+      setMessage({ ok: false, text: (e as Error).message });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const unpause = async () => {
+    setBusy(true);
+    try {
+      await sendRconCommand(serverId, 'css_forceunpause');
+      setMessage(null);
+      setTimeout(onDone, 1000);
+    } catch (e) {
+      setMessage({ ok: false, text: (e as Error).message });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="rounded-xl border border-border p-4 space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="flex items-center gap-2 text-sm font-semibold"><History size={14} className="text-primary" /> Откат раунда</h3>
+        <div className="flex gap-2">
+          {paused && (
+            <button onClick={unpause} disabled={busy} className="flex items-center gap-1 rounded-md bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/25 disabled:opacity-50">
+              <Play size={12} /> Снять паузу
+            </button>
+          )}
+          <button onClick={loadBackups} disabled={busy} className="flex items-center gap-1 rounded-md bg-white/5 px-3 py-1.5 text-xs hover:bg-white/10 disabled:opacity-50">
+            <RefreshCw size={12} /> {backups ? 'Обновить' : 'Выбрать раунд'}
+          </button>
+        </div>
+      </div>
+      {backups && (backups.length === 0 ? (
+        <p className="text-xs text-muted-foreground">На этой карте ещё нет точек отката.</p>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          <select
+            value={selected}
+            onChange={(e) => setSelected(e.target.value)}
+            className="min-w-0 flex-1 rounded-md border border-border bg-[#09090b] px-2 py-1.5 text-sm"
+          >
+            {[...backups].reverse().map((b) => (
+              <option key={b.round} value={b.round}>
+                Начало раунда {b.round + 1} • счёт {b.team1Score}:{b.team2Score} • {b.time}
+              </option>
+            ))}
+          </select>
+          <button onClick={restore} disabled={busy || !selected} className="rounded-md bg-amber-500/15 px-3 py-1.5 text-sm font-semibold text-amber-400 hover:bg-amber-500/25 disabled:opacity-50">
+            Откатить
+          </button>
+        </div>
+      ))}
+      {message && <p className={cn('text-xs', message.ok ? 'text-emerald-400' : 'text-red-400')}>{message.text}</p>}
+    </section>
   );
 }
 
