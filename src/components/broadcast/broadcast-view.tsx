@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Copy, Check, Pause, Play, Radio, LogOut, Tv, Send, X } from 'lucide-react';
+import { Copy, Check, Pause, Play, Radio, LogOut, Tv, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { api, BroadcastRequest } from '@/lib/api';
 import { copyText } from '@/lib/clipboard';
@@ -44,7 +44,6 @@ const STATE_LABELS: Record<string, string> = {
   post_game: 'Карта окончена',
 };
 
-const PAUSE_REASONS = ['Проблема со стримом', 'Проблема со звуком', 'Проблема у обсерверов'];
 // A judge's answer stays visible this long
 const ANSWER_VISIBLE_MS = 60_000;
 
@@ -97,8 +96,6 @@ export function BroadcastView() {
 }
 
 function ServerCard({ server: s, onChange }: { server: BroadcastServer; onChange: () => void }) {
-  const [choosing, setChoosing] = React.useState(false);
-  const [custom, setCustom] = React.useState('');
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState('');
 
@@ -109,13 +106,11 @@ function ServerCard({ server: s, onChange }: { server: BroadcastServer; onChange
   const canRequestPause = s.online && !!m && !m.paused && !pending && ['knife', 'going_live', 'live'].includes(m.state);
   const canRequestContinue = s.online && !!m?.paused && !pending;
 
-  const send = async (type: 'pause' | 'unpause', reason = '') => {
+  const send = async (type: 'pause' | 'unpause') => {
     setBusy(true);
     setError('');
     try {
-      await api('/api/requests', { body: { serverId: s.id, type, reason } });
-      setChoosing(false);
-      setCustom('');
+      await api('/api/requests', { body: { serverId: s.id, type } });
       onChange();
     } catch (e) {
       setError((e as Error).message);
@@ -177,58 +172,22 @@ function ServerCard({ server: s, onChange }: { server: BroadcastServer; onChange
 
       <RequestStatus request={r} busy={busy} onCancel={cancel} />
 
-      {choosing ? (
-        <div className="space-y-2 rounded-lg border border-amber-500/30 p-3">
-          <p className="text-xs text-muted-foreground">Причина паузы (судья увидит её и решит):</p>
-          <div className="grid gap-2">
-            {PAUSE_REASONS.map((reason) => (
-              <button
-                key={reason}
-                disabled={busy}
-                onClick={() => send('pause', reason)}
-                className="h-11 rounded-md border border-border bg-white/5 px-3 text-left text-sm disabled:opacity-50"
-              >
-                {reason}
-              </button>
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <input
-              value={custom}
-              onChange={(e) => setCustom(e.target.value)}
-              placeholder="Другое..."
-              maxLength={200}
-              className="h-11 flex-1 min-w-0 rounded-md border border-border bg-black/30 px-3 text-sm outline-none focus:border-amber-500"
-            />
-            <button
-              disabled={busy || !custom.trim()}
-              onClick={() => send('pause', custom)}
-              className="h-11 rounded-md bg-amber-500 px-3 text-black disabled:opacity-40"
-              aria-label="Отправить запрос"
-            >
-              <Send size={16} />
-            </button>
-          </div>
-          <button onClick={() => setChoosing(false)} className="w-full py-1 text-xs text-muted-foreground">Отмена</button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            disabled={busy || !canRequestPause}
-            onClick={() => setChoosing(true)}
-            className="flex h-12 items-center justify-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 text-sm font-bold text-amber-400 disabled:opacity-40"
-          >
-            <Pause size={18} /> Запросить паузу
-          </button>
-          <button
-            disabled={busy || !canRequestContinue}
-            onClick={() => send('unpause')}
-            className="flex h-12 items-center justify-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/10 text-sm font-bold text-emerald-400 disabled:opacity-40"
-          >
-            <Play size={18} /> Можно продолжать
-          </button>
-        </div>
-      )}
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          disabled={busy || !canRequestPause}
+          onClick={() => send('pause')}
+          className="flex h-12 items-center justify-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 text-sm font-bold text-amber-400 disabled:opacity-40"
+        >
+          <Pause size={18} /> Запросить паузу
+        </button>
+        <button
+          disabled={busy || !canRequestContinue}
+          onClick={() => send('unpause')}
+          className="flex h-12 items-center justify-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/10 text-sm font-bold text-emerald-400 disabled:opacity-40"
+        >
+          <Play size={18} /> Можно продолжать
+        </button>
+      </div>
       {error && <p className="text-xs text-red-400">{error}</p>}
     </section>
   );
