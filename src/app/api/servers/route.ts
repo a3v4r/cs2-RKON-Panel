@@ -23,6 +23,7 @@ export async function POST(req: Request) {
     port: Number(body.port),
     rcon_password: String(body.rcon_password ?? ''),
     country_code: body.country_code || undefined,
+    mode: body.mode === 'vanilla' ? 'vanilla' : 'matchzy',
   });
   audit(user, `server add #${server.id} ${server.name} ${server.host}:${server.port}`);
   return NextResponse.json(publicServer(server));

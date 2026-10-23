@@ -3,8 +3,9 @@ import { SESSION_COOKIE, resolveSession } from '@/server/session';
 
 // Login check for every page and API call except the login itself and the match config URL that MatchZy downloads.
 // Role checks are done by each API route (requireRole).
-// MatchZy event posts are checked by their own token (see /api/events).
-const PUBLIC_PATHS = ['/login', '/api/login', '/api/matches/config/', '/api/events/'];
+// MatchZy event posts and CS2 HTTP logs are checked by their own per-server tokens
+// (see /api/events and /api/chat-log).
+const PUBLIC_PATHS = ['/login', '/api/login', '/api/matches/config/', '/api/events/', '/api/chat-log/'];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;

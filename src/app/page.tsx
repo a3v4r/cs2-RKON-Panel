@@ -7,22 +7,23 @@ import { RCONConsole } from '@/components/server/console';
 import { ServerChat } from '@/components/server/chat';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, Terminal, MessageSquare, Settings, Map as MapIcon, Trophy, Menu, Activity, Loader2, AlertTriangle, RefreshCw, Plus, Server as ServerIcon } from 'lucide-react';
+import { LayoutDashboard, Terminal, MessageSquare, Settings, Trophy, Menu, Activity, Loader2, AlertTriangle, RefreshCw, Plus, Server as ServerIcon, Users } from 'lucide-react';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '@/components/ui/confirm';
 import { MatchGenerator } from '@/components/server/match-generator';
+import { TeamsManager } from '@/components/server/teams';
 import { GeneralSettings } from '@/components/settings/general-settings';
-import { db_helper, ServerProfile } from '@/lib/db';
-import { fetchServerInfo } from '@/lib/a2s';
+import { db_helper, ServerProfile, ServerMode } from '@/lib/db';
+import { fetchServerInfo, reconnectServer } from '@/lib/a2s';
 import { sendRconCommand } from '@/lib/rcon';
 import { ServerModal } from '@/components/server/server-modal';
-import { MapSelector } from '@/components/server/map-selector';
 import { ServerSettings } from '@/components/server/server-settings';
 import { BroadcastView } from '@/components/broadcast/broadcast-view';
 import { RequestsBanner } from '@/components/server/requests-banner';
 import { LiveMatch } from '@/components/server/live-match';
 import { fetchMe, Role } from '@/lib/api';
 import { usePolling } from '@/lib/use-polling';
+import type { PingSample } from '@/components/server/ping-chart';
 
 const INITIAL_INFO = {
   name: "Загрузка...",
@@ -31,6 +32,9 @@ const INITIAL_INFO = {
   ping: 0,
   status: 'loading' as const,
 };
+
+// The chart on the dashboard shows the newest samples: 120 polls at a 5 s interval ≈ 10 minutes
+const PING_HISTORY_LIMIT = 120;
 
 export default function Home() {
   const [servers, setServers] = useState<ServerProfile[]>([]);
@@ -42,6 +46,8 @@ export default function Home() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [me, setMe] = useState<{ role: Role } | null>(null);
   const [meError, setMeError] = useState('');
+  // Only successful polls of the selected server are kept; it feeds the average and the chart
+  const [pingHistory, setPingHistory] = useState<PingSample[]>([]);
   const toast = useToast();
   const confirmDialog = useConfirm();
 
@@ -61,17 +67,42 @@ export default function Home() {
   // (not the previous one's data), a late reply from the server switched away from is
   // dropped, and usePolling skips its ticks while the tab is hidden.
   const activeServerIdRef = React.useRef<number | null>(null);
+
+  // A stale reply from a server the user already switched away from must not pollute
+  // the new server's history (same guard as setServerInfo below).
+  const recordPing = React.useCallback((id: number, ping: number) => {
+    if (activeServerIdRef.current !== id || !Number.isFinite(ping) || ping < 0) return;
+    const sample: PingSample = { t: Date.now(), ping: Math.round(ping) };
+    setPingHistory((prev) => {
+      const last = prev[prev.length - 1];
+      // The mount effect and the first polling tick can land together: one sample is enough
+      if (last && sample.t - last.t < 1000) return prev;
+      return [...prev, sample].slice(-PING_HISTORY_LIMIT);
+    });
+  }, []);
+
   const updateServerInfo = React.useCallback(async () => {
     const server = servers.find(s => s.id === activeServerId);
     if (!server) return;
     const id = server.id!;
     try {
       const info = await fetchServerInfo(id);
-      if (activeServerIdRef.current === id) setServerInfo({ ...info, status: 'online' });
+      if (activeServerIdRef.current === id) {
+        setServerInfo({ ...info, status: 'online' });
+        recordPing(id, info.ping);
+      }
     } catch {
       if (activeServerIdRef.current === id) setServerInfo({ ...INITIAL_INFO, name: server.name, status: 'offline' });
     }
-  }, [activeServerId, servers]);
+  }, [activeServerId, servers, recordPing]);
+
+  // Average over the same window as the chart, so the number on the card and in
+  // the dialog always describe the same samples.
+  const pingAverage = React.useMemo(() => {
+    if (pingHistory.length === 0) return null;
+    const total = pingHistory.reduce((sum, sample) => sum + sample.ping, 0);
+    return Math.round(total / pingHistory.length);
+  }, [pingHistory]);
 
   React.useEffect(() => {
     activeServerIdRef.current = activeServerId;
@@ -79,10 +110,31 @@ export default function Home() {
     if (!server) return;
     // Right away: this server's loading state and a fresh request
     setServerInfo({ ...INITIAL_INFO, name: server.name, status: 'loading' });
+    // The previous server's latency says nothing about this one
+    setPingHistory([]);
     updateServerInfo();
   }, [activeServerId, servers, updateServerInfo]);
 
   usePolling(updateServerInfo, 5000);
+
+  // Manual reconnect: the panel drops its pooled RCON socket and polls the server again
+  // from scratch instead of waiting for the next polling tick.
+  const handleReconnect = async () => {
+    const server = servers.find(s => s.id === activeServerId);
+    if (!server) throw new Error('Сервер не выбран');
+    const id = server.id!;
+    setServerInfo({ ...INITIAL_INFO, name: server.name, status: 'loading' });
+    try {
+      const info = await reconnectServer(id);
+      if (activeServerIdRef.current === id) {
+        setServerInfo({ ...info, status: 'online' });
+        recordPing(id, info.ping);
+      }
+    } catch (e) {
+      if (activeServerIdRef.current === id) setServerInfo({ ...INITIAL_INFO, name: server.name, status: 'offline' });
+      throw e;
+    }
+  };
 
 
   const handleRconCommand = async (command: string) => {
@@ -147,6 +199,14 @@ export default function Home() {
   };
 
   const selectedServer = servers.find(s => s.id === activeServerId);
+  // Older entries have no mode stored: they were all MatchZy when that was the only option
+  const serverMode: ServerMode = selectedServer?.mode === 'vanilla' ? 'vanilla' : 'matchzy';
+
+  // Launching a match is MatchZy-only; the Match tab works everywhere (it falls back to the
+  // game log/A2S). The separate Maps tab was merged into the dashboard.
+  React.useEffect(() => {
+    if (activeTab === 'maps' || (serverMode === 'vanilla' && activeTab === 'match')) setActiveTab('dashboard');
+  }, [serverMode, activeTab]);
 
   // The tab title says which server this tab is on (judges keep several tabs/phones open)
   React.useEffect(() => {
@@ -285,13 +345,15 @@ export default function Home() {
                     <MessageSquare size={14} className="sm:mr-2" />
                     <span className="hidden sm:inline">Чат</span>
                   </TabsTrigger>
-                  <TabsTrigger value="maps" aria-label="Карты" title="Карты" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-                    <MapIcon size={14} className="sm:mr-2" />
-                    <span className="hidden sm:inline">Карты</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="match" aria-label="Запуск" title="Запуск матча" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-                    <Trophy size={14} className="sm:mr-2" />
-                    <span className="hidden sm:inline">Запуск</span>
+                  {serverMode === 'matchzy' && (
+                    <TabsTrigger value="match" aria-label="Запуск" title="Запуск матча" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
+                      <Trophy size={14} className="sm:mr-2" />
+                      <span className="hidden sm:inline">Запуск</span>
+                    </TabsTrigger>
+                  )}
+                  <TabsTrigger value="teams" aria-label="Команды" title="Список команд" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
+                    <Users size={14} className="sm:mr-2" />
+                    <span className="hidden sm:inline">Команды</span>
                   </TabsTrigger>
                   <TabsTrigger value="settings" aria-label="Настройки" title="Настройки сервера" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
                     <Settings size={14} className="sm:mr-2" />
@@ -305,13 +367,18 @@ export default function Home() {
             <div className="flex-1 overflow-auto">
               {activeTab === "dashboard" && (
                 <ServerDashboard 
-                  serverInfo={serverInfo} 
+                  serverInfo={serverInfo}
+                  serverId={activeServerId}
+                  mode={serverMode}
                   canManage={isJudge}
                   onSendCommand={handleRconCommand}
+                  onReconnect={handleReconnect}
+                  pingHistory={pingHistory}
+                  pingAverage={pingAverage}
                 />
               )}
               {activeTab === "live" && (
-                <LiveMatch key={activeServerId} serverId={activeServerId} />
+                <LiveMatch key={activeServerId} serverId={activeServerId} serverMode={serverMode} />
               )}
               {activeTab === "console" && (
                 <div className="h-full p-3 md:p-6">
@@ -321,14 +388,7 @@ export default function Home() {
               {activeTab === "chat" && (
                 <ServerChat serverId={activeServerId} onBroadcast={(msg) => handleRconCommand(`say ${msg}`)} />
               )}
-              {activeTab === "maps" && (
-                <MapSelector 
-                  serverId={activeServerId}
-                  currentMap={serverInfo.map} 
-                  onChangeMap={(map) => handleRconCommand(`map ${map}`)} 
-                  onCommand={handleRconCommand}
-                />
-              )}
+              {activeTab === "teams" && <TeamsManager />}
               {activeTab === "settings" && selectedServer && (
                 <ServerSettings 
                   key={selectedServer.id}
@@ -337,7 +397,7 @@ export default function Home() {
                   onCommand={handleRconCommand}
                 />
               )}
-              {activeTab === "match" && (
+              {activeTab === "match" && serverMode === "matchzy" && (
                 <MatchGenerator 
                   key={activeServerId}
                   serverId={activeServerId}

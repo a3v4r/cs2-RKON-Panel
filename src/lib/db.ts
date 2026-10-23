@@ -1,5 +1,8 @@
 import { api } from './api';
 
+// Quick actions differ between a MatchZy server and a plain ("vanilla") tournament server.
+export type ServerMode = 'matchzy' | 'vanilla';
+
 export interface ServerProfile {
   id?: number;
   name: string;
@@ -9,6 +12,7 @@ export interface ServerProfile {
   rcon_password: string;
   has_password?: boolean;
   country_code?: string;
+  mode?: ServerMode;
   created_at?: string;
 }
 
@@ -22,4 +26,7 @@ export const db_helper = {
   addCommand: (label: string, command: string) => api('/api/commands', { body: { label, command } }),
   updateCommand: (id: number, label: string, command: string) => api(`/api/commands/${id}`, { method: 'PUT', body: { label, command } }),
   deleteCommand: (id: number) => api(`/api/commands/${id}`, { method: 'DELETE' }),
+
+  getTeams: () => api<string[]>('/api/teams').catch(() => []),
+  saveTeams: (teams: string[]) => api<string[]>('/api/teams', { method: 'PUT', body: { teams } }),
 };

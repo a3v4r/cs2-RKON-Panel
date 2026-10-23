@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { JUDGE, audit, requireRole } from '@/server/auth';
+import { clearChat } from '@/server/chat';
 import { publicServer, servers } from '@/server/store';
 
 type Params = { params: Promise<{ id: string }> };
@@ -14,6 +15,7 @@ export async function PUT(req: Request, { params }: Params) {
   if (body.host !== undefined) update.host = String(body.host).trim();
   if (body.port !== undefined) update.port = Number(body.port);
   if (body.country_code !== undefined) update.country_code = body.country_code || undefined;
+  if (body.mode !== undefined) update.mode = body.mode === 'vanilla' ? 'vanilla' : 'matchzy';
   // Empty password field in the form = keep the stored one
   if (body.rcon_password) update.rcon_password = String(body.rcon_password);
   const server = servers.update(id, update);
@@ -27,6 +29,7 @@ export async function DELETE(_req: Request, { params }: Params) {
   if (user instanceof NextResponse) return user;
   const id = Number((await params).id);
   servers.remove(id);
+  clearChat(id);
   audit(user, `server delete #${id}`);
   return NextResponse.json({ ok: true });
 }

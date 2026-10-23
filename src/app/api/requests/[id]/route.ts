@@ -22,8 +22,8 @@ export async function POST(req: Request, { params }: Params) {
     const server = servers.get(request.serverId);
     if (!server) return NextResponse.json({ error: 'Сервер не найден' }, { status: 404 });
     const commands = request.type === 'pause'
-      ? ['css_forcepause', `say Пауза по запросу трансляции${request.reason ? `: ${request.reason}` : ''}`]
-      : ['say Трансляция готова, матч продолжается', 'css_forceunpause'];
+      ? [server.mode === 'vanilla' ? 'mp_pause_match' : 'css_forcepause', `say Пауза по запросу трансляции${request.reason ? `: ${request.reason}` : ''}`]
+      : ['say Трансляция готова, матч продолжается', server.mode === 'vanilla' ? 'mp_unpause_match' : 'css_forceunpause'];
     try {
       // say/css_forcepause take RCON's fast path (no reply), so the judge gets an answer quickly
       for (const command of commands) await rconCommand(server.host, server.port, server.rcon_password, command, { priority: 'high' });

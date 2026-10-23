@@ -50,6 +50,11 @@ export function ServerSettings({ server, onEdit, onCommand }: ServerSettingsProp
         <SettingsGroup title="Подключение" icon={<Zap size={18} />}>
           <Row label="Адрес"><span className="text-sm text-white font-mono">{server.host}</span></Row>
           <Row label="Порт"><span className="text-sm text-white font-mono">{server.port}</span></Row>
+          <Row label="Режим">
+            <span className="text-xs px-2 py-0.5 rounded bg-primary/15 text-primary font-semibold">
+              {server.mode === 'vanilla' ? 'Vanilla' : 'MatchZy'}
+            </span>
+          </Row>
           <Row label="RCON" last>
             <div className="flex items-center gap-2 min-w-0">
               {check.state === 'checking' && <span className="text-xs text-muted-foreground">проверка...</span>}

@@ -5,6 +5,7 @@ import { FileJson, Users, Shield, Zap, Copy, Check, Download, Map as MapIcon, Sh
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { api } from '@/lib/api'
+import { db_helper } from '@/lib/db'
 import { copyText } from '@/lib/clipboard'
 import { useConfirm } from '@/components/ui/confirm'
 
@@ -49,7 +50,13 @@ function loadMatchConfig(serverId: number): MatchFormConfig {
 
 export function MatchGenerator({ serverId, onLaunchMatch, onStopMatch, onOpenLiveTab }: MatchGeneratorProps) {
   const [matchConfig, setMatchConfig] = useState<MatchFormConfig>(() => loadMatchConfig(serverId))
+  const [teams, setTeams] = useState<string[]>([])
   const confirmDialog = useConfirm()
+
+  // Saved teams (the "Команды" tab) feed the dropdowns; the name fields stay free-form
+  React.useEffect(() => {
+    db_helper.getTeams().then(setTeams)
+  }, [])
 
   React.useEffect(() => {
     try {
@@ -182,6 +189,12 @@ export function MatchGenerator({ serverId, onLaunchMatch, onStopMatch, onOpenLiv
       newList[index] = side;
       return { ...prev, map_sides: newList };
     });
+  }
+
+  // Picking a saved team only fills its name; the tag stays as typed
+  const pickTeam = (side: 'team1' | 'team2', name: string) => {
+    if (!name) return;
+    setMatchConfig(prev => ({ ...prev, [side]: { ...prev[side], name } }));
   }
 
   // The panel runs on plain http in the LAN: the clipboard API is unavailable there,
@@ -353,6 +366,22 @@ export function MatchGenerator({ serverId, onLaunchMatch, onStopMatch, onOpenLiv
                 Команда 1
               </h3>
               <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2 space-y-2">
+                  <label className="text-xs text-muted-foreground">Выбрать из списка</label>
+                  <select
+                    value={teams.includes(matchConfig.team1.name) ? matchConfig.team1.name : ''}
+                    onChange={(e) => pickTeam('team1', e.target.value)}
+                    disabled={teams.length === 0}
+                    className="w-full bg-[#18181b] border border-border rounded-md px-3 py-2 text-sm text-white focus:ring-1 focus:ring-primary outline-none disabled:opacity-50"
+                  >
+                    <option value="">
+                      {teams.length > 0 ? 'Своё название (впишите ниже)' : 'Список пуст — вкладка «Команды»'}
+                    </option>
+                    {teams.map((team) => (
+                      <option key={team} value={team}>{team}</option>
+                    ))}
+                  </select>
+                </div>
                 <div className="space-y-2">
                   <label className="text-xs text-muted-foreground">Название</label>
                   <input 
@@ -379,6 +408,22 @@ export function MatchGenerator({ serverId, onLaunchMatch, onStopMatch, onOpenLiv
                 Команда 2
               </h3>
               <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2 space-y-2">
+                  <label className="text-xs text-muted-foreground">Выбрать из списка</label>
+                  <select
+                    value={teams.includes(matchConfig.team2.name) ? matchConfig.team2.name : ''}
+                    onChange={(e) => pickTeam('team2', e.target.value)}
+                    disabled={teams.length === 0}
+                    className="w-full bg-[#18181b] border border-border rounded-md px-3 py-2 text-sm text-white focus:ring-1 focus:ring-primary outline-none disabled:opacity-50"
+                  >
+                    <option value="">
+                      {teams.length > 0 ? 'Своё название (впишите ниже)' : 'Список пуст — вкладка «Команды»'}
+                    </option>
+                    {teams.map((team) => (
+                      <option key={team} value={team}>{team}</option>
+                    ))}
+                  </select>
+                </div>
                 <div className="space-y-2">
                   <label className="text-xs text-muted-foreground">Название</label>
                   <input 

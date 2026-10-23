@@ -26,7 +26,7 @@ const MAX_PACKET_BYTES = 8 * 1024 * 1024;
 
 // Commands that only produce in-game effects and never answer over RCON. Waiting
 // the full 1.5 s "first reply" timeout for them was a large part of the panel lag.
-const SILENT_COMMAND = /^(?:say|say_team)\b|^(?:css_forcepause|css_forceunpause|css_start|get5_endmatch|mp_restartgame)\b|^(?:map|changelevel)\s/i;
+const SILENT_COMMAND = /^(?:say|say_team)\b|^(?:css_forcepause|css_forceunpause|css_forcestart|css_forceend|css_start|css_roundknife|css_map|css_team1|css_team2|get5_endmatch|mp_restartgame|mp_pause_match|mp_unpause_match|mp_warmup_start|mp_swapteams|mp_backup_restore_load_autopause|mp_backup_restore_load_file)\b|^(?:map|changelevel|exec)\s/i;
 
 export function isSilentCommand(command: string): boolean {
   return SILENT_COMMAND.test(command.trim());
@@ -236,7 +236,8 @@ class RconSession {
 
   private onPacket(p: Packet) {
     const job = this.active;
-    if (!job || job.done || p.type !== SERVERDATA_AUTH_RESPONSE || p.id !== 2) return;
+    // Source 2 answers EXECCOMMAND with type 0; Source 1 used the same type as AUTH_RESPONSE (2).
+    if (!job || job.done || (p.type !== 0 && p.type !== SERVERDATA_AUTH_RESPONSE) || p.id !== 2) return;
 
     if (p.body) job.output += p.body;
 
@@ -383,6 +384,14 @@ export function rconCommand(
   } catch (e) {
     return Promise.reject(e instanceof Error ? e : new RconError(String(e)));
   }
+}
+
+// Drops one pooled connection so the next command connects and authorises again
+// (the manual "reconnect" button).
+export function closeRconSession(host: string, port: number, password: string): void {
+  const key = sessionKey(host, port, password);
+  sessions.get(key)?.closeNow();
+  sessions.delete(key);
 }
 
 // Closes every pooled connection (tests, shutdown, server removal).
