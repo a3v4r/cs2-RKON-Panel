@@ -6,7 +6,10 @@ import { ServerDashboard } from '@/components/server/dashboard';
 import { RCONConsole } from '@/components/server/console';
 import { ServerChat } from '@/components/server/chat';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LayoutDashboard, Terminal, MessageSquare, Settings, Map as MapIcon, Trophy, Menu, Activity } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { LayoutDashboard, Terminal, MessageSquare, Settings, Map as MapIcon, Trophy, Menu, Activity, Loader2, AlertTriangle, RefreshCw, Plus, Server as ServerIcon } from 'lucide-react';
+import { useToast } from '@/components/ui/toast';
+import { useConfirm } from '@/components/ui/confirm';
 import { MatchGenerator } from '@/components/server/match-generator';
 import { GeneralSettings } from '@/components/settings/general-settings';
 import { db_helper, ServerProfile } from '@/lib/db';
@@ -19,6 +22,7 @@ import { BroadcastView } from '@/components/broadcast/broadcast-view';
 import { RequestsBanner } from '@/components/server/requests-banner';
 import { LiveMatch } from '@/components/server/live-match';
 import { fetchMe, Role } from '@/lib/api';
+import { usePolling } from '@/lib/use-polling';
 
 const INITIAL_INFO = {
   name: "Загрузка...",
@@ -37,6 +41,9 @@ export default function Home() {
   const [editingServer, setEditingServer] = useState<ServerProfile | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [me, setMe] = useState<{ role: Role } | null>(null);
+  const [meError, setMeError] = useState('');
+  const toast = useToast();
+  const confirmDialog = useConfirm();
 
   const loadServers = async () => {
     try {
@@ -50,33 +57,32 @@ export default function Home() {
     }
   };
 
-  // Poll server info
-  React.useEffect(() => {
-    if (!activeServerId) return;
-    
+  // Poll server info. A newly selected server shows its own loading state right away
+  // (not the previous one's data), a late reply from the server switched away from is
+  // dropped, and usePolling skips its ticks while the tab is hidden.
+  const activeServerIdRef = React.useRef<number | null>(null);
+  const updateServerInfo = React.useCallback(async () => {
     const server = servers.find(s => s.id === activeServerId);
     if (!server) return;
-
-    const updateInfo = async () => {
-      try {
-        const info = await fetchServerInfo(server.id!);
-        setServerInfo({
-          ...info,
-          status: 'online'
-        });
-      } catch (error) {
-        setServerInfo({
-          ...INITIAL_INFO,
-          name: server.name,
-          status: 'offline'
-        });
-      }
-    };
-
-    updateInfo();
-    const interval = setInterval(updateInfo, 5000);
-    return () => clearInterval(interval);
+    const id = server.id!;
+    try {
+      const info = await fetchServerInfo(id);
+      if (activeServerIdRef.current === id) setServerInfo({ ...info, status: 'online' });
+    } catch {
+      if (activeServerIdRef.current === id) setServerInfo({ ...INITIAL_INFO, name: server.name, status: 'offline' });
+    }
   }, [activeServerId, servers]);
+
+  React.useEffect(() => {
+    activeServerIdRef.current = activeServerId;
+    const server = servers.find(s => s.id === activeServerId);
+    if (!server) return;
+    // Right away: this server's loading state and a fresh request
+    setServerInfo({ ...INITIAL_INFO, name: server.name, status: 'loading' });
+    updateServerInfo();
+  }, [activeServerId, servers, updateServerInfo]);
+
+  usePolling(updateServerInfo, 5000);
 
 
   const handleRconCommand = async (command: string) => {
@@ -85,13 +91,24 @@ export default function Home() {
     return await sendRconCommand(server.id!, command);
   };
 
-  // Who is logged in decides what to show; the server list is only for judges
+  // Who is logged in decides what to show; the server list is only for judges.
+  // A failed check must not leave a black screen forever: the error is shown and can be retried.
+  const [meRefresh, setMeRefresh] = useState(0);
   React.useEffect(() => {
-    fetchMe().then((user) => {
-      setMe(user);
-      if (user.role !== 'broadcast') loadServers();
-    }).catch(() => {});
-  }, []);
+    let cancelled = false;
+    setMeError('');
+    fetchMe()
+      .then((user) => {
+        if (cancelled) return;
+        setMe(user);
+        if (user.role !== 'broadcast') loadServers();
+      })
+      .catch((error) => {
+        if (!cancelled) setMeError((error as Error).message);
+      });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadServers is stable enough for a mount-time fetch
+  }, [meRefresh]);
 
   const handleSaveServer = async (server: ServerProfile) => {
     try {
@@ -102,39 +119,39 @@ export default function Home() {
       }
       await loadServers();
       setEditingServer(null);
+      toast.success(server.id ? 'Сервер обновлён' : 'Сервер добавлен');
     } catch (error) {
-      alert(`Не удалось сохранить сервер: ${(error as Error).message}`);
+      toast.error(`Не удалось сохранить сервер: ${(error as Error).message}`);
     }
   };
 
   const handleDeleteServer = async (id: number) => {
-    if (confirm("Удалить этот сервер?")) {
-      try {
-        await db_helper.deleteServer(id);
-        await loadServers();
-        if (activeServerId === id) {
-          setActiveServerId(null);
-        }
-      } catch (error) {
-        alert(`Не удалось удалить сервер: ${(error as Error).message}`);
+    const server = servers.find(s => s.id === id);
+    const ok = await confirmDialog({
+      title: 'Удалить сервер?',
+      description: `«${server?.name ?? ''}» (${server?.host}:${server?.port}) исчезнет из панели. Игровой сервер не пострадает.`,
+      confirmLabel: 'Удалить',
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      await db_helper.deleteServer(id);
+      await loadServers();
+      if (activeServerId === id) {
+        setActiveServerId(null);
       }
+      toast.success('Сервер удалён');
+    } catch (error) {
+      toast.error(`Не удалось удалить сервер: ${(error as Error).message}`);
     }
   };
 
   const selectedServer = servers.find(s => s.id === activeServerId);
 
-  const handleStartMatch = async (config: string) => {
-    if (!selectedServer) return;
-    try {
-      await sendRconCommand(
-        selectedServer.id!,
-        `matchzy_loadmatch_json ${config}`
-      );
-    } catch (error) {
-      console.error('Failed to start match:', error);
-      throw error;
-    }
-  };
+  // The tab title says which server this tab is on (judges keep several tabs/phones open)
+  React.useEffect(() => {
+    document.title = selectedServer ? `${selectedServer.name} — CS2 RCON` : 'CS2 RCON';
+  }, [selectedServer]);
 
   const handleStopMatch = async () => {
     if (!selectedServer) return;
@@ -173,7 +190,27 @@ export default function Home() {
   };
 
   if (!me) {
-    return <div className="h-[100dvh] bg-[#09090b]" />;
+    if (meError) {
+      return (
+        <div className="flex h-[100dvh] flex-col items-center justify-center gap-4 bg-[#09090b] p-6 text-center">
+          <AlertTriangle size={36} className="text-red-500" />
+          <div className="space-y-1">
+            <p className="text-lg font-bold text-white">Не удалось открыть панель</p>
+            <p className="max-w-sm text-sm text-muted-foreground">{meError}</p>
+          </div>
+          <Button onClick={() => setMeRefresh((n) => n + 1)}>
+            <RefreshCw size={16} className="mr-2" />
+            Повторить
+          </Button>
+        </div>
+      );
+    }
+    return (
+      <div className="flex h-[100dvh] items-center justify-center bg-[#09090b] text-muted-foreground">
+        <Loader2 size={24} className="mr-2 animate-spin" />
+        <span className="text-sm">Загрузка панели...</span>
+      </div>
+    );
   }
   if (me.role === 'broadcast') {
     return <BroadcastView />;
@@ -286,6 +323,7 @@ export default function Home() {
               )}
               {activeTab === "maps" && (
                 <MapSelector 
+                  serverId={activeServerId}
                   currentMap={serverInfo.map} 
                   onChangeMap={(map) => handleRconCommand(`map ${map}`)} 
                   onCommand={handleRconCommand}
@@ -303,16 +341,32 @@ export default function Home() {
                 <MatchGenerator 
                   key={activeServerId}
                   serverId={activeServerId}
-                  onStartMatch={handleStartMatch} 
                   onLaunchMatch={handleLaunchMatch}
-                  onStopMatch={handleStopMatch} 
+                  onStopMatch={handleStopMatch}
+                  onOpenLiveTab={() => setActiveTab('live')}
                 />
               )}
             </div>
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-muted-foreground italic">
-            Выберите сервер в списке слева.
+          <div className="flex-1 flex flex-col items-center justify-center gap-4 p-6 text-center">
+            <ServerIcon size={36} className="text-muted-foreground/40" />
+            <div className="space-y-1">
+              <p className="text-lg font-medium text-white">
+                {servers.length === 0 ? 'Серверы ещё не добавлены' : 'Сервер не выбран'}
+              </p>
+              <p className="max-w-xs text-sm text-muted-foreground">
+                {servers.length === 0
+                  ? 'Добавьте игровой сервер: название, адрес и RCON-пароль.'
+                  : 'Выберите сервер в списке слева (на телефоне — в меню).'}
+              </p>
+            </div>
+            {isJudge && (
+              <Button onClick={() => { setEditingServer(null); setIsModalOpen(true); }}>
+                <Plus size={16} className="mr-2" />
+                Добавить сервер
+              </Button>
+            )}
           </div>
         )}
       </main>

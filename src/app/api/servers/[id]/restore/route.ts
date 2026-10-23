@@ -11,7 +11,8 @@ type Server = NonNullable<ReturnType<typeof servers.get>>;
 // Round restore (MatchZy css_restore). MatchZy saves matchzy_<matchid>_<map>_roundNN.json at the start of each round,
 // NN = rounds already played, so backup NN takes the game back to the start of round NN+1 with that round's score.
 
-const rcon = (server: Server, command: string) => rconCommand(server.host, server.port, server.rcon_password, command);
+const rcon = (server: Server, command: string) =>
+  rconCommand(server.host, server.port, server.rcon_password, command, { priority: 'high' });
 
 async function getStatus(server: Server) {
   const out = await rcon(server, 'get5_status');

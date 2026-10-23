@@ -19,7 +19,7 @@ export async function POST(req: Request, { params }: Params) {
   }
   if (!QUIET_COMMANDS.has(command.trim())) audit(user, `rcon #${server.id} ${server.name}: ${command}`);
   try {
-    const output = await rconCommand(server.host, server.port, server.rcon_password, command);
+    const output = await rconCommand(server.host, server.port, server.rcon_password, command, { priority: 'high' });
     return NextResponse.json({ output });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 502 });

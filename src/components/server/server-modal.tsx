@@ -86,7 +86,9 @@ export function ServerModal({ open, onOpenChange, onSave, server }: ServerModalP
                 id="port"
                 type="number"
                 placeholder="27015"
-                value={formData.port}
+                min={1}
+                max={65535}
+                value={Number.isFinite(formData.port) ? formData.port : ''}
                 onChange={(e) => setFormData({ ...formData, port: parseInt(e.target.value) })}
                 className="bg-white/5 border-border"
                 required

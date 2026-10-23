@@ -5,6 +5,8 @@ import { Activity, Crosshair, Skull, Bomb, ShieldCheck, Timer, Flag, History, Pl
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
 import { sendRconCommand } from '@/lib/rcon';
+import { usePolling } from '@/lib/use-polling';
+import { useConfirm } from '@/components/ui/confirm';
 
 interface Stats {
   kills?: number;
@@ -99,11 +101,7 @@ export function LiveMatch({ serverId }: { serverId: number }) {
     }
   }, [serverId]);
 
-  React.useEffect(() => {
-    load();
-    const timer = setInterval(load, 3000);
-    return () => clearInterval(timer);
-  }, [load]);
+  usePolling(load, 3000);
 
   if (!data) return <div className="p-6 text-muted-foreground">{error || 'Загрузка...'}</div>;
 
@@ -136,7 +134,7 @@ export function LiveMatch({ serverId }: { serverId: number }) {
             <TeamHeader name={t2.name} side={t2.side} team="team2" align="right" />
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">Загрузите матч во вкладке Match - здесь появятся счёт и статистика.</p>
+          <p className="text-sm text-muted-foreground">Запустите матч во вкладке «Запуск» - здесь появятся счёт и статистика.</p>
         )}
       </section>
 
@@ -144,7 +142,7 @@ export function LiveMatch({ serverId }: { serverId: number }) {
 
       {status && !live && (
         <p className="text-xs text-muted-foreground">
-          Статистика игроков появится после первого раунда, если матч запущен из панели (вкладка Match).
+          Статистика игроков появится после первого раунда, если матч запущен из панели (вкладка «Запуск»).
         </p>
       )}
 
@@ -240,6 +238,7 @@ function RoundRestore({ serverId, paused, round, onDone }: { serverId: number; p
   const [selected, setSelected] = React.useState('');
   const [busy, setBusy] = React.useState(false);
   const [message, setMessage] = React.useState<{ ok: boolean; text: string } | null>(null);
+  const confirmDialog = useConfirm();
 
   const loadBackups = React.useCallback(async () => {
     try {
@@ -261,7 +260,13 @@ function RoundRestore({ serverId, paused, round, onDone }: { serverId: number; p
   const restore = async () => {
     const backup = backups?.find((b) => String(b.round) === selected);
     if (!backup) return;
-    if (!confirm(`Откатить игру к началу раунда ${backup.round + 1} (счёт ${backup.team1Score}:${backup.team2Score})?\nВсё, что было после, пропадёт. Матч встанет на паузу.`)) return;
+    const ok = await confirmDialog({
+      title: `Откатить к началу раунда ${backup.round + 1}?`,
+      description: `Счёт станет ${backup.team1Score}:${backup.team2Score}, всё после этого раунда пропадёт. Матч встанет на паузу.`,
+      confirmLabel: 'Откатить',
+      destructive: true,
+    });
+    if (!ok) return;
     setBusy(true);
     setMessage(null);
     try {

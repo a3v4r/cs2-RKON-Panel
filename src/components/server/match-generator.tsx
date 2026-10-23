@@ -1,16 +1,19 @@
 "use client"
 
 import React, { useState } from 'react'
-import { FileJson, Send, Users, Shield, Zap, Copy, Download, Map as MapIcon, ShieldOff } from 'lucide-react'
+import { FileJson, Users, Shield, Zap, Copy, Check, Download, Map as MapIcon, ShieldOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { api } from '@/lib/api'
+import { copyText } from '@/lib/clipboard'
+import { useConfirm } from '@/components/ui/confirm'
 
 interface MatchGeneratorProps {
   serverId: number;
-  onStartMatch: (config: string) => Promise<void>;
   onLaunchMatch: (config: string, url: string) => Promise<void>;
   onStopMatch: () => Promise<void>;
+  // After a successful launch the natural next step is watching the score
+  onOpenLiveTab: () => void;
 }
 
 const defaultMatchConfig = () => ({
@@ -44,8 +47,9 @@ function loadMatchConfig(serverId: number): MatchFormConfig {
   return defaultMatchConfig()
 }
 
-export function MatchGenerator({ serverId, onStartMatch, onLaunchMatch, onStopMatch }: MatchGeneratorProps) {
+export function MatchGenerator({ serverId, onLaunchMatch, onStopMatch, onOpenLiveTab }: MatchGeneratorProps) {
   const [matchConfig, setMatchConfig] = useState<MatchFormConfig>(() => loadMatchConfig(serverId))
+  const confirmDialog = useConfirm()
 
   React.useEffect(() => {
     try {
@@ -60,14 +64,23 @@ export function MatchGenerator({ serverId, onStartMatch, onLaunchMatch, onStopMa
   const team2Label = matchConfig.team2.name.trim() || 'Команда 2'
 
   const [jsonOutput, setJsonOutput] = useState("")
-  const [status, setStatus] = useState<{ type: 'success' | 'error' | 'idle', message: string }>({ type: 'idle', message: '' })
+  const [copied, setCopied] = useState(false)
+  const [status, setStatus] = useState<{ type: 'success' | 'error' | 'idle', message: string, liveCta?: boolean }>({ type: 'idle', message: '' })
   const [isLoading, setIsLoading] = useState(false)
 
   React.useEffect(() => {
     generateJson();
   }, [matchConfig]);
 
+  // Ending a series early cannot be undone, so it is always confirmed
   const handleStopMatch = async () => {
+    const ok = await confirmDialog({
+      title: 'Остановить матч?',
+      description: 'Серия будет завершена досрочно. Игроки увидят конец матча, продолжить её будет нельзя.',
+      confirmLabel: 'Остановить',
+      destructive: true,
+    })
+    if (!ok) return
     setIsLoading(true)
     setStatus({ type: 'idle', message: '' })
     try {
@@ -119,21 +132,6 @@ export function MatchGenerator({ serverId, onStartMatch, onLaunchMatch, onStopMa
     return json
   }
 
-  const handleStartMatch = async () => {
-    // Force regeneration to be 100% sure we have the latest visual settings
-    const json = generateJson()
-    setIsLoading(true)
-    setStatus({ type: 'idle', message: '' })
-    try {
-      await onStartMatch(json)
-      setStatus({ type: 'success', message: 'Команда отправлена' })
-    } catch (error: any) {
-      setStatus({ type: 'error', message: `Ошибка: ${error.message || 'неизвестная ошибка'}` })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   const handleLaunchUrlMatch = async () => {
     // A new id for every launch (the saved form would repeat it): backups, demos and live stats are keyed by it
     const matchid = Math.floor(Date.now() / 1000) % 10000
@@ -149,7 +147,7 @@ export function MatchGenerator({ serverId, onStartMatch, onLaunchMatch, onStopMa
 
       // 3. Launch via RCON
       await onLaunchMatch(json, configUrl)
-      setStatus({ type: 'success', message: 'Матч загружен на сервер' })
+      setStatus({ type: 'success', message: 'Матч загружен на сервер', liveCta: true })
     } catch (error: any) {
       setStatus({ type: 'error', message: `Не удалось запустить: ${error.message}` })
     } finally {
@@ -186,8 +184,16 @@ export function MatchGenerator({ serverId, onStartMatch, onLaunchMatch, onStopMa
     });
   }
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(jsonOutput)
+  // The panel runs on plain http in the LAN: the clipboard API is unavailable there,
+  // so copyText falls back to execCommand (a direct navigator.clipboard call silently did nothing)
+  const copyToClipboard = async () => {
+    try {
+      await copyText(jsonOutput)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch {
+      // rare; the config can still be downloaded or copied manually from the textarea
+    }
   }
 
   return (
@@ -228,6 +234,14 @@ export function MatchGenerator({ serverId, onStartMatch, onLaunchMatch, onStopMa
             {status.type === 'success' ? <Zap size={14} className="mr-2" /> : <Shield size={14} className="mr-2" />}
             {status.message}
           </div>
+          {status.type === 'success' && status.liveCta && (
+            <button
+              onClick={onOpenLiveTab}
+              className="self-start text-xs font-bold text-primary hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded px-1"
+            >
+              Счёт и статистика - во вкладке «Матч» →
+            </button>
+          )}
           {status.type === 'error' && (
             <p className="text-[10px] text-muted-foreground px-1 italic">
               Если RCON не работает: скачайте конфиг (кнопка над JSON), положите его в папку <code className="text-primary">csgo</code> сервера и выполните в консоли сервера <code className="text-primary">matchzy_loadmatch имя_файла.json</code>.
@@ -412,8 +426,8 @@ export function MatchGenerator({ serverId, onStartMatch, onLaunchMatch, onStopMa
           <div className="flex items-center justify-between p-3 border-b border-border bg-white/5">
             <span className="text-xs font-bold text-muted-foreground tracking-widest uppercase">Конфиг матча (JSON)</span>
             <div className="flex space-x-2">
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={copyToClipboard}>
-                <Copy size={14} />
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={copyToClipboard} title="Скопировать конфиг">
+                {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
               </Button>
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleDownload}>
                 <Download size={14} />
@@ -422,7 +436,8 @@ export function MatchGenerator({ serverId, onStartMatch, onLaunchMatch, onStopMa
           </div>
           <textarea
             value={jsonOutput}
-            onChange={(e) => setJsonOutput(e.target.value)}
+            readOnly
+            onFocus={(e) => e.currentTarget.select()}
             placeholder="// Здесь появится конфиг матча"
             className="flex-1 w-full h-full p-4 font-mono text-xs text-primary bg-black/30 outline-none resize-none scrollbar-thin scrollbar-thumb-primary/20"
             spellCheck={false}

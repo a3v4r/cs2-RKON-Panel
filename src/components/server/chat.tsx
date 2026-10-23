@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
 import { api } from '@/lib/api';
+import { useToast } from '@/components/ui/toast';
+import { useConfirm } from '@/components/ui/confirm';
 
 interface Template {
   id: number;
@@ -29,41 +31,59 @@ const INTERVALS = [1, 2, 3, 5, 10, 15, 30, 60];
 
 export function ServerChat({ serverId, onBroadcast }: ServerChatProps) {
   const [message, setMessage] = useState('');
-  const [status, setStatus] = useState('');
   const [templates, setTemplates] = useState<Template[]>([]);
   const [autoMessages, setAutoMessages] = useState<AutoMessage[]>([]);
   const [addingTemplate, setAddingTemplate] = useState(false);
   const [templateForm, setTemplateForm] = useState({ name: '', message: '' });
   const [addingAuto, setAddingAuto] = useState(false);
   const [autoForm, setAutoForm] = useState({ message: '', intervalMinutes: 5 });
+  const toast = useToast();
+  const confirmDialog = useConfirm();
 
   const loadTemplates = React.useCallback(() => {
-    api<Template[]>('/api/templates').then(setTemplates).catch((e) => setStatus(e.message));
+    api<Template[]>('/api/templates').then(setTemplates).catch((e) => toast.error(`Шаблоны не загрузились: ${(e as Error).message}`));
   }, []);
   const loadAuto = React.useCallback(() => {
-    api<AutoMessage[]>(`/api/servers/${serverId}/auto-messages`).then(setAutoMessages).catch((e) => setStatus(e.message));
+    api<AutoMessage[]>(`/api/servers/${serverId}/auto-messages`).then(setAutoMessages).catch((e) => toast.error(`Автосообщения не загрузились: ${(e as Error).message}`));
   }, [serverId]);
 
   React.useEffect(loadTemplates, [loadTemplates]);
   React.useEffect(loadAuto, [loadAuto]);
 
-  const flash = (text: string) => {
-    setStatus(text);
-    setTimeout(() => setStatus(''), 3000);
-  };
-
   const run = async (action: () => Promise<unknown>, done?: string) => {
     try {
       await action();
-      if (done) flash(done);
+      if (done) toast.success(done);
     } catch (e) {
-      setStatus((e as Error).message);
+      toast.error((e as Error).message);
     }
   };
 
   const send = (text: string) => {
     if (!text.trim()) return;
     run(() => onBroadcast(text.trim()), 'Отправлено в чат');
+  };
+
+  const deleteAuto = async (m: AutoMessage) => {
+    const ok = await confirmDialog({
+      title: 'Удалить автосообщение?',
+      description: `«${m.message}» перестанет отправляться на сервер.`,
+      confirmLabel: 'Удалить',
+      destructive: true,
+    });
+    if (!ok) return;
+    run(async () => { await api(`/api/auto-messages/${m.id}`, { method: 'DELETE' }); loadAuto(); }, 'Автосообщение удалено');
+  };
+
+  const deleteTemplate = async (template: Template) => {
+    const ok = await confirmDialog({
+      title: 'Удалить шаблон?',
+      description: `Шаблон «${template.name || template.message}» будет удалён.`,
+      confirmLabel: 'Удалить',
+      destructive: true,
+    });
+    if (!ok) return;
+    run(async () => { await api(`/api/templates/${template.id}`, { method: 'DELETE' }); loadTemplates(); }, 'Шаблон удалён');
   };
 
   const saveTemplate = (e: React.FormEvent) => {
@@ -73,7 +93,7 @@ export function ServerChat({ serverId, onBroadcast }: ServerChatProps) {
       setTemplateForm({ name: '', message: '' });
       setAddingTemplate(false);
       loadTemplates();
-    });
+    }, 'Шаблон сохранён');
   };
 
   const saveAuto = (e: React.FormEvent) => {
@@ -83,7 +103,7 @@ export function ServerChat({ serverId, onBroadcast }: ServerChatProps) {
       setAutoForm({ message: '', intervalMinutes: autoForm.intervalMinutes });
       setAddingAuto(false);
       loadAuto();
-    });
+    }, 'Автосообщение добавлено');
   };
 
   return (
@@ -106,7 +126,7 @@ export function ServerChat({ serverId, onBroadcast }: ServerChatProps) {
               />
               <div className="flex flex-wrap justify-between items-center gap-2">
                 <span className="text-xs text-muted-foreground italic">
-                  {status || <>Отправитель: <span className="text-primary font-bold">Console</span></>}
+                  Отправитель: <span className="text-primary font-bold">Console</span>
                 </span>
                 <div className="flex gap-2">
                   <Button
@@ -159,7 +179,7 @@ export function ServerChat({ serverId, onBroadcast }: ServerChatProps) {
                     <p className="text-xs text-muted-foreground">раз в {m.intervalMinutes} мин{m.enabled ? '' : ' • выключено'}</p>
                   </div>
                   <button
-                    onClick={() => { if (confirm('Удалить это автосообщение?')) run(async () => { await api(`/api/auto-messages/${m.id}`, { method: 'DELETE' }); loadAuto(); }); }}
+                    onClick={() => deleteAuto(m)}
                     className="p-2 text-muted-foreground hover:text-red-500"
                     title="Удалить"
                   >
@@ -258,7 +278,7 @@ export function ServerChat({ serverId, onBroadcast }: ServerChatProps) {
                         <Send size={14} />
                       </button>
                       <button
-                        onClick={() => { if (confirm(`Удалить шаблон «${template.name}»?`)) run(async () => { await api(`/api/templates/${template.id}`, { method: 'DELETE' }); loadTemplates(); }); }}
+                        onClick={() => deleteTemplate(template)}
                         className="p-2 hover:text-red-500"
                         title="Удалить"
                       >

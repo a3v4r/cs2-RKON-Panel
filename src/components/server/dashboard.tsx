@@ -5,6 +5,8 @@ import { Activity, Users, Map as MapIcon, Globe, Wifi, Clock, Plus, Trash2 } fro
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { db_helper } from '@/lib/db';
+import { useToast } from '@/components/ui/toast';
+import { useConfirm } from '@/components/ui/confirm';
 
 interface ServerDashboardProps {
   serverInfo: {
@@ -43,6 +45,8 @@ export function ServerDashboard({ serverInfo, onSendCommand, canManage }: Server
   const [newCmdLabel, setNewCmdLabel] = React.useState('');
   const [newCmdValue, setNewCmdValue] = React.useState('');
   const [isAddingCmd, setIsAddingCmd] = React.useState(false);
+  const toast = useToast();
+  const confirmDialog = useConfirm();
 
   const loadCommands = async () => {
     try {
@@ -57,6 +61,16 @@ export function ServerDashboard({ serverInfo, onSendCommand, canManage }: Server
     loadCommands();
   }, []);
 
+  // Every quick action answers with a toast: a silently failed pause mid-match is the worst outcome
+  const runCommand = async (label: string, command: string) => {
+    try {
+      await onSendCommand(command);
+      toast.success(`${label}: выполнено`);
+    } catch (e) {
+      toast.error(`${label}: ${(e as Error).message}`);
+    }
+  };
+
   const handleAddCommand = async () => {
     if (!newCmdLabel || !newCmdValue) return;
     try {
@@ -65,18 +79,47 @@ export function ServerDashboard({ serverInfo, onSendCommand, canManage }: Server
       setNewCmdValue('');
       setIsAddingCmd(false);
       loadCommands();
+      toast.success('Команда добавлена');
     } catch (e) {
-      console.error("Failed to add command:", e);
+      toast.error(`Не удалось добавить команду: ${(e as Error).message}`);
     }
   };
 
-  const handleDeleteCommand = async (e: React.MouseEvent, id: number) => {
+  const handleDeleteCommand = async (e: React.MouseEvent, cmd: any) => {
     e.stopPropagation();
+    const ok = await confirmDialog({
+      title: 'Удалить команду?',
+      description: `Кнопка «${cmd.label}» исчезнет из быстрых действий.`,
+      confirmLabel: 'Удалить',
+      destructive: true,
+    });
+    if (!ok) return;
     try {
-      await db_helper.deleteCommand(id);
+      await db_helper.deleteCommand(cmd.id);
       loadCommands();
+      toast.success('Команда удалена');
+    } catch (err) {
+      toast.error(`Не удалось удалить команду: ${(err as Error).message}`);
+    }
+  };
+
+  // Changing the map reloads the server and kicks everyone: always confirmed
+  const handleMapChange = async () => {
+    const map = mapInput.trim();
+    if (!map) return;
+    const ok = await confirmDialog({
+      title: 'Сменить карту?',
+      description: `Сервер перезагрузится на карту ${map}, все игроки отключатся.`,
+      confirmLabel: 'Сменить',
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      await onSendCommand(`map ${map}`);
+      toast.success(`Карта меняется: ${map}`);
+      setMapInput('');
     } catch (e) {
-      console.error("Failed to delete command:", e);
+      toast.error(`Не удалось сменить карту: ${(e as Error).message}`);
     }
   };
 
@@ -141,19 +184,19 @@ export function ServerDashboard({ serverInfo, onSendCommand, canManage }: Server
             </div>
             
             <div className="grid grid-cols-2 gap-2 flex-1">
-              <ActionButton label="Старт матча" onClick={() => onSendCommand('css_start')} />
-              <ActionButton label="Рестарт матча" onClick={() => onSendCommand('mp_restartgame 1')} />
-              <ActionButton label="Пауза" onClick={() => onSendCommand('css_forcepause')} />
-              <ActionButton label="Снять паузу" onClick={() => onSendCommand('css_forceunpause')} />
+              <ActionButton label="Старт матча" onClick={() => runCommand('Старт матча', 'css_start')} />
+              <ActionButton label="Рестарт матча" onClick={() => runCommand('Рестарт матча', 'mp_restartgame 1')} />
+              <ActionButton label="Пауза" onClick={() => runCommand('Пауза', 'css_forcepause')} />
+              <ActionButton label="Снять паузу" onClick={() => runCommand('Снять паузу', 'css_forceunpause')} />
               
               {customCommands.map(cmd => (
                 <div key={cmd.id} className="relative group/btn">
                   <ActionButton 
                     label={cmd.label} 
-                    onClick={() => onSendCommand(cmd.command)} 
+                    onClick={() => runCommand(cmd.label, cmd.command)} 
                   />
                   {canManage && <button 
-                    onClick={(e) => handleDeleteCommand(e, cmd.id)}
+                    onClick={(e) => handleDeleteCommand(e, cmd)}
                     className="absolute -top-1 -right-1 p-1 bg-red-500 text-white rounded-full md:opacity-0 md:group-hover/btn:opacity-100 transition-opacity"
                   >
                     <Trash2 size={10} />
@@ -214,7 +257,7 @@ export function ServerDashboard({ serverInfo, onSendCommand, canManage }: Server
                 ))}
               </datalist>
               <button 
-                onClick={() => { if(mapInput) onSendCommand(`map ${mapInput}`); }}
+                onClick={handleMapChange}
                 className="bg-primary text-primary-foreground px-4 py-2 rounded-md font-medium text-sm hover:bg-primary/90 transition-colors"
                 disabled={!mapInput}
               >
@@ -242,11 +285,22 @@ function StatCard({ title, value, icon, description }: { title: string, value: s
   );
 }
 
-function ActionButton({ label, onClick }: { label: string, onClick?: () => void }) {
+function ActionButton({ label, onClick }: { label: string, onClick?: () => void | Promise<void> }) {
+  const [busy, setBusy] = React.useState(false);
+  const handle = async () => {
+    if (!onClick || busy) return;
+    setBusy(true);
+    try {
+      await onClick();
+    } finally {
+      setBusy(false);
+    }
+  };
   return (
     <button 
-      onClick={onClick}
-      className="w-full flex items-center justify-center p-3 rounded-md border border-border bg-white/5 hover:bg-white/10 hover:border-muted-foreground/50 transition-all text-sm font-medium text-white text-center"
+      onClick={handle}
+      disabled={busy}
+      className="w-full flex items-center justify-center p-3 rounded-md border border-border bg-white/5 hover:bg-white/10 hover:border-muted-foreground/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background transition-all text-sm font-medium text-white text-center disabled:opacity-50"
     >
       {label}
     </button>

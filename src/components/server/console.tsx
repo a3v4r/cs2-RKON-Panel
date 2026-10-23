@@ -9,6 +9,11 @@ import { copyText } from '@/lib/clipboard';
 // Command history survives tab switches and reloads (on phones there are no arrow keys to recall it)
 const HISTORY_KEY = 'cs2panel.console.history';
 
+// The output survives them too: judges compare what the server answered,
+// and losing it on every tab switch (the component unmounts) hid the evidence
+const LOGS_KEY = 'cs2panel.console.logs';
+const LOGS_KEPT = 150;
+
 function loadHistory(): string[] {
   try {
     return JSON.parse(localStorage.getItem(HISTORY_KEY) ?? '[]');
@@ -17,10 +22,23 @@ function loadHistory(): string[] {
   }
 }
 
+function loadLogs(): LogEntry[] {
+  try {
+    const saved = JSON.parse(localStorage.getItem(LOGS_KEY) ?? '[]');
+    if (Array.isArray(saved)) {
+      return saved.filter((e): e is LogEntry =>
+        !!e && typeof e.content === 'string' && ['command', 'response', 'error', 'pending'].includes(e.type));
+    }
+  } catch {
+    // not critical
+  }
+  return [];
+}
+
 interface LogEntry {
   id: string;
   timestamp: string;
-  type: 'command' | 'response' | 'error';
+  type: 'command' | 'response' | 'error' | 'pending';
   content: string;
 }
 
@@ -30,7 +48,7 @@ interface RCONConsoleProps {
 
 export function RCONConsole({ onSendCommand }: RCONConsoleProps) {
   const [input, setInput] = useState('');
-  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [logs, setLogs] = useState<LogEntry[]>(loadLogs);
   const [history, setHistory] = useState<string[]>(loadHistory);
   const [showHistory, setShowHistory] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -45,6 +63,14 @@ export function RCONConsole({ onSendCommand }: RCONConsoleProps) {
       // not critical
     }
   }, [history]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(LOGS_KEY, JSON.stringify(logs.slice(-LOGS_KEPT)));
+    } catch {
+      // not critical
+    }
+  }, [logs]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -74,26 +100,36 @@ export function RCONConsole({ onSendCommand }: RCONConsoleProps) {
       content: command,
     };
 
-    setLogs(prev => [...prev, commandLog]);
+    // A visible "waiting" line instead of a silent gap: RCON answers in ~100 ms,
+    // but a slow or unreachable server must not look like the click was ignored.
+    const pendingId = Math.random().toString(36).substr(2, 9);
+    const pendingLog: LogEntry = {
+      id: pendingId,
+      timestamp: new Date().toLocaleTimeString(),
+      type: 'pending',
+      content: 'ожидание ответа сервера...',
+    };
+
+    setLogs(prev => [...prev, commandLog, pendingLog].slice(-LOGS_KEPT));
     setInput('');
     
     try {
       const response = await onSendCommand(command);
       const responseLog: LogEntry = {
-        id: Math.random().toString(36).substr(2, 9),
+        id: pendingId,
         timestamp: new Date().toLocaleTimeString(),
         type: 'response',
         content: response || 'Выполнено (сервер ничего не ответил)',
       };
-      setLogs(prev => [...prev, responseLog]);
+      setLogs(prev => prev.map(log => (log.id === pendingId ? responseLog : log)));
     } catch (error: any) {
       const errorLog: LogEntry = {
-        id: Math.random().toString(36).substr(2, 9),
+        id: pendingId,
         timestamp: new Date().toLocaleTimeString(),
         type: 'error',
         content: error.message || 'Неизвестная ошибка RCON',
       };
-      setLogs(prev => [...prev, errorLog]);
+      setLogs(prev => prev.map(log => (log.id === pendingId ? errorLog : log)));
     }
   };
 
@@ -175,25 +211,27 @@ export function RCONConsole({ onSendCommand }: RCONConsoleProps) {
               <div className="flex items-center justify-between text-[10px]">
                 <span className={cn(
                    "font-bold uppercase tracking-widest",
-                   log.type === 'command' ? "text-primary" : log.type === 'error' ? "text-red-500" : "text-emerald-500"
+                   log.type === 'command' ? "text-primary" : log.type === 'error' ? "text-red-500" : log.type === 'pending' ? "text-amber-400" : "text-emerald-500"
                 )}>
-                  {log.type === 'command' ? '> КОМАНДА' : log.type === 'error' ? 'ОШИБКА' : 'ОТВЕТ'}
+                  {log.type === 'command' ? '> КОМАНДА' : log.type === 'error' ? 'ОШИБКА' : log.type === 'pending' ? 'ОЖИДАНИЕ' : 'ОТВЕТ'}
                 </span>
                 <span className="text-muted-foreground/50">{log.timestamp}</span>
               </div>
               <div className={cn(
                 "whitespace-pre-wrap break-all leading-relaxed",
-                log.type === 'command' ? "text-white font-semibold" : "text-muted-foreground"
+                log.type === 'command' ? "text-white font-semibold" : log.type === 'pending' ? "text-muted-foreground/70 italic" : "text-muted-foreground"
               )}>
                 {log.content}
               </div>
-              <button
-                onClick={async () => { await copyText(log.content); setCopiedId(log.id); setTimeout(() => setCopiedId(null), 1500); }}
-                className="absolute top-2 right-2 md:opacity-0 md:group-hover:opacity-100 p-1 text-muted-foreground hover:text-white transition-opacity"
-                title="Копировать"
-              >
-                {copiedId === log.id ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
-              </button>
+              {log.type !== 'pending' && (
+                <button
+                  onClick={async () => { await copyText(log.content); setCopiedId(log.id); setTimeout(() => setCopiedId(null), 1500); }}
+                  className="absolute top-2 right-2 md:opacity-0 md:group-hover:opacity-100 p-1 text-muted-foreground hover:text-white transition-opacity"
+                  title="Копировать"
+                >
+                  {copiedId === log.id ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+                </button>
+              )}
             </div>
           ))}
           <div ref={scrollRef} />
