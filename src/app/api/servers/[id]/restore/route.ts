@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { JUDGE, audit, requireRole } from '@/server/auth';
+import { parseBackupList } from '@/server/matchzy-backups';
 import { rconCommand } from '@/server/rcon';
 import { servers } from '@/server/store';
 
@@ -11,15 +12,13 @@ type Server = NonNullable<ReturnType<typeof servers.get>>;
 // Round restore (MatchZy css_restore). MatchZy saves matchzy_<matchid>_<map>_roundNN.json at the start of each round,
 // NN = rounds already played, so backup NN takes the game back to the start of round NN+1 with that round's score.
 
-const rcon = (server: Server, command: string) => rconCommand(server.host, server.port, server.rcon_password, command);
+const rcon = (server: Server, command: string) =>
+  rconCommand(server.host, server.port, server.rcon_password, command, { priority: 'high' });
 
 async function getStatus(server: Server) {
   const out = await rcon(server, 'get5_status');
   return JSON.parse(out.slice(out.indexOf('{')));
 }
-
-// matchzy_listbackups line: "<path>\matchzy_<matchid>_<map>_round<NN>.json <yyyy-mm-dd hh:mm:ss> <team1> <team2> <map> <score1> <score2>"
-const BACKUP_LINE = /matchzy_(\d+)_(\d+)_round(\d+)\.json\s+\d{4}-\d\d-\d\d (\d\d:\d\d):\d\d\s.*\s(\d+)\s+(\d+)\s*$/;
 
 // MatchZy messages carry chat colour codes and its chat prefix
 const cleanOutput = (out: string) =>
@@ -35,12 +34,8 @@ export async function GET(_req: Request, { params }: Params) {
     if (!status.matchid || status.gamestate === 'none') return NextResponse.json({ live: false, backups: [] });
     const out = await rcon(server, `matchzy_listbackups ${status.matchid}`);
     // After a restore the backups of the abandoned rounds stay on disk until those rounds are played again
-    const current = status.round_number >= 0 ? status.round_number : Infinity;
-    const backups = out.split('\n')
-      .map((line) => BACKUP_LINE.exec(line.trim()))
-      .filter((m): m is RegExpExecArray => !!m && Number(m[2]) === status.map_number && Number(m[3]) <= current)
-      .map((m) => ({ round: Number(m[3]), time: m[4], team1Score: Number(m[5]), team2Score: Number(m[6]) }))
-      .sort((a, b) => a.round - b.round);
+    const maxRound = status.round_number >= 0 ? status.round_number : Infinity;
+    const backups = parseBackupList(out, Number(status.matchid), Number(status.map_number), maxRound);
     return NextResponse.json({ live: status.gamestate === 'live', backups });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 502 });

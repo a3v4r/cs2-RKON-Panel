@@ -2,6 +2,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 // Panel data lives in JSON files next to the server (PANEL_DATA_DIR), shared by everyone who opens the panel.
+// `matchzy` and `vanilla` only change which quick actions the panel offers; both talk to the same RCON.
+export type ServerMode = 'matchzy' | 'vanilla';
+
 export interface StoredServer {
   id: number;
   name: string;
@@ -9,6 +12,7 @@ export interface StoredServer {
   port: number;
   rcon_password: string;
   country_code?: string;
+  mode: ServerMode;
   created_at: string;
 }
 
@@ -41,9 +45,14 @@ const nextId = (items: { id: number }[]) => items.reduce((max, i) => Math.max(ma
 export const servers = {
   list: () => read<StoredServer>('servers.json').sort((a, b) => b.created_at.localeCompare(a.created_at)),
   get: (id: number) => read<StoredServer>('servers.json').find((s) => s.id === id),
-  add(data: Omit<StoredServer, 'id' | 'created_at'>) {
+  add(data: Omit<StoredServer, 'id' | 'created_at' | 'mode'> & { mode?: ServerMode }) {
     const items = read<StoredServer>('servers.json');
-    const server = { ...data, id: nextId(items), created_at: new Date().toISOString() };
+    const server: StoredServer = {
+      ...data,
+      mode: data.mode === 'vanilla' ? 'vanilla' : 'matchzy',
+      id: nextId(items),
+      created_at: new Date().toISOString(),
+    };
     write('servers.json', [...items, server]);
     return server;
   },
@@ -76,9 +85,28 @@ export const commands = {
   },
 };
 
+// Tournament teams, shared by all judges: chosen from dropdowns instead of being retyped.
+// Plain names in the order the judge entered them.
+export const teams = {
+  list: () => read<string>('teams.json'),
+  replace(names: unknown[]) {
+    const cleaned: string[] = [];
+    const seen = new Set<string>();
+    for (const raw of names) {
+      const name = String(raw).trim();
+      // Empty lines and duplicates (ignoring case) would only clutter the dropdowns
+      if (!name || seen.has(name.toLowerCase())) continue;
+      seen.add(name.toLowerCase());
+      cleaned.push(name);
+    }
+    write('teams.json', cleaned);
+    return cleaned;
+  },
+};
+
 // Without the RCON password: it never leaves the panel server.
 export function publicServer({ rcon_password, ...rest }: StoredServer) {
-  return { ...rest, has_password: rcon_password !== '' };
+  return { ...rest, mode: rest.mode === 'vanilla' ? 'vanilla' : 'matchzy', has_password: rcon_password !== '' };
 }
 
 export interface StoredTemplate {

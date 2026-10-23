@@ -3,6 +3,7 @@
 import React from 'react';
 import { Radio, Pause, Play, X } from 'lucide-react';
 import { api, BroadcastRequest } from '@/lib/api';
+import { usePolling } from '@/lib/use-polling';
 
 // Short beep + vibration so a judge notices a broadcast request even with the phone in hand.
 function signal() {
@@ -39,11 +40,7 @@ export function RequestsBanner() {
     }
   }, []);
 
-  React.useEffect(() => {
-    load();
-    const timer = setInterval(load, 3000);
-    return () => clearInterval(timer);
-  }, [load]);
+  usePolling(load, 3000);
 
   const decide = async (request: BroadcastRequest, decision: 'accept' | 'reject') => {
     setBusy(request.id);

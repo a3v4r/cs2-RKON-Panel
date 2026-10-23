@@ -19,9 +19,16 @@ class Reader {
   constructor(private buf: Buffer, private pos = 0) {}
   byte() { return this.buf.readUInt8(this.pos++); }
   short() { const v = this.buf.readUInt16LE(this.pos); this.pos += 2; return v; }
+  int32() { const v = this.buf.readInt32LE(this.pos); this.pos += 4; return v; }
+  float() { const v = this.buf.readFloatLE(this.pos); this.pos += 4; return v; }
   skip(n: number) { this.pos += n; }
   string() {
     const end = this.buf.indexOf(0, this.pos);
+    if (end === -1) {
+      const s = this.buf.toString('utf8', this.pos);
+      this.pos = this.buf.length;
+      return s;
+    }
     const s = this.buf.toString('utf8', this.pos, end);
     this.pos = end + 1;
     return s;
@@ -76,5 +83,57 @@ export function queryInfo(host: string, port: number): Promise<A2SInfo> {
       }
     });
     socket.send(QUERY, port, host);
+  });
+}
+
+// A2S_PLAYER (https://developer.valvesoftware.com/wiki/Server_queries#A2S_PLAYER):
+// names and the score the server keeps for each player. There is no team or ping here.
+export interface A2SPlayer {
+  name: string;
+  score: number;
+  duration: number;
+}
+
+const PLAYER_QUERY = Buffer.concat([HEADER, Buffer.from([0x55]), Buffer.from([0xff, 0xff, 0xff, 0xff])]);
+
+function parsePlayers(msg: Buffer): A2SPlayer[] {
+  const r = new Reader(msg, 5); // FF FF FF FF 'D'
+  const count = r.byte();
+  const players: A2SPlayer[] = [];
+  for (let i = 0; i < count && r.left > 0; i++) {
+    r.byte(); // player index
+    const name = r.string();
+    if (r.left < 8) break; // truncated packet: score + duration do not fit
+    const score = r.int32();
+    const duration = r.float();
+    if (name.trim()) players.push({ name, score, duration });
+  }
+  return players;
+}
+
+// The server answers the first request with a challenge ('A'), and the player list ('D')
+// only comes after the request is repeated with that challenge.
+export function queryPlayers(host: string, port: number): Promise<A2SPlayer[]> {
+  return new Promise((resolve, reject) => {
+    const socket = dgram.createSocket('udp4');
+    const timer = setTimeout(() => { socket.close(); reject(new Error('A2S: список игроков не получен')); }, TIMEOUT_MS);
+
+    socket.on('error', (e) => { clearTimeout(timer); socket.close(); reject(e); });
+    socket.on('message', (msg) => {
+      if (msg.length < 5 || msg.readInt32LE(0) !== -1) return;
+      const type = String.fromCharCode(msg[4]);
+      if (type === 'A' && msg.length >= 9) {
+        socket.send(Buffer.concat([HEADER, Buffer.from([0x55]), msg.subarray(5, 9)]), port, host);
+      } else if (type === 'D') {
+        clearTimeout(timer);
+        socket.close();
+        try {
+          resolve(parsePlayers(msg));
+        } catch (e) {
+          reject(e);
+        }
+      }
+    });
+    socket.send(PLAYER_QUERY, port, host);
   });
 }

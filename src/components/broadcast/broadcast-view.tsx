@@ -5,6 +5,7 @@ import { Copy, Check, Pause, Play, Radio, LogOut, Tv, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { api, BroadcastRequest } from '@/lib/api';
 import { copyText } from '@/lib/clipboard';
+import { usePolling } from '@/lib/use-polling';
 
 interface Team {
   name: string;
@@ -60,11 +61,10 @@ export function BroadcastView() {
     }
   }, []);
 
-  React.useEffect(() => {
-    load();
-    const timer = setInterval(load, 3000);
-    return () => clearInterval(timer);
-  }, [load]);
+  usePolling(load, 3000);
+
+  // The tab title identifies the broadcast screen among the judges' other tabs
+  React.useEffect(() => { document.title = 'Трансляция — CS2 RCON'; }, []);
 
   return (
     <div className="min-h-[100dvh] bg-[#09090b] text-white">
@@ -148,7 +148,7 @@ function ServerCard({ server: s, onChange }: { server: BroadcastServer; onChange
             : m?.state === 'live' ? 'bg-emerald-500/15 text-emerald-400'
             : 'bg-white/10 text-muted-foreground',
         )}>
-          {s.online ? stateLabel : 'offline'}
+          {s.online ? stateLabel : 'офлайн'}
         </span>
       </div>
 

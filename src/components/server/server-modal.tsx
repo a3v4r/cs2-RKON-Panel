@@ -26,20 +26,22 @@ export function ServerModal({ open, onOpenChange, onSave, server }: ServerModalP
     host: '',
     port: 27015,
     rcon_password: '',
-    country_code: 'RU'
+    country_code: 'RU',
+    mode: 'matchzy',
   })
 
   useEffect(() => {
     if (server) {
       // The stored password is never sent to the browser: empty field = keep it
-      setFormData({ ...server, rcon_password: '' })
+      setFormData({ ...server, mode: server.mode === 'vanilla' ? 'vanilla' : 'matchzy', rcon_password: '' })
     } else {
       setFormData({
         name: '',
         host: '',
         port: 27015,
         rcon_password: '',
-        country_code: 'RU'
+        country_code: 'RU',
+        mode: 'matchzy',
       })
     }
   }, [server, open])
@@ -86,7 +88,9 @@ export function ServerModal({ open, onOpenChange, onSave, server }: ServerModalP
                 id="port"
                 type="number"
                 placeholder="27015"
-                value={formData.port}
+                min={1}
+                max={65535}
+                value={Number.isFinite(formData.port) ? formData.port : ''}
                 onChange={(e) => setFormData({ ...formData, port: parseInt(e.target.value) })}
                 className="bg-white/5 border-border"
                 required
@@ -104,6 +108,21 @@ export function ServerModal({ open, onOpenChange, onSave, server }: ServerModalP
               className="bg-white/5 border-border"
               required={!server}
             />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="mode">Режим сервера</Label>
+            <select
+              id="mode"
+              value={formData.mode ?? 'matchzy'}
+              onChange={(e) => setFormData({ ...formData, mode: e.target.value as ServerProfile['mode'] })}
+              className="w-full bg-white/5 border border-border rounded-md px-3 py-2 text-sm text-white focus:ring-1 focus:ring-primary outline-none"
+            >
+              <option value="matchzy" className="bg-[#09090b]">MatchZy (плагин матчей)</option>
+              <option value="vanilla" className="bg-[#09090b]">Vanilla (без плагина, ESL-конфиги)</option>
+            </select>
+            <p className="text-[11px] text-muted-foreground">
+              От режима зависят быстрые действия: команды MatchZy или конфиги и откат стандартными средствами CS2.
+            </p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="country">Код страны (флаг)</Label>

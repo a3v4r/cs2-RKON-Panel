@@ -13,10 +13,17 @@ export interface ServerStatus {
   keywords: string;
 }
 
-export async function fetchServerInfo(serverId: number): Promise<ServerStatus> {
-  const info = await api<{ name: string; map: string; players: number; maxPlayers: number; bots: number; ping: number; keywords: string }>(
-    `/api/servers/${serverId}/info`,
-  );
+interface RawServerInfo {
+  name: string;
+  map: string;
+  players: number;
+  maxPlayers: number;
+  bots: number;
+  ping: number;
+  keywords: string;
+}
+
+function toServerStatus(info: RawServerInfo): ServerStatus {
   return {
     name: info.name,
     map: info.map,
@@ -29,4 +36,13 @@ export async function fetchServerInfo(serverId: number): Promise<ServerStatus> {
     tags: info.keywords ? info.keywords.split(',') : [],
     keywords: info.keywords || '',
   };
+}
+
+export async function fetchServerInfo(serverId: number): Promise<ServerStatus> {
+  return toServerStatus(await api<RawServerInfo>(`/api/servers/${serverId}/info`));
+}
+
+// Drops the panel's RCON connection to this server and polls it again from scratch.
+export async function reconnectServer(serverId: number): Promise<ServerStatus> {
+  return toServerStatus(await api<RawServerInfo>(`/api/servers/${serverId}/reconnect`, { method: 'POST' }));
 }
