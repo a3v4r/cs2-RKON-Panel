@@ -31,6 +31,8 @@ const RESTART_DELAY_MS = 5_000;
 const STOP_WAIT_MS = 10_000;
 // 0xC000013A: the server console window was closed (or Ctrl+C) - a manual stop, not a crash
 const CONSOLE_CLOSED = [3221225786, -1073741510];
+// 0xC0000005: access violation
+const ACCESS_VIOLATION = [3221225477, -1073741819];
 // +game_type / +game_mode for each mode (Valve's gamemodes.txt)
 const GAME_TYPE_MODE: Record<GameMode, [number, number]> = {
   competitive: [0, 1], casual: [0, 0], wingman: [0, 2], deathmatch: [1, 2],
@@ -128,6 +130,8 @@ function onExit(id: number, proc: Proc, code: number | null) {
       state: 'crashed',
       message: uptime < MIN_UPTIME_FOR_RESTART_MS
         ? `Сервер упал сразу после запуска${codeText}. Посмотрите окно консоли сервера и логи addons\\counterstrikesharp\\logs.`
+          // 0xC0000005 right after an update of CS2 is almost always Metamod or CounterStrikeSharp built for the old version
+          + (code !== null && ACCESS_VIOLATION.includes(code) ? ' Если CS2 недавно обновился, скорее всего Metamod или CounterStrikeSharp ещё не поддерживают новую версию: обновите их.' : '')
         : `Сервер остановился${codeText}`,
     });
   }

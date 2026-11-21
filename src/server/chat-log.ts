@@ -59,6 +59,9 @@ function steam64(id: string) {
 
 // 11/21/2026 - 18:04:20.123 - "Player<2><[U:1:12345]><CT>" say "gg wp"
 const SAY = /"(.*)<\d+><([^>]*)><([^>]*)>" (say|say_team) "(.*)"\s*$/;
+// CS2 logs `say` from the server console (and the panel's Chat) without SteamID and team:
+// 11/21/2026 - 15:48:40: "Console<0>" say "text"
+const CONSOLE_SAY = /"Console<\d+>" (say) "(.*)"\s*$/;
 
 export function ingestLog(serverId: number, body: string) {
   const lines = body.split(/\r?\n/);
@@ -68,7 +71,11 @@ export function ingestLog(serverId: number, body: string) {
   const now = Date.now();
   for (const line of lines) {
     const m = SAY.exec(line);
-    if (!m) continue;
+    if (!m) {
+      const c = CONSOLE_SAY.exec(line);
+      if (c) added.push({ t: now, name: 'Console', steamid: 'Console', team: 'Console', type: 'say', text: c[2] });
+      continue;
+    }
     added.push({ t: now, name: m[1], steamid: steam64(m[2]), team: m[3], type: m[4] as ChatMessage['type'], text: m[5] });
   }
   if (!added.length) return;

@@ -68,7 +68,7 @@ const actionBtn = 'flex items-center justify-center transition-all disabled:opac
 const headerBtn = 'flex items-center justify-center transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed group p-1 rounded-lg w-7 h-7 text-gray-400 hover:text-white hover:bg-white/5';
 
 const newId = () => Math.random().toString(36).slice(2, 11);
-const now = () => new Date().toLocaleTimeString();
+const now = () => new Date().toLocaleTimeString('ru-RU'); // 24-hour HH:MM:SS in both languages
 
 export function RCONConsole({ onSendCommand }: RCONConsoleProps) {
   const { t } = useT();
