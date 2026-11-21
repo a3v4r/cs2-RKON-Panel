@@ -41,7 +41,7 @@ const MAP_IMAGES: Record<string, string> = {
   cs_italy: 'de_italy', de_italy: 'de_italy', cs_office: 'de_office', de_office: 'de_office',
 };
 // The Quatrix getMapImage: stock maps by name (also inside workshop paths), anything else gets a default picture
-function mapImage(map?: string) {
+export function mapImage(map?: string | null) {
   const name = (map ?? '').split(/[/\\]/).pop()?.replace(/\.(vpk|bsp)$/i, '').toLowerCase() ?? '';
   return `/images/maps/${MAP_IMAGES[name] ?? 'de_dust2'}.webp`;
 }

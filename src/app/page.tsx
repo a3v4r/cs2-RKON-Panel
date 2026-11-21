@@ -334,7 +334,7 @@ export default function Home() {
                 />
               )}
               {activeTab === "live" && activeServerId && (
-                <LiveMatch key={activeServerId} serverId={activeServerId} />
+                <LiveMatch key={activeServerId} serverId={activeServerId} onLaunch={isJudge ? () => setActiveTab("match") : undefined} />
               )}
               {activeTab === "console" && (
                 <div className="flex-1 min-h-[420px] p-3 md:p-6">
