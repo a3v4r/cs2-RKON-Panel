@@ -10,6 +10,17 @@ export interface StoredServer {
   rcon_password: string;
   country_code?: string;
   created_at: string;
+  // Set for servers the panel itself starts on this PC (instead of the tournament kit's .bat files)
+  managed?: ManagedConfig;
+}
+
+export interface ManagedConfig {
+  tvPort: number;
+  map: string;
+  maxPlayers: number;
+  password: string; // sv_password for players, empty = none
+  bindIp: string;
+  autoRestart: boolean;
 }
 
 export interface StoredCommand {

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Sidebar, SECTIONS, SERVER_SECTIONS, Section } from '@/components/layout/sidebar';
 import { ServerSwitcher } from '@/components/layout/server-switcher';
 import { ServersView } from '@/components/servers/servers-view';
+import { CreateServerModal } from '@/components/servers/create-server-modal';
 import { ServerDashboard, ServerSample } from '@/components/server/dashboard';
 import { RCONConsole } from '@/components/server/console';
 import { ServerChat } from '@/components/server/chat';
@@ -60,6 +61,9 @@ export default function Home() {
   const [serverInfo, setServerInfo] = useState<any>(INITIAL_INFO);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingServer, setEditingServer] = useState<ServerProfile | null>(null);
+  // "Create server" dialog: new server (null) or launch settings of a panel-run one
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editingManaged, setEditingManaged] = useState<ServerProfile | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [me, setMe] = useState<{ role: Role } | null>(null);
   // Ping and player count of the selected server over the last minutes, for the overview charts
@@ -144,6 +148,22 @@ export default function Home() {
       setEditingServer(null);
     } catch (error) {
       alert(`Не удалось сохранить сервер: ${(error as Error).message}`);
+    }
+  };
+
+  const handleSaveManaged = async (server: ServerProfile) => {
+    if (server.id) await db_helper.updateServer(server.id, server);
+    else await db_helper.addServer(server);
+    await loadServers();
+  };
+
+  const editServer = (server: ServerProfile) => {
+    if (server.managed) {
+      setEditingManaged(server);
+      setCreateOpen(true);
+    } else {
+      setEditingServer(server);
+      setIsModalOpen(true);
     }
   };
 
@@ -290,8 +310,10 @@ export default function Home() {
               servers={servers}
               canManage={isJudge}
               onRefresh={loadServers}
+              onCreate={() => { setEditingManaged(null); setCreateOpen(true); }}
               onConnect={openAdd}
-              onEdit={(server) => { setEditingServer(server); setIsModalOpen(true); }}
+              onOpenSettings={() => setActiveTab('general-settings')}
+              onEdit={editServer}
               onDelete={handleDeleteServer}
               onOpen={(id, section) => { selectServer(id); setActiveTab(section); }}
             />
@@ -338,7 +360,7 @@ export default function Home() {
                 <ServerSettings
                   key={selectedServer.id}
                   server={selectedServer}
-                  onEdit={() => { setEditingServer(selectedServer); setIsModalOpen(true); }}
+                  onEdit={() => editServer(selectedServer)}
                   onCommand={handleRconCommand}
                 />
               )}
@@ -355,6 +377,14 @@ export default function Home() {
           )}
         </div>
       </main>
+
+      <CreateServerModal
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        server={editingManaged}
+        servers={servers}
+        onSave={handleSaveManaged}
+      />
 
       <ServerModal 
         open={isModalOpen} 

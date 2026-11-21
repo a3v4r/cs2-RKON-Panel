@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { JUDGE, audit, requireRole } from '@/server/auth';
+import { generatePassword, parseManaged } from '@/server/managed';
 import { publicServer, servers } from '@/server/store';
 
 export const dynamic = 'force-dynamic';
@@ -14,6 +15,29 @@ export async function POST(req: Request) {
   const user = await requireRole(JUDGE);
   if (user instanceof NextResponse) return user;
   const body = await req.json();
+
+  // A server the panel creates and starts on this PC
+  if (body.managed) {
+    if (!body.name) return NextResponse.json({ error: 'Нужно название' }, { status: 400 });
+    const port = Number(body.port);
+    let managed;
+    try {
+      managed = parseManaged(body.managed, port);
+    } catch (e) {
+      return NextResponse.json({ error: (e as Error).message }, { status: 400 });
+    }
+    const server = servers.add({
+      name: String(body.name),
+      host: '127.0.0.1',
+      port,
+      rcon_password: String(body.rcon_password || generatePassword()),
+      country_code: body.country_code || undefined,
+      managed,
+    });
+    audit(user, `server create #${server.id} ${server.name} port ${port} tv ${managed.tvPort}`);
+    return NextResponse.json(publicServer(server));
+  }
+
   if (!body.name || !body.host || !body.port) {
     return NextResponse.json({ error: 'Нужны имя, адрес и порт' }, { status: 400 });
   }

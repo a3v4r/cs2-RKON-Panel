@@ -1,0 +1,220 @@
+"use client";
+
+import React from 'react';
+import { ChevronDown, Rocket } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { cn } from '@/lib/utils';
+import type { ManagedConfig, ServerProfile } from '@/lib/db';
+
+interface CreateServerModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  // Existing server to edit; without it a new one is created
+  server?: ServerProfile | null;
+  servers: ServerProfile[];
+  onSave: (server: ServerProfile) => Promise<void>;
+}
+
+type Form = { name: string; port: string; rcon_password: string; country_code: string } & Omit<ManagedConfig, 'tvPort' | 'maxPlayers'> & { tvPort: string; maxPlayers: string };
+
+const MAPS = ['de_dust2', 'de_mirage', 'de_inferno', 'de_nuke', 'de_ancient', 'de_anubis', 'de_vertigo', 'de_train', 'de_overpass'];
+
+// Next free pair of ports on this PC: 27015/27020, 27025/27030, ...
+function freePorts(servers: ServerProfile[]) {
+  const taken = new Set(servers.flatMap((s) => [s.port, s.managed?.tvPort ?? 0]));
+  for (let port = 27015; port < 28000; port += 10) {
+    if (!taken.has(port) && !taken.has(port + 5)) return { port, tvPort: port + 5 };
+  }
+  return { port: 27015, tvPort: 27020 };
+}
+
+function emptyForm(servers: ServerProfile[]): Form {
+  const { port, tvPort } = freePorts(servers);
+  const n = servers.filter((s) => s.managed).length + 1;
+  return {
+    name: `Турнирный сервер #${n}`,
+    port: String(port),
+    tvPort: String(tvPort),
+    map: 'de_dust2',
+    maxPlayers: '12',
+    password: '',
+    rcon_password: '',
+    country_code: 'RU',
+    bindIp: '0.0.0.0',
+    autoRestart: true,
+  };
+}
+
+// "Create server" as in Quatrix: the panel writes the config and starts cs2.exe itself, no .bat files
+export function CreateServerModal({ open, onOpenChange, server, servers, onSave }: CreateServerModalProps) {
+  const [form, setForm] = React.useState<Form>(() => emptyForm(servers));
+  const [advanced, setAdvanced] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
+  const [error, setError] = React.useState('');
+
+  React.useEffect(() => {
+    if (!open) return;
+    setError('');
+    setAdvanced(false);
+    if (server?.managed) {
+      setForm({
+        name: server.name,
+        port: String(server.port),
+        tvPort: String(server.managed.tvPort),
+        map: server.managed.map,
+        maxPlayers: String(server.managed.maxPlayers),
+        password: server.managed.password,
+        rcon_password: '',
+        country_code: server.country_code ?? '',
+        bindIp: server.managed.bindIp,
+        autoRestart: server.managed.autoRestart,
+      });
+    } else {
+      setForm(emptyForm(servers));
+    }
+  }, [open, server]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const set = <K extends keyof Form>(key: K, value: Form[K]) => setForm((f) => ({ ...f, [key]: value }));
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setError('');
+    try {
+      await onSave({
+        id: server?.id,
+        name: form.name.trim(),
+        host: '127.0.0.1',
+        port: Number(form.port),
+        rcon_password: form.rcon_password,
+        country_code: form.country_code.trim().toUpperCase() || undefined,
+        managed: {
+          tvPort: Number(form.tvPort),
+          map: form.map.trim(),
+          maxPlayers: Number(form.maxPlayers),
+          password: form.password,
+          bindIp: form.bindIp.trim(),
+          autoRestart: form.autoRestart,
+        },
+      });
+      onOpenChange(false);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[520px] max-h-[92dvh] overflow-y-auto border-border text-white">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <span className="p-1.5 rounded-lg bg-primary/15 text-primary"><Rocket size={16} /></span>
+            {server ? 'Параметры сервера' : 'Создать сервер'}
+          </DialogTitle>
+          <p className="text-sm text-muted-foreground">
+            {server
+              ? 'Новые параметры применятся при следующем запуске сервера.'
+              : 'Панель сама соберёт конфиг и запустит сервер CS2 на этом ПК. Батники больше не нужны.'}
+          </p>
+        </DialogHeader>
+
+        <form onSubmit={submit} className="space-y-4 pt-2">
+          {error && <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm font-medium text-red-400">{error}</div>}
+
+          <Field label="Название (hostname)">
+            <Input required value={form.name} onChange={(e) => set('name', e.target.value)} />
+          </Field>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Порт сервера">
+              <Input required inputMode="numeric" value={form.port} onChange={(e) => set('port', e.target.value)} />
+            </Field>
+            <Field label="Порт GOTV">
+              <Input required inputMode="numeric" value={form.tvPort} onChange={(e) => set('tvPort', e.target.value)} />
+            </Field>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Карта при запуске">
+              <Input required list="create-server-maps" value={form.map} onChange={(e) => set('map', e.target.value)} />
+              <datalist id="create-server-maps">{MAPS.map((m) => <option key={m} value={m} />)}</datalist>
+            </Field>
+            <Field label="Мест на сервере">
+              <Input required inputMode="numeric" value={form.maxPlayers} onChange={(e) => set('maxPlayers', e.target.value)} />
+            </Field>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="RCON-пароль">
+              <Input
+                type="password"
+                autoComplete="new-password"
+                placeholder={server ? 'не менять' : 'сгенерировать'}
+                value={form.rcon_password}
+                onChange={(e) => set('rcon_password', e.target.value)}
+              />
+            </Field>
+            <Field label="Пароль для игроков">
+              <Input placeholder="без пароля" value={form.password} onChange={(e) => set('password', e.target.value)} />
+            </Field>
+          </div>
+
+          <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/5">
+            <div>
+              <div className="text-sm font-medium text-white">Перезапуск при падении</div>
+              <div className="text-xs text-muted-foreground">Если сервер упадёт после минуты работы, панель запустит его снова</div>
+            </div>
+            <Switch checked={form.autoRestart} onCheckedChange={(v) => set('autoRestart', v)} />
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setAdvanced(!advanced)}
+            className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground hover:text-white"
+          >
+            <ChevronDown size={14} className={cn('transition-transform', advanced && 'rotate-180')} />
+            Дополнительно
+          </button>
+          {advanced && (
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="IP для сервера и RCON">
+                <Input value={form.bindIp} onChange={(e) => set('bindIp', e.target.value)} />
+              </Field>
+              <Field label="Код страны (флаг)">
+                <Input maxLength={2} value={form.country_code} onChange={(e) => set('country_code', e.target.value)} />
+              </Field>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 pt-2">
+            <button type="button" onClick={() => onOpenChange(false)} className="px-4 py-2.5 rounded-xl text-sm font-semibold text-muted-foreground hover:text-white hover:bg-white/5">
+              Отмена
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-white text-sm font-semibold shadow-lg shadow-primary/20 hover:bg-primary/90 active:scale-[0.98] transition-all disabled:opacity-50"
+            >
+              {saving && <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />}
+              {server ? 'Сохранить' : 'Создать сервер'}
+            </button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1.5 min-w-0">
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      {children}
+    </div>
+  );
+}

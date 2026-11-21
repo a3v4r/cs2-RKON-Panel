@@ -5,5 +5,7 @@ export async function register() {
     startScheduler();
     const { startSystemSampler } = await import('./server/system');
     startSystemSampler();
+    const { startInstanceWatcher } = await import('./server/instances');
+    startInstanceWatcher().catch(() => {});
   }
 }
