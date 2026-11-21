@@ -136,7 +136,7 @@ export function LiveMatch({ serverId }: { serverId: number }) {
             <TeamHeader name={t2.name} side={t2.side} team="team2" align="right" />
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">Загрузите матч во вкладке Match - здесь появятся счёт и статистика.</p>
+          <p className="text-sm text-muted-foreground">Запустите матч в разделе «Запуск матча» - здесь появятся счёт и статистика.</p>
         )}
       </section>
 
@@ -310,7 +310,7 @@ function RoundRestore({ serverId, paused, round, onDone }: { serverId: number; p
           <select
             value={selected}
             onChange={(e) => setSelected(e.target.value)}
-            className="min-w-0 flex-1 rounded-md border border-border bg-[#09090b] px-2 py-1.5 text-sm"
+            className="min-w-0 flex-1 rounded-md border border-border bg-background/50 px-2 py-1.5 text-sm"
           >
             {[...backups].reverse().map((b) => (
               <option key={b.round} value={b.round}>

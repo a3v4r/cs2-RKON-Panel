@@ -1,13 +1,12 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Lock } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Crosshair, User, Lock, Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -29,36 +28,79 @@ export default function LoginPage() {
     }
   };
 
+  const field = 'block w-full pl-11 py-2.5 bg-background/50 border border-input rounded-xl text-white placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none text-sm';
+
   return (
-    <div className="flex min-h-[100dvh] items-center justify-center bg-[#09090b] p-4">
-      <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4 rounded-xl border border-border p-6">
-        <div className="flex items-center gap-3 text-white">
-          <Lock className="text-primary" size={22} />
-          <h1 className="text-xl font-bold">Matchdesk</h1>
+    <div className="relative flex min-h-[100dvh] items-center justify-center overflow-hidden bg-background p-4">
+      {/* Soft blue glow in the corners */}
+      <div className="pointer-events-none absolute inset-0 -z-0 overflow-hidden">
+        <div className="absolute top-[-10%] left-[-10%] h-[40%] w-[40%] rounded-full bg-primary/10 blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] h-[30%] w-[30%] rounded-full bg-primary/10 blur-[100px]" />
+      </div>
+
+      <div className="relative w-full max-w-md">
+        <div className="mb-8 text-center">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-blue-700 shadow-xl shadow-primary/30">
+            <Crosshair size={34} className="text-white" />
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-white">Matchdesk</h1>
+          <p className="mt-2 text-sm text-muted-foreground">Панель судьи для турниров CS2</p>
         </div>
-        <Input
-          autoFocus
-          autoCapitalize="none"
-          autoComplete="username"
-          placeholder="Логин"
-          required
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          className="h-11 bg-white/5 border-border text-white"
-        />
-        <Input
-          type="password"
-          autoComplete="current-password"
-          placeholder="Пароль"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="h-11 bg-white/5 border-border text-white"
-        />
-        {error && <p className="text-sm text-red-500">{error}</p>}
-        <Button type="submit" disabled={loading} className="h-11 w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold">
-          {loading ? 'Вход...' : 'Войти'}
-        </Button>
-      </form>
+
+        <form onSubmit={handleSubmit} className="space-y-5 rounded-2xl border border-border/60 bg-card p-6 shadow-xl sm:p-8">
+          {error && (
+            <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm font-medium text-red-400">{error}</div>
+          )}
+          <div>
+            <label htmlFor="username" className="mb-1.5 block text-sm font-medium text-gray-300">Логин</label>
+            <div className="relative">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-muted-foreground"><User size={18} /></div>
+              <input
+                id="username"
+                autoFocus
+                autoCapitalize="none"
+                autoComplete="username"
+                placeholder="Логин"
+                required
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className={`${field} pr-4`}
+              />
+            </div>
+          </div>
+          <div>
+            <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-gray-300">Пароль</label>
+            <div className="relative">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-muted-foreground"><Lock size={18} /></div>
+              <input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className={`${field} pr-12`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-muted-foreground hover:text-gray-300"
+                aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50"
+          >
+            {loading && <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />}
+            {loading ? 'Вход…' : 'Войти'}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

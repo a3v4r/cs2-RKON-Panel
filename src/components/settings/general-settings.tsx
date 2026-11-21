@@ -1,19 +1,12 @@
 "use client"
 
 import React from 'react'
-import { Settings, Info } from 'lucide-react'
+import { Info } from 'lucide-react'
 import { AuditLog } from '@/components/settings/audit-log'
 
 export function GeneralSettings() {
   return (
-    <div className="p-4 md:p-8 max-w-2xl mx-auto space-y-8">
-      <div>
-        <h2 className="text-3xl font-bold text-white flex items-center">
-          <Settings className="mr-3 text-primary" size={32} />
-          Настройки
-        </h2>
-        <p className="text-muted-foreground mt-2">Журнал действий и версия панели.</p>
-      </div>
+    <div className="p-3 md:p-6 max-w-3xl space-y-8">
 
       <div className="space-y-6">
         <AuditLog />

@@ -52,7 +52,7 @@ export function ServerModal({ open, onOpenChange, onSave, server }: ServerModalP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] bg-[#09090b] border-border text-white">
+      <DialogContent className="sm:max-w-[425px] border-border text-white">
         <DialogHeader>
           <DialogTitle>{server ? 'Изменить сервер' : 'Новый сервер'}</DialogTitle>
         </DialogHeader>

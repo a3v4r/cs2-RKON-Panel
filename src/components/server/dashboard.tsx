@@ -1,9 +1,8 @@
 "use client";
 
 import React from 'react';
-import { Activity, Users, Map as MapIcon, Globe, Wifi, Clock, Plus, Trash2 } from 'lucide-react';
+import { Activity, Users, Map as MapIcon, Wifi, Plus, Trash2, Play, Pause, RotateCcw, Radio } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { db_helper } from '@/lib/db';
 
 interface ServerDashboardProps {
@@ -81,173 +80,168 @@ export function ServerDashboard({ serverInfo, onSendCommand, canManage }: Server
   };
 
   return (
-    <div className="p-3 md:p-6 space-y-6 animate-in fade-in duration-500">
-      {/* Hero Section / Status */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h2 className="text-xl md:text-3xl font-bold tracking-tight text-white">{serverInfo.name}</h2>
-          <div className="flex items-center mt-1 text-muted-foreground">
-            <Globe size={14} className="mr-1" />
-            <span className="text-sm">{serverInfo.status === 'online' ? 'Подключено' : 'Нет связи'}</span>
-          </div>
-        </div>
-        <div className={cn(
-          "flex items-center space-x-2 px-3 py-1 rounded-full border",
-          serverInfo.status === 'online' 
-            ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" 
-            : "bg-red-500/10 text-red-500 border-red-500/20"
-        )}>
-          <div className={cn("w-2 h-2 rounded-full", serverInfo.status === 'online' ? "bg-emerald-500 animate-pulse" : "bg-red-500")} />
-          <span className="text-xs font-bold uppercase tracking-wider">{serverInfo.status === 'online' ? 'онлайн' : serverInfo.status === 'offline' ? 'офлайн' : '...'}</span>
-        </div>
-      </div>
-
+    <div className="p-3 md:p-6 space-y-4 md:space-y-6 animate-in fade-in duration-500">
       {/* Stats Grid */}
-      <div className="grid grid-cols-3 gap-2 md:gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <StatCard 
-          title="Карта" 
-          value={serverInfo.map} 
-          icon={<MapIcon className="text-blue-500" size={20} />} 
-          description="Текущая карта сервера"
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+        <StatCard
+          title="Статус"
+          value={serverInfo.status === 'online' ? 'Онлайн' : serverInfo.status === 'offline' ? 'Нет связи' : '…'}
+          icon={<Radio size={18} />}
+          tone={serverInfo.status === 'online' ? 'emerald' : 'red'}
+          description={serverInfo.name}
         />
-        <StatCard 
-          title="Игроки" 
-          value={`${serverInfo.players.online}/${serverInfo.players.max}`} 
-          icon={<Users className="text-orange-500" size={20} />} 
+        <StatCard title="Карта" value={serverInfo.map} icon={<MapIcon size={18} />} tone="blue" description="Текущая карта сервера" />
+        <StatCard
+          title="Игроки"
+          value={`${serverInfo.players.online}/${serverInfo.players.max}`}
+          icon={<Users size={18} />}
+          tone="violet"
           description={`ботов: ${serverInfo.players.bots}`}
         />
-        <StatCard 
-          title="Пинг" 
-          value={`${serverInfo.ping}ms`} 
-          icon={<Wifi className="text-emerald-500" size={20} />} 
-          description="Задержка до сервера"
-        />
+        <StatCard title="Пинг" value={`${serverInfo.ping} мс`} icon={<Wifi size={18} />} tone="orange" description="Задержка до сервера" />
       </div>
 
       {/* Quick Actions */}
       <div className="grid gap-4 md:grid-cols-2">
-         <div className="p-4 md:p-6 rounded-xl border border-border bg-[#09090b]/50 backdrop-blur-sm flex flex-col">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold flex items-center">
-                <Activity size={18} className="mr-2 text-primary" />
-                Быстрые действия
-              </h3>
-              {canManage && <button 
-                onClick={() => setIsAddingCmd(!isAddingCmd)}
-                className="text-[10px] uppercase font-bold text-primary hover:text-primary/80 flex items-center bg-primary/10 px-2 py-1 rounded"
-              >
-                <Plus size={12} className="mr-1" /> Своя
-              </button>}
-            </div>
-            
-            <div className="grid grid-cols-2 gap-2 flex-1">
-              <ActionButton label="Старт матча" onClick={() => onSendCommand('css_start')} />
-              <ActionButton label="Рестарт матча" onClick={() => onSendCommand('mp_restartgame 1')} />
-              <ActionButton label="Пауза" onClick={() => onSendCommand('css_forcepause')} />
-              <ActionButton label="Снять паузу" onClick={() => onSendCommand('css_forceunpause')} />
-              
-              {customCommands.map(cmd => (
-                <div key={cmd.id} className="relative group/btn">
-                  <ActionButton 
-                    label={cmd.label} 
-                    onClick={() => onSendCommand(cmd.command)} 
-                  />
-                  {canManage && <button 
-                    onClick={(e) => handleDeleteCommand(e, cmd.id)}
-                    className="absolute -top-1 -right-1 p-1 bg-red-500 text-white rounded-full md:opacity-0 md:group-hover/btn:opacity-100 transition-opacity"
-                  >
-                    <Trash2 size={10} />
-                  </button>}
-                </div>
-              ))}
-            </div>
-
-            {isAddingCmd && (
-              <div className="mt-4 p-3 rounded-lg border border-primary/20 bg-primary/5 space-y-2 animate-in slide-in-from-top-2">
-                <input 
-                  placeholder="Название (например, Нож)" 
-                  value={newCmdLabel}
-                  onChange={e => setNewCmdLabel(e.target.value)}
-                  className="w-full bg-black/40 border border-border rounded px-2 py-1 text-xs outline-none focus:border-primary"
-                />
-                <input 
-                  placeholder="Команда (например, mp_warmup_start)" 
-                  value={newCmdValue}
-                  onChange={e => setNewCmdValue(e.target.value)}
-                  className="w-full bg-black/40 border border-border rounded px-2 py-1 text-xs outline-none focus:border-primary"
-                />
-                <div className="flex space-x-2">
-                  <button 
-                    onClick={handleAddCommand}
-                    className="flex-1 bg-primary text-primary-foreground py-1 rounded text-[10px] font-bold"
-                  >
-                    Сохранить
-                  </button>
-                  <button 
-                    onClick={() => setIsAddingCmd(false)}
-                    className="px-3 bg-white/5 py-1 rounded text-[10px] font-bold"
-                  >
-                    Отмена
-                  </button>
-                </div>
-              </div>
-            )}
-         </div>
-         
-         <div className="p-4 md:p-6 rounded-xl border border-border bg-[#09090b]/50 backdrop-blur-sm">
-            <h3 className="text-lg font-semibold mb-4 flex items-center">
-              <MapIcon size={18} className="mr-2 text-primary" />
-              Смена карты
+        <div className="p-4 md:p-6 rounded-2xl border border-border bg-card shadow-lg shadow-black/20 flex flex-col">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-bold text-white flex items-center">
+              <Activity size={16} className="mr-2 text-primary" />
+              Быстрые действия
             </h3>
-            <div className="flex items-center space-x-2">
-              <input
-                type="text"
-                placeholder="Карта (например, de_dust2)..."
-                value={mapInput}
-                onChange={(e) => setMapInput(e.target.value)}
-                list="map-suggestions"
-                className="flex-1 bg-white/5 border border-border rounded-md px-3 py-2 text-sm text-white focus:ring-1 focus:ring-primary outline-none"
-              />
-              <datalist id="map-suggestions">
-                {COMMON_MAPS.map(map => (
-                  <option key={map} value={map} />
-                ))}
-              </datalist>
-              <button 
-                onClick={() => { if(mapInput) onSendCommand(`map ${mapInput}`); }}
-                className="bg-primary text-primary-foreground px-4 py-2 rounded-md font-medium text-sm hover:bg-primary/90 transition-colors"
-                disabled={!mapInput}
-              >
-                Сменить
-              </button>
-            </div>
-         </div>
-      </div>
-    </div>
-  );
-}
+            {canManage && <button
+              onClick={() => setIsAddingCmd(!isAddingCmd)}
+              className="text-[10px] uppercase font-bold text-primary hover:text-primary/80 flex items-center bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-lg"
+            >
+              <Plus size={12} className="mr-1" /> Своя
+            </button>}
+          </div>
 
-function StatCard({ title, value, icon, description }: { title: string, value: string, icon: React.ReactNode, description: string }) {
-  return (
-    <div className="p-3 md:p-6 rounded-xl border border-border bg-[#09090b] hover:border-primary/50 transition-colors group min-w-0">
-      <div className="flex items-center justify-between mb-1 md:mb-2">
-        <span className="text-[10px] md:text-xs font-semibold text-muted-foreground uppercase tracking-wider truncate">{title}</span>
-        <div className="hidden md:block p-2 rounded-lg bg-white/5 group-hover:bg-primary/10 transition-colors">
-          {icon}
+          <div className="grid grid-cols-2 gap-2 flex-1">
+            <ActionButton label="Старт матча" icon={<Play size={16} />} tone="emerald" onClick={() => onSendCommand('css_start')} />
+            <ActionButton label="Рестарт матча" icon={<RotateCcw size={16} />} tone="slate" onClick={() => onSendCommand('mp_restartgame 1')} />
+            <ActionButton label="Пауза" icon={<Pause size={16} />} tone="amber" onClick={() => onSendCommand('css_forcepause')} />
+            <ActionButton label="Снять паузу" icon={<Play size={16} />} tone="blue" onClick={() => onSendCommand('css_forceunpause')} />
+
+            {customCommands.map(cmd => (
+              <div key={cmd.id} className="relative group/btn">
+                <ActionButton
+                  label={cmd.label}
+                  onClick={() => onSendCommand(cmd.command)}
+                />
+                {canManage && <button
+                  onClick={(e) => handleDeleteCommand(e, cmd.id)}
+                  className="absolute -top-1 -right-1 p-1 bg-red-500 text-white rounded-full md:opacity-0 md:group-hover/btn:opacity-100 transition-opacity"
+                >
+                  <Trash2 size={10} />
+                </button>}
+              </div>
+            ))}
+          </div>
+
+          {isAddingCmd && (
+            <div className="mt-4 p-3 rounded-xl border border-primary/20 bg-primary/5 space-y-2 animate-in slide-in-from-top-2">
+              <input
+                placeholder="Название (например, Нож)"
+                value={newCmdLabel}
+                onChange={e => setNewCmdLabel(e.target.value)}
+                className="w-full bg-background/50 border border-input rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              />
+              <input
+                placeholder="Команда (например, mp_warmup_start)"
+                value={newCmdValue}
+                onChange={e => setNewCmdValue(e.target.value)}
+                className="w-full bg-background/50 border border-input rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              />
+              <div className="flex space-x-2">
+                <button
+                  onClick={handleAddCommand}
+                  className="flex-1 bg-primary text-primary-foreground py-1.5 rounded-lg text-[11px] font-bold"
+                >
+                  Сохранить
+                </button>
+                <button
+                  onClick={() => setIsAddingCmd(false)}
+                  className="px-3 bg-white/5 py-1.5 rounded-lg text-[11px] font-bold"
+                >
+                  Отмена
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="p-4 md:p-6 rounded-2xl border border-border bg-card shadow-lg shadow-black/20">
+          <h3 className="text-sm font-bold text-white mb-4 flex items-center">
+            <MapIcon size={16} className="mr-2 text-primary" />
+            Смена карты
+          </h3>
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              placeholder="Карта (например, de_dust2)..."
+              value={mapInput}
+              onChange={(e) => setMapInput(e.target.value)}
+              list="map-suggestions"
+              className="flex-1 min-w-0 bg-background/50 border border-input rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+            />
+            <datalist id="map-suggestions">
+              {COMMON_MAPS.map(map => (
+                <option key={map} value={map} />
+              ))}
+            </datalist>
+            <button
+              onClick={() => { if(mapInput) onSendCommand(`map ${mapInput}`); }}
+              className="bg-primary text-primary-foreground px-4 py-2.5 rounded-xl font-semibold text-sm shadow-lg shadow-primary/20 hover:bg-primary/90 active:scale-[0.98] transition-all disabled:opacity-50"
+              disabled={!mapInput}
+            >
+              Сменить
+            </button>
+          </div>
         </div>
       </div>
-      <div className="text-base md:text-2xl font-bold text-white truncate">{value}</div>
-      <p className="hidden md:block text-xs text-muted-foreground mt-1">{description}</p>
     </div>
   );
 }
 
-function ActionButton({ label, onClick }: { label: string, onClick?: () => void }) {
+const TONES = {
+  blue: 'text-sky-400 bg-sky-500/10 border-sky-500/20',
+  emerald: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+  red: 'text-red-400 bg-red-500/10 border-red-500/20',
+  violet: 'text-violet-400 bg-violet-500/10 border-violet-500/20',
+  orange: 'text-orange-400 bg-orange-500/10 border-orange-500/20',
+} as const;
+
+function StatCard({ title, value, icon, description, tone }: { title: string, value: string, icon: React.ReactNode, description: string, tone: keyof typeof TONES }) {
   return (
-    <button 
+    <div className="p-4 md:p-5 rounded-2xl border border-border bg-card shadow-lg shadow-black/20 min-w-0">
+      <div className="flex items-start justify-between gap-2 mb-3">
+        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider truncate pt-1">{title}</span>
+        <div className={cn('p-2 rounded-lg border shrink-0', TONES[tone])}>{icon}</div>
+      </div>
+      <div className="text-lg md:text-2xl font-black text-white tracking-tight truncate">{value}</div>
+      <p className="text-[11px] md:text-xs text-muted-foreground mt-1 truncate">{description}</p>
+    </div>
+  );
+}
+
+const ACTION_TONES = {
+  emerald: 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-900/30 border-transparent',
+  amber: 'bg-amber-500 hover:bg-amber-400 !text-black shadow-amber-900/30 border-transparent',
+  blue: 'bg-primary hover:bg-primary/90 shadow-primary/20 border-transparent',
+  slate: 'bg-white/5 hover:bg-white/10 border-border',
+} as const;
+
+function ActionButton({ label, onClick, icon, tone = 'slate' }: { label: string, onClick?: () => void, icon?: React.ReactNode, tone?: keyof typeof ACTION_TONES }) {
+  return (
+    <button
       onClick={onClick}
-      className="w-full flex items-center justify-center p-3 rounded-md border border-border bg-white/5 hover:bg-white/10 hover:border-muted-foreground/50 transition-all text-sm font-medium text-white text-center"
+      className={cn(
+        'w-full min-h-12 flex items-center justify-center gap-2 px-3 py-3 rounded-xl border text-sm font-semibold text-white text-center shadow-lg active:scale-[0.98] transition-all',
+        ACTION_TONES[tone],
+      )}
     >
+      {icon}
       {label}
     </button>
   );

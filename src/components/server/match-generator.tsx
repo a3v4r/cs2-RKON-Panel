@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState } from 'react'
-import { FileJson, Send, Users, Shield, Zap, Copy, Download, Map as MapIcon, ShieldOff } from 'lucide-react'
+import { Send, Users, Shield, Zap, Copy, Download, Map as MapIcon, ShieldOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { api } from '@/lib/api'
@@ -194,10 +194,6 @@ export function MatchGenerator({ serverId, onStartMatch, onLaunchMatch, onStopMa
     <div className="p-3 md:p-6 h-full flex flex-col space-y-6 overflow-auto">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl md:text-2xl font-bold text-white flex items-center">
-            <FileJson size={24} className="mr-2 text-primary" />
-            Запуск матча
-          </h2>
           <p className="text-sm text-muted-foreground">Матч уходит на сервер через MatchZy. Параметры сохраняются в этом браузере.</p>
         </div>
         <div className="flex space-x-2 items-center">
@@ -240,7 +236,7 @@ export function MatchGenerator({ serverId, onStartMatch, onLaunchMatch, onStopMa
         <ScrollArea className="pr-4">
           <div className="space-y-6">
             {/* Format Selection */}
-            <div className="p-4 rounded-xl border border-border bg-[#09090b]">
+            <div className="p-4 rounded-2xl border border-border bg-card shadow-lg shadow-black/20">
               <h3 className="text-sm font-bold uppercase tracking-widest text-white mb-4 flex items-center">
                 <Shield size={14} className="mr-2" />
                 Формат серии
@@ -283,7 +279,7 @@ export function MatchGenerator({ serverId, onStartMatch, onLaunchMatch, onStopMa
             </div>
 
             {/* Map Selection Slots */}
-            <div className="p-4 rounded-xl border border-border bg-[#09090b]">
+            <div className="p-4 rounded-2xl border border-border bg-card shadow-lg shadow-black/20">
               <h3 className="text-sm font-bold uppercase tracking-widest text-primary mb-4 flex items-center">
                 <MapIcon size={14} className="mr-2" />
                 Карты и стороны
@@ -302,7 +298,7 @@ export function MatchGenerator({ serverId, onStartMatch, onLaunchMatch, onStopMa
                       <select 
                         value={matchConfig.map_sides[i]}
                         onChange={(e) => updateSideForSlot(i, e.target.value)}
-                        className="max-w-[60%] truncate bg-[#18181b] border border-border rounded px-2 py-1 text-[10px] text-primary font-bold outline-none"
+                        className="max-w-[60%] truncate bg-background/50 border border-border rounded px-2 py-1 text-[10px] text-primary font-bold outline-none"
                       >
                         <option value="knife">Ножевой раунд</option>
                         <option value="team1_ct">{team1Label} CT</option>
@@ -333,7 +329,7 @@ export function MatchGenerator({ serverId, onStartMatch, onLaunchMatch, onStopMa
             </div>
 
             {/* Team 1 */}
-            <div className="p-4 rounded-xl border border-border bg-[#09090b]">
+            <div className="p-4 rounded-2xl border border-border bg-card shadow-lg shadow-black/20">
               <h3 className="text-sm font-bold uppercase tracking-widest text-primary mb-4 flex items-center">
                 <Users size={14} className="mr-2" />
                 Команда 1
@@ -359,7 +355,7 @@ export function MatchGenerator({ serverId, onStartMatch, onLaunchMatch, onStopMa
             </div>
 
             {/* Team 2 */}
-            <div className="p-4 rounded-xl border border-border bg-[#09090b]">
+            <div className="p-4 rounded-2xl border border-border bg-card shadow-lg shadow-black/20">
               <h3 className="text-sm font-bold uppercase tracking-widest text-white mb-4 flex items-center">
                 <Users size={14} className="mr-2" />
                 Команда 2
@@ -385,7 +381,7 @@ export function MatchGenerator({ serverId, onStartMatch, onLaunchMatch, onStopMa
             </div>
 
             {/* Match Settings */}
-            <div className="p-4 rounded-xl border border-border bg-[#09090b]">
+            <div className="p-4 rounded-2xl border border-border bg-card shadow-lg shadow-black/20">
               <h3 className="text-sm font-bold uppercase tracking-widest text-white mb-4 flex items-center">
                 <Shield size={14} className="mr-2" />
                 Дополнительно
@@ -396,7 +392,7 @@ export function MatchGenerator({ serverId, onStartMatch, onLaunchMatch, onStopMa
                   <select 
                     value={matchConfig.skip_veto ? "true" : "false"}
                     onChange={(e) => setMatchConfig({...matchConfig, skip_veto: e.target.value === "true"})}
-                    className="w-full bg-[#18181b] border border-border rounded-md px-3 py-2 text-sm text-white focus:ring-1 focus:ring-primary outline-none"
+                    className="w-full bg-background/50 border border-border rounded-md px-3 py-2 text-sm text-white focus:ring-1 focus:ring-primary outline-none"
                   >
                     <option value="true">Нет, карты и стороны задаю здесь</option>
                     <option value="false">Да, вето в игре</option>
@@ -408,7 +404,7 @@ export function MatchGenerator({ serverId, onStartMatch, onLaunchMatch, onStopMa
         </ScrollArea>
 
         {/* Output Preview */}
-        <div className="flex flex-col h-full bg-[#09090b] border border-border rounded-xl overflow-hidden">
+        <div className="flex flex-col h-full bg-card border border-border rounded-2xl shadow-lg shadow-black/20 overflow-hidden">
           <div className="flex items-center justify-between p-3 border-b border-border bg-white/5">
             <span className="text-xs font-bold text-muted-foreground tracking-widest uppercase">Конфиг матча (JSON)</span>
             <div className="flex space-x-2">

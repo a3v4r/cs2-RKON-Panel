@@ -67,8 +67,8 @@ export function BroadcastView() {
   }, [load]);
 
   return (
-    <div className="min-h-[100dvh] bg-[#09090b] text-white">
-      <header className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border bg-[#09090b] px-4 py-3">
+    <div className="min-h-[100dvh] bg-background text-white">
+      <header className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border bg-background px-4 py-3">
         <div className="flex items-center gap-2 font-bold">
           <Radio size={18} className="text-red-500" />
           Трансляция

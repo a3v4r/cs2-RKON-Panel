@@ -123,7 +123,7 @@ export function RCONConsole({ onSendCommand }: RCONConsoleProps) {
   const clearLogs = () => setLogs([]);
 
   return (
-    <div className="flex flex-col h-full bg-[#09090b] border border-border rounded-xl overflow-hidden">
+    <div className="flex flex-col h-full bg-card border border-border rounded-2xl shadow-lg shadow-black/20 overflow-hidden">
       {/* Console Header */}
       <div className="flex items-center justify-between p-3 border-b border-border bg-white/5">
         <div className="flex items-center text-sm font-medium text-white/90">

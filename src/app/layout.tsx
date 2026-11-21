@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
+
+// Self-hosted at build time: the panel works without internet once built
+const inter = Inter({ subsets: ["latin", "cyrillic"], variable: "--font-inter", display: "swap" });
 
 export const metadata: Metadata = {
   title: "Matchdesk",
@@ -12,8 +16,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ru" className="dark">
-      <body className="bg-[#09090b] text-foreground antialiased overflow-hidden font-sans">
+    <html lang="ru" className={`dark ${inter.variable}`}>
+      <body className="bg-background text-foreground antialiased overflow-hidden font-sans">
         {children}
       </body>
     </html>

@@ -93,7 +93,7 @@ function Row({ label, children, last = false }: { label: string, children: React
 
 function SettingsGroup({ title, icon, children }: { title: string, icon: React.ReactNode, children: React.ReactNode }) {
   return (
-    <div className="p-5 rounded-xl border border-border bg-[#09090b]">
+    <div className="p-5 rounded-2xl border border-border bg-card shadow-lg shadow-black/20">
       <div className="flex items-center text-sm font-bold mb-4 text-white">
         <span className="mr-2 text-primary">{icon}</span>
         {title}

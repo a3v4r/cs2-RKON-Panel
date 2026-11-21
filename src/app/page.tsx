@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Sidebar } from '@/components/layout/sidebar';
+import { Sidebar, SECTIONS, Section } from '@/components/layout/sidebar';
 import { ServerDashboard } from '@/components/server/dashboard';
 import { RCONConsole } from '@/components/server/console';
 import { ServerChat } from '@/components/server/chat';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LayoutDashboard, Terminal, MessageSquare, Settings, Map as MapIcon, Trophy, Menu, Activity } from 'lucide-react';
+import { Menu, Crosshair } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { MatchGenerator } from '@/components/server/match-generator';
 import { GeneralSettings } from '@/components/settings/general-settings';
 import { db_helper, ServerProfile } from '@/lib/db';
@@ -31,7 +31,7 @@ const INITIAL_INFO = {
 export default function Home() {
   const [servers, setServers] = useState<ServerProfile[]>([]);
   const [activeServerId, setActiveServerId] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeTab, setActiveTab] = useState<Section>("dashboard");
   const [serverInfo, setServerInfo] = useState<any>(INITIAL_INFO);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingServer, setEditingServer] = useState<ServerProfile | null>(null);
@@ -173,7 +173,7 @@ export default function Home() {
   };
 
   if (!me) {
-    return <div className="h-[100dvh] bg-[#09090b]" />;
+    return <div className="h-[100dvh] bg-background" />;
   }
   if (me.role === 'broadcast') {
     return <BroadcastView />;
@@ -181,138 +181,128 @@ export default function Home() {
   const isJudge = me.role === 'judge';
 
   return (
-    <div className="flex h-[100dvh] w-full bg-[#09090b] text-white">
+    <div className="flex h-[100dvh] w-full bg-background text-white">
       {/* Sidebar: static on desktop, drawer on phones */}
       {sidebarOpen && (
-        <div className="fixed inset-0 z-40 bg-black/60 md:hidden" onClick={() => setSidebarOpen(false)} />
+        <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden" onClick={() => setSidebarOpen(false)} />
       )}
-      <div className={`fixed inset-y-0 left-0 z-50 transition-transform md:static md:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <div className={`fixed inset-y-0 left-0 z-50 transition-transform duration-300 md:static md:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <Sidebar
           servers={servers}
           activeServerId={activeServerId}
+          serverOnline={serverInfo.status === 'loading' ? null : serverInfo.status === 'online'}
+          activeSection={activeTab}
+          onSelectSection={(section) => { setActiveTab(section); setSidebarOpen(false); }}
           onSelectServer={(id) => { setActiveServerId(id); setActiveTab('dashboard'); setSidebarOpen(false); }}
           onAddServer={() => { setEditingServer(null); setIsModalOpen(true); setSidebarOpen(false); }}
           onEditServer={(server) => { setEditingServer(server); setIsModalOpen(true); setSidebarOpen(false); }}
           onDeleteServer={handleDeleteServer}
+          onClose={() => setSidebarOpen(false)}
           canManage={isJudge}
           user={me}
-          onOpenGeneralSettings={() => { setActiveTab('general-settings'); setSidebarOpen(false); }}
         />
       </div>
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Phone top bar */}
-        <div className="flex items-center gap-3 px-3 py-2 border-b border-border md:hidden">
+        <header className="flex items-center justify-between gap-3 px-4 py-3 bg-sidebar border-b border-border md:hidden">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-8 h-8 shrink-0 rounded-lg bg-gradient-to-br from-primary to-blue-700 flex items-center justify-center">
+              <Crosshair size={18} className="text-white" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-sm font-bold text-white truncate leading-tight">{SECTIONS[activeTab].label}</div>
+              <div className="text-[11px] text-muted-foreground truncate leading-tight">{selectedServer?.name ?? 'Matchdesk'}</div>
+            </div>
+          </div>
           <button
             onClick={() => setSidebarOpen(true)}
-            className="p-2 -ml-1 rounded-md text-muted-foreground hover:text-white"
-            aria-label="Открыть список серверов"
+            className="p-2 -mr-1 rounded-lg text-muted-foreground hover:text-white"
+            aria-label="Открыть меню"
           >
-            <Menu size={22} />
+            <Menu size={24} />
           </button>
-          <span className="text-sm font-medium truncate">{selectedServer?.name ?? 'Matchdesk'}</span>
-        </div>
+        </header>
 
         <RequestsBanner />
 
-        {activeTab === 'general-settings' ? (
-          <div className="flex-1 overflow-auto">
-            <GeneralSettings />
-          </div>
-        ) : activeServerId ? (
-          <>
-            {/* Server Header */}
-            <div className="flex items-center justify-between gap-4 px-3 md:px-6 py-2 md:py-4 border-b border-border bg-[#09090b]">
-              <div className="hidden md:flex items-center space-x-4 shrink-0">
-                <div className="text-sm font-medium text-muted-foreground">
-                  Сервер: <span className="text-white">{selectedServer?.name}</span>
-                </div>
+        {activeTab === 'general-settings' || activeServerId ? (
+          <div className="flex-1 flex flex-col overflow-auto">
+            {/* Page header (desktop) */}
+            <div className="hidden md:flex items-start justify-between gap-4 px-6 pt-6">
+              <div className="min-w-0">
+                <h1 className="text-2xl font-bold text-white tracking-tight">{SECTIONS[activeTab].label}</h1>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {SECTIONS[activeTab].hint}
+                  {activeTab !== 'general-settings' && <> · <span className="text-white/80">{selectedServer?.name}</span></>}
+                </p>
               </div>
-
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full md:w-auto overflow-x-auto">
-                <TabsList className="bg-white/5 border border-border w-max">
-                  <TabsTrigger value="dashboard" aria-label="Обзор" title="Обзор" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-                    <LayoutDashboard size={14} className="sm:mr-2" />
-                    <span className="hidden sm:inline">Обзор</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="live" aria-label="Матч" title="Матч: счёт и статистика" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-                    <Activity size={14} className="sm:mr-2" />
-                    <span className="hidden sm:inline">Матч</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="console" aria-label="Консоль" title="Консоль" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-                    <Terminal size={14} className="sm:mr-2" />
-                    <span className="hidden sm:inline">Консоль</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="chat" aria-label="Чат" title="Чат" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-                    <MessageSquare size={14} className="sm:mr-2" />
-                    <span className="hidden sm:inline">Чат</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="maps" aria-label="Карты" title="Карты" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-                    <MapIcon size={14} className="sm:mr-2" />
-                    <span className="hidden sm:inline">Карты</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="match" aria-label="Запуск" title="Запуск матча" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-                    <Trophy size={14} className="sm:mr-2" />
-                    <span className="hidden sm:inline">Запуск</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="settings" aria-label="Настройки" title="Настройки сервера" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-                    <Settings size={14} className="sm:mr-2" />
-                    <span className="hidden sm:inline">Настройки</span>
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-
-            {/* Tab Content */}
-            <div className="flex-1 overflow-auto">
-              {activeTab === "dashboard" && (
-                <ServerDashboard 
-                  serverInfo={serverInfo} 
-                  canManage={isJudge}
-                  onSendCommand={handleRconCommand}
-                />
-              )}
-              {activeTab === "live" && (
-                <LiveMatch key={activeServerId} serverId={activeServerId} />
-              )}
-              {activeTab === "console" && (
-                <div className="h-full p-3 md:p-6">
-                  <RCONConsole onSendCommand={handleRconCommand} />
+              {activeTab !== 'general-settings' && (
+                <div className={cn(
+                  'flex items-center gap-2 px-3 py-1.5 rounded-full border text-[10px] font-bold uppercase tracking-wider shrink-0',
+                  serverInfo.status === 'online' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                    : serverInfo.status === 'offline' ? 'text-red-400 bg-red-500/10 border-red-500/20'
+                    : 'text-muted-foreground bg-white/5 border-white/10',
+                )}>
+                  <span className={cn('w-1.5 h-1.5 rounded-full', serverInfo.status === 'online' ? 'bg-emerald-400 animate-pulse' : serverInfo.status === 'offline' ? 'bg-red-400' : 'bg-muted-foreground')} />
+                  {serverInfo.status === 'online' ? 'сервер на связи' : serverInfo.status === 'offline' ? 'нет связи' : 'подключение…'}
                 </div>
               )}
-              {activeTab === "chat" && (
-                <ServerChat serverId={activeServerId} onBroadcast={(msg) => handleRconCommand(`say ${msg}`)} />
-              )}
-              {activeTab === "maps" && (
-                <MapSelector 
-                  currentMap={serverInfo.map} 
-                  onChangeMap={(map) => handleRconCommand(`map ${map}`)} 
-                  onCommand={handleRconCommand}
-                />
-              )}
-              {activeTab === "settings" && selectedServer && (
-                <ServerSettings 
-                  key={selectedServer.id}
-                  server={selectedServer} 
-                  onEdit={() => { setEditingServer(selectedServer); setIsModalOpen(true); }}
-                  onCommand={handleRconCommand}
-                />
-              )}
-              {activeTab === "match" && (
-                <MatchGenerator 
-                  key={activeServerId}
-                  serverId={activeServerId}
-                  onStartMatch={handleStartMatch} 
-                  onLaunchMatch={handleLaunchMatch}
-                  onStopMatch={handleStopMatch} 
-                />
-              )}
             </div>
-          </>
+
+            {activeTab === 'general-settings' && <GeneralSettings />}
+            {activeTab === "dashboard" && (
+              <ServerDashboard
+                serverInfo={serverInfo}
+                canManage={isJudge}
+                onSendCommand={handleRconCommand}
+              />
+            )}
+            {activeTab === "live" && activeServerId && (
+              <LiveMatch key={activeServerId} serverId={activeServerId} />
+            )}
+            {activeTab === "console" && (
+              <div className="flex-1 min-h-[420px] p-3 md:p-6">
+                <RCONConsole onSendCommand={handleRconCommand} />
+              </div>
+            )}
+            {activeTab === "chat" && activeServerId && (
+              <ServerChat serverId={activeServerId} onBroadcast={(msg) => handleRconCommand(`say ${msg}`)} />
+            )}
+            {activeTab === "maps" && (
+              <MapSelector
+                currentMap={serverInfo.map}
+                onChangeMap={(map) => handleRconCommand(`map ${map}`)}
+                onCommand={handleRconCommand}
+              />
+            )}
+            {activeTab === "settings" && selectedServer && (
+              <ServerSettings
+                key={selectedServer.id}
+                server={selectedServer}
+                onEdit={() => { setEditingServer(selectedServer); setIsModalOpen(true); }}
+                onCommand={handleRconCommand}
+              />
+            )}
+            {activeTab === "match" && activeServerId && (
+              <MatchGenerator
+                key={activeServerId}
+                serverId={activeServerId}
+                onStartMatch={handleStartMatch}
+                onLaunchMatch={handleLaunchMatch}
+                onStopMatch={handleStopMatch}
+              />
+            )}
+          </div>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-muted-foreground italic">
-            Выберите сервер в списке слева.
+          <div className="flex-1 flex flex-col items-center justify-center gap-3 p-6 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center"><Crosshair size={28} /></div>
+            <div className="text-white font-semibold">Сервер не выбран</div>
+            <div className="text-sm text-muted-foreground max-w-xs">
+              {servers.length ? 'Выберите сервер в меню.' : isJudge ? 'Добавьте первый сервер: меню → блок «Сервер» → «Добавить сервер».' : 'Судьи ещё не добавили серверы.'}
+            </div>
+            <button onClick={() => setSidebarOpen(true)} className="md:hidden mt-1 px-4 py-2 rounded-xl bg-primary text-white text-sm font-semibold">Открыть меню</button>
           </div>
         )}
       </main>

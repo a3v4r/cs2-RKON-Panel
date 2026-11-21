@@ -1,7 +1,7 @@
 "use client"
 
 import React from 'react'
-import { Map as MapIcon, RotateCcw, Power } from 'lucide-react'
+import { RotateCcw, Power } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 const MAP_DATA: Record<string, { label: string }> = {
@@ -26,10 +26,6 @@ export function MapSelector({ currentMap, onChangeMap, onCommand }: MapSelectorP
   return (
     <div className="p-3 md:p-6 space-y-6 h-full overflow-auto">
       <div>
-        <h3 className="text-xl font-bold mb-2 flex items-center text-white">
-          <MapIcon className="mr-2 text-primary" />
-          Карты
-        </h3>
         <p className="text-sm text-muted-foreground">Смена карты на сервере. Во время матча карты меняет MatchZy - здесь только вне матча.</p>
       </div>
 

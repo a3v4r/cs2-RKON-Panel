@@ -91,7 +91,7 @@ export function ServerChat({ serverId, onBroadcast }: ServerChatProps) {
       <div className="grid gap-6 md:grid-cols-2">
         {/* Chat Input */}
         <div className="space-y-4">
-          <div className="p-4 md:p-6 rounded-xl border border-border bg-[#09090b]">
+          <div className="p-4 md:p-6 rounded-2xl border border-border bg-card shadow-lg shadow-black/20">
             <h3 className="text-lg font-semibold mb-4 flex items-center">
               <MessageSquare size={18} className="mr-2 text-primary" />
               Сообщение в чат
@@ -130,7 +130,7 @@ export function ServerChat({ serverId, onBroadcast }: ServerChatProps) {
             </div>
           </div>
 
-          <div className="p-4 md:p-6 rounded-xl border border-border bg-[#09090b]">
+          <div className="p-4 md:p-6 rounded-2xl border border-border bg-card shadow-lg shadow-black/20">
             <h3 className="text-lg font-semibold mb-1 flex items-center">
               <Clock size={18} className="mr-2 text-primary" />
               Автосообщения
@@ -183,7 +183,7 @@ export function ServerChat({ serverId, onBroadcast }: ServerChatProps) {
                   <select
                     value={autoForm.intervalMinutes}
                     onChange={(e) => setAutoForm({ ...autoForm, intervalMinutes: Number(e.target.value) })}
-                    className="h-10 flex-1 rounded-md border border-border bg-[#18181b] px-2 text-sm text-white"
+                    className="h-10 flex-1 rounded-md border border-border bg-background/50 px-2 text-sm text-white"
                     aria-label="Интервал"
                   >
                     {INTERVALS.map((n) => <option key={n} value={n}>раз в {n} мин</option>)}
@@ -206,7 +206,7 @@ export function ServerChat({ serverId, onBroadcast }: ServerChatProps) {
         </div>
 
         {/* Templates */}
-        <div className="p-4 md:p-6 rounded-xl border border-border bg-[#09090b]">
+        <div className="p-4 md:p-6 rounded-2xl border border-border bg-card shadow-lg shadow-black/20">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold flex items-center">
               <Save size={18} className="mr-2 text-primary" />
