@@ -8,7 +8,7 @@ import { CreateServerModal } from '@/components/servers/create-server-modal';
 import { ServerDashboard, ServerSample } from '@/components/server/dashboard';
 import { RCONConsole } from '@/components/server/console';
 import { ServerChat } from '@/components/server/chat';
-import { Menu, Crosshair, Clock, Layers } from 'lucide-react';
+import { Menu, Crosshair, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MatchGenerator } from '@/components/server/match-generator';
 import { GeneralSettings } from '@/components/settings/general-settings';
@@ -38,30 +38,6 @@ const INITIAL_INFO = {
   ping: 0,
   status: 'loading' as const,
 };
-
-// Local time of the panel viewer (as the server clock on the Quatrix dashboard), handy for pause and dispute logs
-function HeaderClock() {
-  const { locale } = useT();
-  const [now, setNow] = useState<Date | null>(null);
-  React.useEffect(() => {
-    setNow(new Date());
-    const timer = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-  if (!now) return null;
-  const zone = new Intl.DateTimeFormat(locale, { timeZoneName: 'short' }).formatToParts(now).find((p) => p.type === 'timeZoneName')?.value ?? '';
-  return (
-    <div className="hidden md:flex items-center gap-2 h-[46px] px-3 rounded-xl border border-gray-800 bg-sidebar/50 text-gray-400">
-      <Clock size={14} className="text-primary" />
-      <div className="flex flex-col">
-        <span className="text-[10px] font-black leading-none uppercase tracking-widest text-white tabular-nums">
-          {now.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
-        </span>
-        <span className="text-[8px] font-medium leading-none text-gray-500 mt-1 uppercase">{zone}</span>
-      </div>
-    </div>
-  );
-}
 
 export default function Home() {
   const { t, lang } = useT();
@@ -299,7 +275,6 @@ export default function Home() {
               {needsServer && servers.length > 0 && (
                 <ServerSwitcher className="flex-1 md:flex-none md:w-64 md:min-w-[200px]" servers={servers} activeServerId={activeServerId} onSelect={selectServer} />
               )}
-              <HeaderClock />
               {needsServer && servers.length > 0 && (
                 <div className={cn(
                   'hidden md:flex items-center gap-2 h-[46px] px-3 rounded-xl border transition-all duration-300',
