@@ -13,7 +13,6 @@ import { cn } from '@/lib/utils';
 import { MatchGenerator } from '@/components/server/match-generator';
 import { GeneralSettings } from '@/components/settings/general-settings';
 import { BackupsView } from '@/components/settings/backups-view';
-import { AnalyticsView } from '@/components/settings/analytics-view';
 import { UsersView } from '@/components/settings/users-view';
 import { db_helper, ServerProfile } from '@/lib/db';
 import { fetchServerInfo } from '@/lib/a2s';
@@ -296,7 +295,6 @@ export default function Home() {
 
           {activeTab === 'general-settings' && <GeneralSettings />}
           {activeTab === 'backups' && <BackupsView />}
-          {activeTab === 'analytics' && <AnalyticsView />}
           {activeTab === 'users' && <UsersView />}
           {activeTab === 'servers' && (
             <ServersView
