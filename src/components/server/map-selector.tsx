@@ -4,6 +4,7 @@ import React from 'react'
 import { Search, RefreshCcw, Plus, Settings, Trash2, Play, CheckCircle2, Globe, X, Loader2, Power } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useT } from '@/lib/i18n'
+import { STOCK_MAPS, stockMap } from '@/lib/maps'
 
 // Map Explorer, laid out as the Quatrix Maps page (MapCard, WorkshopModal, MapConfigEditor in one file)
 
@@ -27,19 +28,7 @@ interface WorkshopMapData {
   image_url?: string
 }
 
-const STOCK: { name: string; displayName: string; type: MapType; image: string; aliases?: string[] }[] = [
-  { name: 'de_dust2', displayName: 'Dust II', type: 'Defusal', image: '/images/maps/de_dust2.webp' },
-  { name: 'de_inferno', displayName: 'Inferno', type: 'Defusal', image: '/images/maps/de_inferno.webp' },
-  { name: 'de_mirage', displayName: 'Mirage', type: 'Defusal', image: '/images/maps/de_mirage.webp' },
-  { name: 'de_nuke', displayName: 'Nuke', type: 'Defusal', image: '/images/maps/de_nuke_cs2.webp' },
-  { name: 'de_overpass', displayName: 'Overpass', type: 'Defusal', image: '/images/maps/de_overpass.webp' },
-  { name: 'de_ancient', displayName: 'Ancient', type: 'Defusal', image: '/images/maps/de_ancient.webp' },
-  { name: 'de_anubis', displayName: 'Anubis', type: 'Defusal', image: '/images/maps/de_anubis.webp' },
-  { name: 'de_vertigo', displayName: 'Vertigo', type: 'Defusal', image: '/images/maps/de_vertigo.webp' },
-  { name: 'de_train', displayName: 'Train', type: 'Defusal', image: '/images/maps/de_train.webp' },
-  { name: 'cs_italy', displayName: 'Italy', type: 'Hostage', image: '/images/maps/de_italy.webp', aliases: ['de_italy'] },
-  { name: 'cs_office', displayName: 'Office', type: 'Hostage', image: '/images/maps/de_office.webp', aliases: ['de_office'] },
-]
+const STOCK = STOCK_MAPS
 
 interface MapSelectorProps {
   serverId: number
@@ -81,7 +70,7 @@ export function MapSelector({ serverId, currentMap, online, onCommand }: MapSele
       displayName: m.displayName,
       type: m.type,
       image: m.image,
-      isActive: [m.name, ...(m.aliases ?? [])].some((n) => current.includes(n)),
+      isActive: stockMap(current)?.name === m.name,
     }))
     const ws = (workshop ?? []).map((m) => ({
       id: `w-${m.id}`,

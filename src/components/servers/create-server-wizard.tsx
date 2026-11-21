@@ -7,6 +7,7 @@ import { api } from '@/lib/api';
 import { db_helper, GameMode, Priority, ServerProfile } from '@/lib/db';
 import { useT, tNow } from '@/lib/i18n';
 import { CustomSelect } from '@/components/ui/custom-select';
+import { STOCK_MAPS, mapImage } from '@/lib/maps';
 
 interface CreateServerWizardProps {
   // Panel-run server to edit; without it a new one is created
@@ -40,7 +41,7 @@ interface Form {
   hideConsole: boolean;
 }
 
-const MAPS = ['de_dust2', 'de_mirage', 'de_inferno', 'de_nuke', 'de_ancient', 'de_anubis', 'de_vertigo', 'de_train', 'de_overpass'];
+const MAPS = STOCK_MAPS.map((m) => m.name);
 
 const REGIONS: { code: string; ru: string; en: string }[] = [
   { code: 'RU', ru: 'Россия', en: 'Russia' },
@@ -291,7 +292,7 @@ export function CreateServerWizard({ server, servers, onDone }: CreateServerWiza
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   {form.workshopMap.trim()
                     ? <div className="w-40 h-24 shrink-0 bg-gray-800/50 flex items-center justify-center"><MapIcon className="text-gray-600" size={28} /></div>
-                    : <img key={form.map} src={`/images/maps/${form.map}.webp`} alt="" className="w-40 h-24 object-cover shrink-0" onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }} />}
+                    : <img key={form.map} src={mapImage(form.map)} alt="" className="w-40 h-24 object-cover shrink-0" onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }} />}
                   <div className="py-3 pr-4 min-w-0">
                     <div className="text-white font-bold truncate">{form.workshopMap ? `Workshop ${form.workshopMap}` : form.map}</div>
                     <div className="text-xs text-gray-500 mt-1">{gameModes.find((g) => g.value === form.gameMode)?.label}</div>

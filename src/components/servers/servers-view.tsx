@@ -11,6 +11,7 @@ import { fetchServerInfo, ServerStatus } from '@/lib/a2s';
 import { copyText } from '@/lib/clipboard';
 import type { Section } from '@/components/layout/sidebar';
 import { useT } from '@/lib/i18n';
+import { mapImage } from '@/lib/maps';
 import { Cs2UpdateModal } from './cs2-update-modal';
 
 // Server Instances, ported from the Quatrix Instances page with its ServerCard and ServerRow.
@@ -35,16 +36,6 @@ type Status = 'ONLINE' | 'OFFLINE' | 'STARTING' | 'STOPPING' | 'CRASHED' | 'CHEC
 
 const VIEW_KEY = 'cs2panel.servers.view';
 
-const MAP_IMAGES: Record<string, string> = {
-  de_dust2: 'de_dust2', de_mirage: 'de_mirage', de_inferno: 'de_inferno', de_nuke: 'de_nuke_cs2', de_ancient: 'de_ancient',
-  de_anubis: 'de_anubis', de_vertigo: 'de_vertigo', de_overpass: 'de_overpass', de_train: 'de_train',
-  cs_italy: 'de_italy', de_italy: 'de_italy', cs_office: 'de_office', de_office: 'de_office',
-};
-// The Quatrix getMapImage: stock maps by name (also inside workshop paths), anything else gets a default picture
-export function mapImage(map?: string | null) {
-  const name = (map ?? '').split(/[/\\]/).pop()?.replace(/\.(vpk|bsp)$/i, '').toLowerCase() ?? '';
-  return `/images/maps/${MAP_IMAGES[name] ?? 'de_dust2'}.webp`;
-}
 
 function statusOf(live: Live, proc?: Proc): Status {
   if (proc) {

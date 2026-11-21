@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
 import { sendRconCommand } from '@/lib/rcon';
 import { useT, type Text } from '@/lib/i18n';
-import { mapImage } from '@/components/servers/servers-view';
+import { mapImage } from '@/lib/maps';
 
 interface Stats {
   kills?: number;
