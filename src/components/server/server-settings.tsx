@@ -1,10 +1,10 @@
 "use client"
 
 import React from 'react'
-import { Settings, Shield, Zap, RefreshCw, Pencil } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Server, Shield, MapPin, Users, Lock, Key, Network, Globe, RefreshCw, Pencil, Activity } from 'lucide-react'
 import { ServerProfile } from '@/lib/db'
 import { useT } from '@/lib/i18n'
+import { cn } from '@/lib/utils'
 
 interface ServerSettingsProps {
   server: ServerProfile
@@ -14,9 +14,12 @@ interface ServerSettingsProps {
 
 type RconCheck = { state: 'checking' } | { state: 'ok'; detail: string } | { state: 'error'; detail: string }
 
+// Read-only port of the Quatrix Server Settings page: the same cards and fields,
+// values are changed in the existing edit dialog (onEdit)
 export function ServerSettings({ server, onEdit, onCommand }: ServerSettingsProps) {
   const [check, setCheck] = React.useState<RconCheck>({ state: 'checking' })
   const { t } = useT()
+  const m = server.managed
 
   const runCheck = React.useCallback(async () => {
     setCheck({ state: 'checking' })
@@ -31,77 +34,187 @@ export function ServerSettings({ server, onEdit, onCommand }: ServerSettingsProp
   React.useEffect(() => { runCheck() }, [server.id])
 
   return (
-    <div className="p-3 md:p-6 space-y-8 max-w-4xl">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center space-x-4">
-          <div className="p-3 rounded-2xl bg-primary/10 border border-primary/20">
-            <Settings size={32} className="text-primary" />
+    <div className="p-3 md:p-6 h-full flex flex-col">
+      <div className="space-y-8 flex-1">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+          {/* Server Information */}
+          <div className="bg-card rounded-2xl border border-gray-800 p-5 md:p-8">
+            <h3 className="text-lg font-bold text-white mb-8 flex items-center gap-3">
+              <Server className="w-5 h-5 text-primary" />
+              {t('Информация о сервере', 'Instance Information')}
+            </h3>
+            <div className="space-y-6">
+              <Field label={t('Название сервера', 'Server Name')}>
+                <Value>{server.name}</Value>
+              </Field>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <Field label={t('Адрес', 'Address')}>
+                  <Value icon={<Globe className="w-4 h-4" />} mono>{server.host}</Value>
+                </Field>
+                <Field label={t('Порт сервера', 'Server Port')}>
+                  <Value mono>{server.port}</Value>
+                </Field>
+              </div>
+
+              {m && (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <Field label={t('Карта при запуске', 'Primary Map')}>
+                      <Value icon={<MapPin className="w-4 h-4" />}>{m.map}</Value>
+                    </Field>
+                    <Field label={t('Мест на сервере', 'Max Players')}>
+                      <Value icon={<Users className="w-4 h-4" />}>{m.maxPlayers}</Value>
+                    </Field>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <Field label={t('Порт GOTV', 'GOTV Port')}>
+                      <Value mono>{m.tvPort}</Value>
+                    </Field>
+                    <Field label={t('IP для сервера и RCON', 'Bind IP')}>
+                      <Value icon={<Network className="w-4 h-4" />} mono muted={!m.bindIp}>{m.bindIp || '0.0.0.0'}</Value>
+                    </Field>
+                  </div>
+
+                  <div className="space-y-4 pt-4 border-t border-gray-800/50">
+                    <h4 className="text-[10px] font-black text-primary uppercase tracking-[0.2em]">
+                      {t('Политика перезапуска', 'Restart Policy')}
+                    </h4>
+                    <Toggle
+                      checked={m.autoRestart}
+                      title={t('Перезапуск при падении', 'Restart on crash')}
+                      desc={t('Если сервер упадёт после минуты работы', 'If the server crashes after running for a minute')}
+                    />
+                  </div>
+                </>
+              )}
+            </div>
           </div>
-          <div>
-            <h2 className="text-2xl font-bold text-white">{server.name}</h2>
-            <p className="text-sm text-muted-foreground">{t('Настройки сервера', 'Server settings')}</p>
+
+          {/* Security Settings */}
+          <div className="bg-card rounded-2xl border border-gray-800 p-5 md:p-8">
+            <h3 className="text-lg font-bold text-white mb-8 flex items-center gap-3">
+              <Shield className="w-5 h-5 text-primary" />
+              {t('Безопасность', 'Security Settings')}
+            </h3>
+            <div className="space-y-6">
+              <div className={cn('grid grid-cols-1 gap-6', m && 'sm:grid-cols-2')}>
+                {m && (
+                  <Field label={t('Пароль сервера', 'Server Password')}>
+                    <Value icon={<Lock className="w-4 h-4" />} muted={!m.password}>
+                      {m.password ? '••••••••' : t('без пароля', 'No password')}
+                    </Value>
+                  </Field>
+                )}
+                <Field label={<>{t('RCON-пароль', 'RCON Password')} <span className="text-red-500">*</span></>}>
+                  <Value icon={<Key className="w-4 h-4" />} muted={!server.has_password}>
+                    {server.has_password ? '••••••••' : <span className="text-red-500">{t('Не задан', 'Not set')}</span>}
+                  </Value>
+                </Field>
+              </div>
+              <p className="text-xs text-gray-500">
+                {t('Пароль RCON хранится только на сервере панели и не передаётся в браузер.', 'The RCON password is stored only on the panel server and never sent to the browser.')}
+              </p>
+
+              {/* RCON connection check */}
+              <div className="space-y-4 pt-4 border-t border-gray-800/50">
+                <div className="flex items-center gap-4">
+                  <div className={cn(
+                    'w-12 h-12 shrink-0 rounded-xl flex items-center justify-center border',
+                    check.state === 'ok' ? 'bg-green-500/10 border-green-500/20 text-green-500'
+                      : check.state === 'error' ? 'bg-red-500/10 border-red-500/20 text-red-500'
+                      : 'bg-white/5 border-gray-800 text-gray-400',
+                  )}>
+                    <Activity className="w-5 h-5" />
+                  </div>
+                  <div className="flex flex-col flex-1 min-w-0">
+                    <span className="text-sm font-semibold text-gray-300">{t('Соединение RCON', 'RCON Connection')}</span>
+                    <span className={cn(
+                      'text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5',
+                      check.state === 'ok' ? 'text-green-500' : check.state === 'error' ? 'text-red-500' : 'text-gray-500',
+                    )}>
+                      <span className={cn('w-1.5 h-1.5 rounded-full', check.state === 'ok' ? 'bg-green-500 animate-pulse' : check.state === 'error' ? 'bg-red-500' : 'bg-gray-500')} />
+                      {check.state === 'checking' ? t('Проверка...', 'Checking...') : check.state === 'ok' ? t('Подключено', 'Connected') : t('Ошибка', 'Error')}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={runCheck}
+                    disabled={check.state === 'checking'}
+                    className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors disabled:opacity-50"
+                    title={t('Проверить ещё раз', 'Check again')}
+                    aria-label={t('Проверить ещё раз', 'Check again')}
+                  >
+                    <RefreshCw className={cn('w-4 h-4', check.state === 'checking' && 'animate-spin')} />
+                  </button>
+                </div>
+                {check.state !== 'checking' && check.detail && (
+                  <div className={cn(
+                    'px-5 py-3 bg-black/20 border rounded-xl font-mono text-sm break-words',
+                    check.state === 'ok' ? 'border-gray-800 text-gray-300' : 'border-red-500/20 text-red-400',
+                  )}>
+                    {check.detail}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
-        <Button variant="outline" onClick={onEdit}>
-          <Pencil size={14} className="mr-2" />
-          {t('Изменить сервер', 'Edit server')}
-        </Button>
-      </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <SettingsGroup title={t('Подключение', 'Connection')} icon={<Zap size={18} />}>
-          <Row label={t('Адрес', 'Address')}><span className="text-sm text-white font-mono">{server.host}</span></Row>
-          <Row label={t('Порт', 'Port')}><span className="text-sm text-white font-mono">{server.port}</span></Row>
-          <Row label="RCON" last>
-            <div className="flex items-center gap-2 min-w-0">
-              {check.state === 'checking' && <span className="text-xs text-muted-foreground">{t('проверка...', 'checking...')}</span>}
-              {check.state === 'ok' && <span className="text-xs font-bold text-emerald-500 uppercase">{t('Подключено', 'Connected')}</span>}
-              {check.state === 'error' && <span className="text-xs font-bold text-red-500 uppercase">{t('Ошибка', 'Error')}</span>}
-              <button onClick={runCheck} className="p-1 text-muted-foreground hover:text-white" title={t('Проверить ещё раз', 'Check again')}>
-                <RefreshCw size={14} />
-              </button>
-            </div>
-          </Row>
-          {check.state !== 'checking' && (
-            <p className={check.state === 'ok' ? 'pt-2 text-xs text-muted-foreground break-words' : 'pt-2 text-xs text-red-400 break-words'}>
-              {check.detail}
-            </p>
-          )}
-        </SettingsGroup>
-
-        <SettingsGroup title={t('Безопасность', 'Security')} icon={<Shield size={18} />}>
-          <Row label={t('RCON-пароль', 'RCON password')} last>
-            {server.has_password
-              ? <span className="text-xs px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-500">{t('Задан', 'Set')}</span>
-              : <span className="text-xs px-2 py-0.5 rounded bg-red-500/20 text-red-500">{t('Не задан', 'Not set')}</span>}
-          </Row>
-          <p className="pt-2 text-xs text-muted-foreground">
-            {t('Хранится только на сервере панели и не передаётся в браузер. Сменить - кнопкой «Изменить сервер».', 'Stored only on the panel server and never sent to the browser. To change it, use "Edit server".')}
-          </p>
-        </SettingsGroup>
+        {/* Global Action Footer */}
+        <div className="flex items-center justify-end gap-4 p-4 md:p-6 bg-card rounded-2xl border border-gray-800">
+          <button
+            type="button"
+            onClick={onEdit}
+            className="px-8 py-2 bg-primary hover:bg-blue-600 text-white rounded-xl font-bold transition-all flex items-center gap-2 shadow-lg shadow-primary/20"
+          >
+            <Pencil className="w-4 h-4" />
+            {t('Изменить сервер', 'Edit server')}
+          </button>
+        </div>
       </div>
     </div>
   )
 }
 
-function Row({ label, children, last = false }: { label: string, children: React.ReactNode, last?: boolean }) {
+function Field({ label, children }: { label: React.ReactNode, children: React.ReactNode }) {
   return (
-    <div className={last ? 'flex items-center justify-between gap-3 py-2' : 'flex items-center justify-between gap-3 py-2 border-b border-border'}>
-      <span className="text-sm">{label}</span>
+    <div className="space-y-2">
+      <div className="text-sm font-semibold text-gray-400">{label}</div>
       {children}
     </div>
   )
 }
 
-function SettingsGroup({ title, icon, children }: { title: string, icon: React.ReactNode, children: React.ReactNode }) {
+// Looks like the Quatrix input, but read-only
+function Value({ children, icon, mono = false, muted = false }: { children: React.ReactNode, icon?: React.ReactNode, mono?: boolean, muted?: boolean }) {
   return (
-    <div className="p-5 rounded-2xl border border-border bg-card shadow-lg shadow-black/20">
-      <div className="flex items-center text-sm font-bold mb-4 text-white">
-        <span className="mr-2 text-primary">{icon}</span>
-        {title}
-      </div>
-      <div className="space-y-1">
+    <div className="relative">
+      {icon && <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600">{icon}</span>}
+      <div className={cn(
+        'w-full py-3 pr-5 bg-black/20 border border-gray-800 rounded-xl truncate',
+        icon ? 'pl-12' : 'pl-5',
+        mono && 'font-mono',
+        muted ? 'text-gray-600' : 'text-white',
+      )}>
         {children}
+      </div>
+    </div>
+  )
+}
+
+// The Quatrix switch, shown read-only
+function Toggle({ checked, title, desc }: { checked: boolean, title: string, desc: string }) {
+  return (
+    <div className="flex items-center gap-4">
+      <div className="relative shrink-0" role="img" aria-label={title}>
+        <div className={cn('w-12 h-6 rounded-full transition-all duration-300', checked ? 'bg-primary' : 'bg-gray-800')} />
+        <div className={cn('absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-all duration-300', checked && 'translate-x-6')} />
+      </div>
+      <div className="flex flex-col">
+        <span className="text-sm font-semibold text-gray-300">{title}</span>
+        <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">{desc}</span>
       </div>
     </div>
   )

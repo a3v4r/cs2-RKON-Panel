@@ -34,7 +34,7 @@ export const SECTIONS: Record<Section, { label: Text; title?: Text; hint: Text; 
   chat: { label: { ru: 'Чат', en: 'Chat' }, hint: { ru: 'Сообщения в игровой чат и автосообщения', en: 'In-game chat messages and auto messages' }, icon: MessageSquare },
   maps: { label: { ru: 'Карты', en: 'Maps' }, title: { ru: 'Обозреватель карт', en: 'Map Explorer' }, hint: { ru: 'Запускайте карты и контент из Workshop на сервере', en: 'Deploy battlegrounds or workshop content to your node' }, icon: MapIcon },
   match: { label: { ru: 'Запуск матча', en: 'Match setup' }, hint: { ru: 'Конфиг MatchZy и запуск', en: 'MatchZy config and launch' }, icon: Trophy },
-  settings: { label: { ru: 'Настройки сервера', en: 'Server settings' }, hint: { ru: 'Подключение и параметры сервера', en: 'Connection and server parameters' }, icon: SlidersHorizontal },
+  settings: { label: { ru: 'Настройки сервера', en: 'Server settings' }, title: { ru: 'Настройки сервера', en: 'Server Settings' }, hint: { ru: 'Параметры сервера Counter-Strike 2 и его безопасность', en: 'Manage your Counter-Strike 2 server parameters and security protocols.' }, icon: SlidersHorizontal },
   analytics: { label: { ru: 'Аналитика', en: 'Analytics' }, title: { ru: 'Аналитика системы', en: 'System Analytics' }, hint: { ru: 'Нагрузка ПК панели и онлайн игроков за сутки, неделю и месяц', en: 'Visual insights into historical system performance and resource utilization' }, icon: LineChart },
   users: { label: { ru: 'Пользователи', en: 'Users' }, title: { ru: 'Пользователи', en: 'User Management' }, hint: { ru: 'Личные аккаунты судей и трансляции', en: 'List and manage system users and their permissions.' }, icon: UserCog },
   backups: { label: { ru: 'Бэкапы', en: 'Backups' }, title: { ru: 'Управление бэкапами', en: 'Backup Management' }, hint: { ru: 'Резервные копии данных панели и конфигов CS2 с восстановлением', en: 'Create and manage backups of the panel data and CS2 configurations.' }, icon: Archive },
@@ -71,60 +71,77 @@ export function Sidebar({ activeSection, onSelectSection, onClose, user }: Sideb
     window.addEventListener('panel-settings-changed', load);
     return () => window.removeEventListener('panel-settings-changed', load);
   }, []);
+  const displayName = user.name ?? role;
+  const name = panelName || 'Matchdesk';
   return (
-    <aside className="flex flex-col h-[100dvh] w-72 md:w-64 bg-sidebar text-muted-foreground border-r border-border">
+    <aside className="flex flex-col h-[100dvh] w-64 bg-sidebar text-gray-400 border-r border-gray-800 shrink-0">
       {/* Logo */}
-      <div className="flex items-center justify-between gap-3 p-5 md:p-6">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br from-primary to-blue-700 flex items-center justify-center shadow-lg shadow-primary/30">
-            <Crosshair size={22} className="text-white" />
-          </div>
-          <div className="min-w-0">
-            <div className="text-lg font-bold text-white tracking-tight leading-tight truncate">{panelName || 'Matchdesk'}</div>
-            <div className="text-[11px] text-muted-foreground leading-tight">{t('панель судьи CS2', 'CS2 referee panel')}</div>
-          </div>
+      <div className="p-6 hidden md:flex items-center gap-3">
+        <div className="shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-blue-700 flex items-center justify-center shadow-lg shadow-primary/30">
+          <Crosshair size={22} className="text-white" />
         </div>
-        <button onClick={onClose} className="md:hidden p-1.5 text-muted-foreground hover:text-white" aria-label={t('Закрыть меню', 'Close menu')}>
+        <span className="text-lg font-bold text-white tracking-tight whitespace-nowrap truncate">{name}</span>
+      </div>
+
+      {/* Phone sidebar header */}
+      <div className="p-6 md:hidden flex items-center justify-between border-b border-gray-800/50 mb-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="shrink-0 w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-blue-700 flex items-center justify-center">
+            <Crosshair size={18} className="text-white" />
+          </div>
+          <span className="text-lg font-bold text-white tracking-tight truncate">{name}</span>
+        </div>
+        <button onClick={onClose} className="text-gray-500 hover:text-white" aria-label={t('Закрыть меню', 'Close menu')}>
           <X size={20} />
         </button>
       </div>
 
       {/* Sections */}
-      <nav className="flex-1 px-4 space-y-1 overflow-y-auto" aria-label={t('Разделы', 'Sections')}>
+      <nav className="flex-1 px-4 space-y-1 overflow-y-auto" aria-label={t('Разделы', 'Main navigation')}>
         {NAV.map((id) => (
           <NavItem key={id} section={id} active={activeSection === id || (id === 'servers' && activeSection === 'settings')} onClick={() => onSelectSection(id)} />
         ))}
-        <div className="pt-4 pb-1 px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">{t('Панель', 'Panel')}</div>
+        <div className="pt-4 pb-1 px-4 text-[10px] font-bold uppercase tracking-wider text-gray-500">{t('Панель', 'Panel')}</div>
         {PANEL_NAV.map((id) => (
           <NavItem key={id} section={id} active={activeSection === id} onClick={() => onSelectSection(id)} />
         ))}
       </nav>
 
       {/* User */}
-      <div className="p-4 border-t border-border">
-        <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5">
-          <div className="w-10 h-10 shrink-0 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center font-bold text-primary">
-            {(user.name ?? role).slice(0, 1).toUpperCase()}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-semibold text-white truncate">{user.name ?? role}</div>
-            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-500">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              {t('в сети', 'online')}
+      <div className="p-4 border-t border-gray-800">
+        <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/5">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="w-10 h-10 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center font-bold text-primary shrink-0 overflow-hidden">
+              {getInitials(displayName)}
+            </div>
+            <div className="flex-1 min-w-0 text-left">
+              <p className="text-sm font-semibold text-white truncate">{displayName}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-[10px] text-green-500 truncate font-bold flex items-center gap-1.5 uppercase tracking-wider">
+                  <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                  {t('В сети', 'Online')}
+                </p>
+              </div>
             </div>
           </div>
           <button
             onClick={async () => { await fetch('/api/logout', { method: 'POST' }); window.location.href = '/login'; }}
-            className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-400/10 transition-colors"
-            title={t('Выйти', 'Log out')}
-            aria-label={t('Выйти', 'Log out')}
+            className="text-gray-500 hover:text-red-400 transition-colors p-1.5 hover:bg-red-400/10 rounded-lg"
+            title={t('Выйти', 'Logout')}
+            aria-label={t('Выйти', 'Logout')}
           >
-            <LogOut size={18} />
+            <LogOut size={18} aria-hidden="true" />
           </button>
         </div>
       </div>
     </aside>
   );
+}
+
+// Initials as in Quatrix: first letters of up to two words
+function getInitials(name: string) {
+  if (!name) return 'U';
+  return name.split(' ').filter(Boolean).map((n) => n[0]).join('').toUpperCase().substring(0, 2);
 }
 
 function NavItem({ section, active, onClick }: { section: Section; active: boolean; onClick: () => void }) {
@@ -135,11 +152,11 @@ function NavItem({ section, active, onClick }: { section: Section; active: boole
       onClick={onClick}
       aria-current={active ? 'page' : undefined}
       className={cn(
-        'flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left transition-all',
-        active ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'hover:bg-white/5 hover:text-white',
+        'flex items-center gap-3 w-full px-4 py-3 rounded-lg text-left transition-all',
+        active ? 'bg-primary text-white shadow-lg shadow-blue-500/20' : 'hover:bg-white/5 hover:text-white',
       )}
     >
-      <Icon size={20} />
+      <Icon size={20} aria-hidden="true" />
       <span className="font-medium">{label[lang]}</span>
     </button>
   );
