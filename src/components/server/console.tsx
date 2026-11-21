@@ -5,6 +5,7 @@ import { Terminal as TerminalIcon, Send, ChevronRight, History, Trash2, Copy, Ch
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { copyText } from '@/lib/clipboard';
+import { useT } from '@/lib/i18n';
 
 // Command history survives tab switches and reloads (on phones there are no arrow keys to recall it)
 const HISTORY_KEY = 'cs2panel.console.history';
@@ -29,6 +30,7 @@ interface RCONConsoleProps {
 }
 
 export function RCONConsole({ onSendCommand }: RCONConsoleProps) {
+  const { t } = useT();
   const [input, setInput] = useState('');
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [history, setHistory] = useState<string[]>(loadHistory);
@@ -83,7 +85,7 @@ export function RCONConsole({ onSendCommand }: RCONConsoleProps) {
         id: Math.random().toString(36).substr(2, 9),
         timestamp: new Date().toLocaleTimeString(),
         type: 'response',
-        content: response || 'Выполнено (сервер ничего не ответил)',
+        content: response || t('Выполнено (сервер ничего не ответил)', 'Done (no response from the server)'),
       };
       setLogs(prev => [...prev, responseLog]);
     } catch (error: any) {
@@ -91,7 +93,7 @@ export function RCONConsole({ onSendCommand }: RCONConsoleProps) {
         id: Math.random().toString(36).substr(2, 9),
         timestamp: new Date().toLocaleTimeString(),
         type: 'error',
-        content: error.message || 'Неизвестная ошибка RCON',
+        content: error.message || t('Неизвестная ошибка RCON', 'Unknown RCON error'),
       };
       setLogs(prev => [...prev, errorLog]);
     }
@@ -128,16 +130,16 @@ export function RCONConsole({ onSendCommand }: RCONConsoleProps) {
       <div className="flex items-center justify-between p-3 border-b border-border bg-white/5">
         <div className="flex items-center text-sm font-medium text-white/90">
           <TerminalIcon size={16} className="mr-2 text-primary" />
-          RCON-консоль
+          {t('RCON-консоль', 'RCON console')}
         </div>
         <div className="flex items-center space-x-1">
-          <button onClick={clearLogs} className="p-1.5 rounded-md hover:bg-white/10 text-muted-foreground transition-colors" title="Очистить">
+          <button onClick={clearLogs} className="p-1.5 rounded-md hover:bg-white/10 text-muted-foreground transition-colors" title={t('Очистить', 'Clear')}>
             <Trash2 size={14} />
           </button>
           <button
             onClick={() => setShowHistory(!showHistory)}
             className={cn("p-1.5 rounded-md hover:bg-white/10 transition-colors", showHistory ? "text-primary" : "text-muted-foreground")}
-            title="История команд"
+            title={t('История команд', 'Command history')}
           >
             <History size={14} />
           </button>
@@ -146,7 +148,7 @@ export function RCONConsole({ onSendCommand }: RCONConsoleProps) {
 
       {showHistory && (
         <div className="max-h-48 overflow-auto border-b border-border bg-black/30 p-2 space-y-1">
-          {history.length === 0 && <div className="px-2 py-1 text-xs text-muted-foreground italic">Команд пока не было</div>}
+          {history.length === 0 && <div className="px-2 py-1 text-xs text-muted-foreground italic">{t('Команд пока не было', 'No commands yet')}</div>}
           {[...history].reverse().map((cmd) => (
             <button
               key={cmd}
@@ -164,7 +166,7 @@ export function RCONConsole({ onSendCommand }: RCONConsoleProps) {
         <div className="space-y-3">
           {logs.length === 0 && (
             <div className="text-muted-foreground/30 text-center py-20 italic">
-              Введите команду, чтобы отправить её на сервер...
+              {t('Введите команду, чтобы отправить её на сервер...', 'Type a command to send it to the server...')}
             </div>
           )}
           {logs.map((log) => (
@@ -177,7 +179,7 @@ export function RCONConsole({ onSendCommand }: RCONConsoleProps) {
                    "font-bold uppercase tracking-widest",
                    log.type === 'command' ? "text-primary" : log.type === 'error' ? "text-red-500" : "text-emerald-500"
                 )}>
-                  {log.type === 'command' ? '> КОМАНДА' : log.type === 'error' ? 'ОШИБКА' : 'ОТВЕТ'}
+                  {log.type === 'command' ? t('> КОМАНДА', '> COMMAND') : log.type === 'error' ? t('ОШИБКА', 'ERROR') : t('ОТВЕТ', 'RESPONSE')}
                 </span>
                 <span className="text-muted-foreground/50">{log.timestamp}</span>
               </div>
@@ -190,7 +192,7 @@ export function RCONConsole({ onSendCommand }: RCONConsoleProps) {
               <button
                 onClick={async () => { await copyText(log.content); setCopiedId(log.id); setTimeout(() => setCopiedId(null), 1500); }}
                 className="absolute top-2 right-2 md:opacity-0 md:group-hover:opacity-100 p-1 text-muted-foreground hover:text-white transition-opacity"
-                title="Копировать"
+                title={t('Копировать', 'Copy')}
               >
                 {copiedId === log.id ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
               </button>
@@ -211,7 +213,7 @@ export function RCONConsole({ onSendCommand }: RCONConsoleProps) {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="RCON-команда (например, status, mp_restartgame 1)..."
+          placeholder={t('RCON-команда (например, status, mp_restartgame 1)...', 'RCON command (e.g. status, mp_restartgame 1)...')}
           className="flex-1 bg-transparent border-none outline-none text-sm text-white placeholder:text-muted-foreground/50"
           autoFocus
         />

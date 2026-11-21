@@ -4,18 +4,19 @@ import React from 'react';
 import { ChevronDown, Server, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ServerProfile } from '@/lib/db';
+import { useT } from '@/lib/i18n';
 import { getFlagEmoji } from './sidebar';
 
 interface ServerSwitcherProps {
   servers: ServerProfile[];
   activeServerId: number | null;
-  online: boolean | null;
   onSelect: (id: number) => void;
   className?: string;
 }
 
-// "Switch server" dropdown in the header of every tool, as in Quatrix
-export function ServerSwitcher({ servers, activeServerId, online, onSelect, className }: ServerSwitcherProps) {
+// Server choice in the header of every tool: the Quatrix "Select server..." dropdown (CustomSelect, size sm)
+export function ServerSwitcher({ servers, activeServerId, onSelect, className }: ServerSwitcherProps) {
+  const { t } = useT();
   const [open, setOpen] = React.useState(false);
   const ref = React.useRef<HTMLDivElement>(null);
   const active = servers.find((s) => s.id === activeServerId);
@@ -30,39 +31,46 @@ export function ServerSwitcher({ servers, activeServerId, online, onSelect, clas
   }, [open]);
 
   return (
-    <div ref={ref} className={cn('relative', className)}>
+    <div ref={ref} className={cn('relative text-left', className)}>
       <button
         onClick={() => setOpen(!open)}
         aria-expanded={open}
-        className="flex items-center gap-2.5 w-full md:w-64 h-10 px-3 rounded-xl bg-white/5 border border-white/10 hover:border-white/20 transition-colors text-left"
-      >
-        <Badge server={active} />
-        <span className="flex-1 min-w-0 text-sm font-medium text-white truncate">{active?.name ?? 'Выберите сервер'}</span>
-        {active && (
-          <span className={cn('w-2 h-2 rounded-full shrink-0', online === null ? 'bg-muted-foreground' : online ? 'bg-emerald-400' : 'bg-red-400')} />
+        className={cn(
+          'w-full bg-background/50 border border-gray-800 rounded-xl px-4 py-1.5 h-[34px] flex items-center justify-between gap-2 cursor-pointer transition-all hover:border-gray-700',
+          open && 'ring-2 ring-primary border-transparent',
         )}
-        <ChevronDown size={16} className={cn('shrink-0 text-muted-foreground transition-transform', open && 'rotate-180')} />
+      >
+        <span className="flex items-center gap-2 min-w-0">
+          <Server size={16} className="text-gray-500 shrink-0" />
+          <span className={cn('truncate text-sm font-medium', active ? 'text-gray-200' : 'text-gray-500')}>
+            {active?.name ?? t('Выберите сервер...', 'Select server...')}
+          </span>
+        </span>
+        <ChevronDown className={cn('w-4 h-4 text-gray-500 transition-transform shrink-0', open && 'rotate-180')} />
       </button>
 
       {open && (
-        <div className="absolute right-0 z-30 mt-2 w-full md:w-72 p-1.5 rounded-xl bg-popover border border-border shadow-2xl max-h-80 overflow-y-auto">
-          {servers.map((server) => (
-            <button
-              key={server.id}
-              onClick={() => { onSelect(server.id!); setOpen(false); }}
-              className={cn(
-                'flex items-center gap-3 w-full p-2 rounded-lg text-left transition-colors',
-                server.id === activeServerId ? 'bg-primary/15 text-white' : 'text-muted-foreground hover:bg-white/5 hover:text-white',
-              )}
-            >
-              <Badge server={server} />
-              <span className="flex-1 min-w-0">
-                <span className="block text-sm font-medium truncate">{server.name}</span>
-                <span className="block text-[10px] opacity-60 truncate">{server.host}:{server.port}</span>
-              </span>
-              {server.id === activeServerId && <Check size={14} className="text-primary shrink-0" />}
-            </button>
-          ))}
+        <div className="absolute z-[100] w-full mt-2 bg-background border border-gray-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top">
+          <div className="max-h-64 overflow-y-auto">
+            {servers.map((server) => (
+              <div
+                key={server.id}
+                role="option"
+                aria-selected={server.id === activeServerId}
+                onClick={() => { onSelect(server.id!); setOpen(false); }}
+                className={cn(
+                  'px-4 py-2 text-xs cursor-pointer flex items-center justify-between gap-2 hover:bg-white/5 transition-colors',
+                  server.id === activeServerId ? 'text-primary bg-primary/5 font-bold' : 'text-gray-300',
+                )}
+              >
+                <span className="truncate">{server.name}</span>
+                {server.id === activeServerId && <Check className="w-4 h-4 shrink-0" />}
+              </div>
+            ))}
+            {servers.length === 0 && (
+              <div className="px-4 py-8 text-center text-sm text-gray-500">{t('Серверов нет', 'No servers')}</div>
+            )}
+          </div>
         </div>
       )}
     </div>

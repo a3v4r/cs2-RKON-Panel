@@ -5,6 +5,7 @@ import { Activity, Users, Map as MapIcon, Wifi, Plus, Trash2, Play, Pause, Rotat
 import { cn } from '@/lib/utils';
 import { db_helper } from '@/lib/db';
 import { api } from '@/lib/api';
+import { auditWho, useT } from '@/lib/i18n';
 import type { Section } from '@/components/layout/sidebar';
 
 export interface ServerSample {
@@ -49,6 +50,7 @@ interface ServerDashboardProps {
 }
 
 export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate, onAddServer, canManage }: ServerDashboardProps) {
+  const { t, locale, lang } = useT();
   const [system, setSystem] = React.useState<SystemInfo | null>(null);
   const [audit, setAudit] = React.useState<AuditEntry[] | null>(null);
 
@@ -111,37 +113,37 @@ export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate
       {/* Stats Grid */}
       <div className="order-1 grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         <StatCard
-          title="Статус"
-          value={serverInfo.status === 'online' ? 'Онлайн' : serverInfo.status === 'offline' ? 'Нет связи' : '...'}
+          title={t('Статус', 'Status')}
+          value={serverInfo.status === 'online' ? t('Онлайн', 'Online') : serverInfo.status === 'offline' ? t('Нет связи', 'No connection') : '...'}
           icon={<Radio size={18} />}
           tone={serverInfo.status === 'online' ? 'emerald' : 'red'}
           description={serverInfo.name}
         />
-        <StatCard title="Карта" value={serverInfo.map} icon={<MapIcon size={18} />} tone="blue" description="Текущая карта сервера" />
+        <StatCard title={t('Карта', 'Map')} value={serverInfo.map} icon={<MapIcon size={18} />} tone="blue" description={t('Текущая карта сервера', 'Current server map')} />
         <StatCard
-          title="Игроки"
+          title={t('Игроки', 'Players')}
           value={`${serverInfo.players.online} / ${serverInfo.players.max}`}
           icon={<Users size={18} />}
           tone="violet"
-          description={`ботов: ${serverInfo.players.bots}`}
+          description={t(`ботов: ${serverInfo.players.bots}`, `bots: ${serverInfo.players.bots}`)}
         />
-        <StatCard title="Пинг" value={`${serverInfo.ping} мс`} icon={<Wifi size={18} />} tone="orange" description="Задержка до сервера" />
+        <StatCard title={t('Пинг', 'Ping')} value={t(`${serverInfo.ping} мс`, `${serverInfo.ping} ms`)} icon={<Wifi size={18} />} tone="orange" description={t('Задержка до сервера', 'Latency to the server')} />
       </div>
 
       {/* Charts */}
       <div className="order-3 md:order-2 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4">
         <ChartCard
-          title="Пинг"
-          subtitle="до игрового сервера"
-          value={`${history.length ? history[history.length - 1].ping : 0} мс`}
+          title={t('Пинг', 'Ping')}
+          subtitle={t('до игрового сервера', 'to the game server')}
+          value={`${history.length ? history[history.length - 1].ping : 0} ${t('мс', 'ms')}`}
           icon={<Wifi size={18} />}
           color="#34d399"
           tone="emerald"
           points={history.map((s) => s.ping)}
         />
         <ChartCard
-          title="Игроки"
-          subtitle={`мест на сервере: ${serverInfo.players.max}`}
+          title={t('Игроки', 'Players')}
+          subtitle={t(`мест на сервере: ${serverInfo.players.max}`, `server slots: ${serverInfo.players.max}`)}
           value={`${history.length ? history[history.length - 1].players : 0} / ${serverInfo.players.max}`}
           icon={<Users size={18} />}
           color="#a78bfa"
@@ -151,7 +153,7 @@ export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate
         />
         <ChartCard
           title="CPU"
-          subtitle={system ? `ПК панели · ${system.cpuModel}` : 'ПК панели'}
+          subtitle={system ? `${t('ПК панели', 'Panel PC')} · ${system.cpuModel}` : t('ПК панели', 'Panel PC')}
           value={`${(lastSystem?.cpu ?? 0).toFixed(1)}%`}
           icon={<Cpu size={18} />}
           color="#1890ff"
@@ -161,7 +163,7 @@ export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate
         />
         <ChartCard
           title="RAM"
-          subtitle={system ? `ПК панели · ${system.memUsedGb} / ${system.memTotalGb} ГБ` : 'ПК панели'}
+          subtitle={system ? `${t('ПК панели', 'Panel PC')} · ${system.memUsedGb} / ${system.memTotalGb} ${t('ГБ', 'GB')}` : t('ПК панели', 'Panel PC')}
           value={`${(lastSystem?.mem ?? 0).toFixed(1)}%`}
           icon={<MemoryStick size={18} />}
           color="#f97316"
@@ -176,21 +178,21 @@ export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-bold text-white flex items-center">
               <Activity size={16} className="mr-2 text-primary" />
-              Быстрые действия
+              {t('Быстрые действия', 'Quick actions')}
             </h3>
             {canManage && <button
               onClick={() => setIsAddingCmd(!isAddingCmd)}
               className="text-[10px] uppercase font-bold text-primary hover:text-primary/80 flex items-center bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-lg"
             >
-              <Plus size={12} className="mr-1" /> Своя
+              <Plus size={12} className="mr-1" /> {t('Своя', 'Custom')}
             </button>}
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 flex-1">
-            <ActionButton label="Старт матча" icon={<Play size={16} />} tone="emerald" onClick={() => onSendCommand('css_start')} />
-            <ActionButton label="Рестарт матча" icon={<RotateCcw size={16} />} tone="slate" onClick={() => onSendCommand('mp_restartgame 1')} />
-            <ActionButton label="Пауза" icon={<Pause size={16} />} tone="amber" onClick={() => onSendCommand('css_forcepause')} />
-            <ActionButton label="Снять паузу" icon={<Play size={16} />} tone="blue" onClick={() => onSendCommand('css_forceunpause')} />
+            <ActionButton label={t('Старт матча', 'Start match')} icon={<Play size={16} />} tone="emerald" onClick={() => onSendCommand('css_start')} />
+            <ActionButton label={t('Рестарт матча', 'Restart match')} icon={<RotateCcw size={16} />} tone="slate" onClick={() => onSendCommand('mp_restartgame 1')} />
+            <ActionButton label={t('Пауза', 'Pause')} icon={<Pause size={16} />} tone="amber" onClick={() => onSendCommand('css_forcepause')} />
+            <ActionButton label={t('Снять паузу', 'Unpause')} icon={<Play size={16} />} tone="blue" onClick={() => onSendCommand('css_forceunpause')} />
 
             {customCommands.map(cmd => (
               <div key={cmd.id} className="relative group/btn">
@@ -211,13 +213,13 @@ export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate
           {isAddingCmd && (
             <div className="mt-4 p-3 rounded-xl border border-primary/20 bg-primary/5 space-y-2 animate-in slide-in-from-top-2">
               <input
-                placeholder="Название (например, Нож)"
+                placeholder={t('Название (например, Нож)', 'Name (e.g. Knife)')}
                 value={newCmdLabel}
                 onChange={e => setNewCmdLabel(e.target.value)}
                 className="w-full bg-background/50 border border-input rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
               />
               <input
-                placeholder="Команда (например, mp_warmup_start)"
+                placeholder={t('Команда (например, mp_warmup_start)', 'Command (e.g. mp_warmup_start)')}
                 value={newCmdValue}
                 onChange={e => setNewCmdValue(e.target.value)}
                 className="w-full bg-background/50 border border-input rounded-lg px-2.5 py-1.5 text-xs outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
@@ -227,13 +229,13 @@ export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate
                   onClick={handleAddCommand}
                   className="flex-1 bg-primary text-primary-foreground py-1.5 rounded-lg text-[11px] font-bold"
                 >
-                  Сохранить
+                  {t('Сохранить', 'Save')}
                 </button>
                 <button
                   onClick={() => setIsAddingCmd(false)}
                   className="px-3 bg-white/5 py-1.5 rounded-lg text-[11px] font-bold"
                 >
-                  Отмена
+                  {t('Отмена', 'Cancel')}
                 </button>
               </div>
             </div>
@@ -242,12 +244,12 @@ export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate
 
       {/* Shortcuts */}
       <div className="order-4">
-        <div className="px-1 pb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Быстрый переход</div>
+        <div className="px-1 pb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t('Быстрый переход', 'Shortcuts')}</div>
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4">
-          <ShortcutTile icon={<Terminal size={18} />} label="Консоль" onClick={() => onNavigate('console')} />
-          <ShortcutTile icon={<Trophy size={18} />} label="Запуск матча" onClick={() => onNavigate('match')} />
-          <ShortcutTile icon={<MapIcon size={18} />} label="Карты" onClick={() => onNavigate('maps')} />
-          <ShortcutTile icon={<Layers size={18} />} label="Серверы" onClick={onAddServer} />
+          <ShortcutTile icon={<Terminal size={18} />} label={t('Консоль', 'Console')} onClick={() => onNavigate('console')} />
+          <ShortcutTile icon={<Trophy size={18} />} label={t('Запуск матча', 'Match setup')} onClick={() => onNavigate('match')} />
+          <ShortcutTile icon={<MapIcon size={18} />} label={t('Карты', 'Maps')} onClick={() => onNavigate('maps')} />
+          <ShortcutTile icon={<Layers size={18} />} label={t('Серверы', 'Servers')} onClick={onAddServer} />
         </div>
       </div>
 
@@ -256,14 +258,14 @@ export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate
         <div className="order-5 rounded-2xl border border-border bg-card shadow-lg shadow-black/20 overflow-hidden">
           <div className="flex items-center gap-2 px-4 md:px-6 pt-4 md:pt-5 pb-3">
             <ClipboardList size={16} className="text-primary" />
-            <h3 className="text-sm font-bold text-white">Последние действия</h3>
+            <h3 className="text-sm font-bold text-white">{t('Последние действия', 'Recent actions')}</h3>
           </div>
           {audit && audit.length > 0 ? (
             <div className="px-4 md:px-6 pb-3 space-y-1">
               {audit.map((e, i) => (
                 <div key={i} className="flex items-baseline gap-3 py-1.5 border-b border-border/40 last:border-0 text-sm min-w-0">
-                  <span className="text-[11px] text-muted-foreground tabular-nums shrink-0">{new Date(e.time).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</span>
-                  <span className="text-[11px] font-semibold text-primary shrink-0">{e.who}</span>
+                  <span className="text-[11px] text-muted-foreground tabular-nums shrink-0">{new Date(e.time).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}</span>
+                  <span className="text-[11px] font-semibold text-primary shrink-0">{auditWho(e.who, lang)}</span>
                   <span className="text-white/90 truncate">{e.action}</span>
                 </div>
               ))}
@@ -271,14 +273,14 @@ export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate
           ) : (
             <div className="flex flex-col items-center justify-center gap-3 py-10 text-muted-foreground">
               <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center"><ClipboardList size={22} /></div>
-              <span className="text-sm">{audit ? 'Действий пока не было' : 'Загрузка...'}</span>
+              <span className="text-sm">{audit ? t('Действий пока не было', 'No actions yet') : t('Загрузка...', 'Loading...')}</span>
             </div>
           )}
           <button
             onClick={() => onNavigate('general-settings')}
             className="w-full flex items-center justify-between px-4 md:px-6 py-2.5 border-t border-border/60 text-[11px] font-bold text-muted-foreground hover:text-white hover:bg-white/[0.02] transition-colors"
           >
-            <span className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-primary" />Весь журнал</span>
+            <span className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-primary" />{t('Весь журнал', 'Full log')}</span>
             <ChevronRight size={14} />
           </button>
         </div>
@@ -291,6 +293,7 @@ export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate
 function ChartCard({ title, subtitle, value, icon, color, tone, points, max }: {
   title: string; subtitle: string; value: string; icon: React.ReactNode; color: string; tone: keyof typeof TONES; points: number[]; max?: number;
 }) {
+  const { t } = useT();
   const id = React.useId().replace(/:/g, '');
   const W = 300, H = 100;
   const top = max ?? Math.max(1, ...points) * 1.25;
@@ -324,7 +327,7 @@ function ChartCard({ title, subtitle, value, icon, color, tone, points, max }: {
             <path d={line} fill="none" stroke={color} strokeWidth="2" vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
           </svg>
         ) : (
-          <div className="h-full flex items-center justify-center text-[11px] text-muted-foreground">График появится через несколько секунд</div>
+          <div className="h-full flex items-center justify-center text-[11px] text-muted-foreground">{t('График появится через несколько секунд', 'The chart will appear in a few seconds')}</div>
         )}
       </div>
     </div>

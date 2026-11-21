@@ -5,6 +5,8 @@ import { Copy, Check, Pause, Play, Radio, LogOut, Tv, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { api, BroadcastRequest } from '@/lib/api';
 import { copyText } from '@/lib/clipboard';
+import { useT, pick, Text } from '@/lib/i18n';
+import { LanguageMenu } from '@/components/layout/language-menu';
 
 interface Team {
   name: string;
@@ -33,21 +35,22 @@ interface BroadcastServer {
   };
 }
 
-const STATE_LABELS: Record<string, string> = {
-  pre_veto: 'Ожидание вето',
-  veto: 'Вето',
-  warmup: 'Разминка',
-  knife: 'Ножевой раунд',
-  waiting_for_knife_decision: 'Выбор стороны',
-  going_live: 'Старт',
-  live: 'Идёт игра',
-  post_game: 'Карта окончена',
+const STATE_LABELS: Record<string, Text> = {
+  pre_veto: { ru: 'Ожидание вето', en: 'Waiting for veto' },
+  veto: { ru: 'Вето', en: 'Veto' },
+  warmup: { ru: 'Разминка', en: 'Warmup' },
+  knife: { ru: 'Ножевой раунд', en: 'Knife round' },
+  waiting_for_knife_decision: { ru: 'Выбор стороны', en: 'Side choice' },
+  going_live: { ru: 'Старт', en: 'Going live' },
+  live: { ru: 'Идёт игра', en: 'Live' },
+  post_game: { ru: 'Карта окончена', en: 'Map over' },
 };
 
 // A judge's answer stays visible this long
 const ANSWER_VISIBLE_MS = 60_000;
 
 export function BroadcastView() {
+  const { t } = useT();
   const [servers, setServers] = React.useState<BroadcastServer[] | null>(null);
   const [error, setError] = React.useState('');
 
@@ -71,15 +74,18 @@ export function BroadcastView() {
       <header className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border bg-background px-4 py-3">
         <div className="flex items-center gap-2 font-bold">
           <Radio size={18} className="text-red-500" />
-          Трансляция
+          {t('Трансляция', 'Broadcast')}
         </div>
-        <button
-          onClick={async () => { await fetch('/api/logout', { method: 'POST' }); window.location.href = '/login'; }}
-          className="p-2 rounded-md text-muted-foreground hover:bg-white/5 hover:text-white"
-          aria-label="Выйти"
-        >
-          <LogOut size={18} />
-        </button>
+        <div className="flex items-center gap-2">
+          <LanguageMenu />
+          <button
+            onClick={async () => { await fetch('/api/logout', { method: 'POST' }); window.location.href = '/login'; }}
+            className="p-2 rounded-md text-muted-foreground hover:bg-white/5 hover:text-white"
+            aria-label={t('Выйти', 'Log out')}
+          >
+            <LogOut size={18} />
+          </button>
+        </div>
       </header>
 
       {error && (
@@ -87,8 +93,8 @@ export function BroadcastView() {
       )}
 
       <main className="grid gap-4 p-4 md:grid-cols-2">
-        {servers === null && <p className="text-muted-foreground">Загрузка...</p>}
-        {servers?.length === 0 && <p className="text-muted-foreground">Серверов пока нет.</p>}
+        {servers === null && <p className="text-muted-foreground">{t('Загрузка...', 'Loading...')}</p>}
+        {servers?.length === 0 && <p className="text-muted-foreground">{t('Серверов пока нет.', 'No servers yet.')}</p>}
         {servers?.map((s) => <ServerCard key={s.id} server={s} onChange={load} />)}
       </main>
     </div>
@@ -96,13 +102,14 @@ export function BroadcastView() {
 }
 
 function ServerCard({ server: s, onChange }: { server: BroadcastServer; onChange: () => void }) {
+  const { t, lang } = useT();
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState('');
 
   const m = s.match;
   const r = s.request;
   const pending = r?.status === 'pending';
-  const stateLabel = m ? (m.paused ? 'ПАУЗА' : STATE_LABELS[m.state] ?? m.state) : 'Матч не загружен';
+  const stateLabel = m ? (m.paused ? t('ПАУЗА', 'PAUSED') : (STATE_LABELS[m.state] ? pick(STATE_LABELS[m.state], lang) : m.state)) : t('Матч не загружен', 'No match loaded');
   const canRequestPause = s.online && !!m && !m.paused && !pending && ['knife', 'going_live', 'live'].includes(m.state);
   const canRequestContinue = s.online && !!m?.paused && !pending;
 
@@ -138,7 +145,7 @@ function ServerCard({ server: s, onChange }: { server: BroadcastServer; onChange
         <div className="min-w-0">
           <h2 className="font-bold truncate">{s.name}</h2>
           <p className="text-xs text-muted-foreground truncate">
-            {s.online ? `${s.map} • игроков: ${s.players}` : 'Сервер недоступен'}
+            {s.online ? `${s.map} • ${t('игроков', 'players')}: ${s.players}` : t('Сервер недоступен', 'Server unavailable')}
           </p>
         </div>
         <span className={cn(
@@ -158,7 +165,7 @@ function ServerCard({ server: s, onChange }: { server: BroadcastServer; onChange
           <div className="text-center">
             <div className="text-2xl font-bold tabular-nums">{m.team1.score} : {m.team2.score}</div>
             <div className="text-[11px] text-muted-foreground">
-              серия {m.team1.series}:{m.team2.series} • карта {m.mapNumber + 1}
+              {t('серия', 'series')} {m.team1.series}:{m.team2.series} • {t('карта', 'map')} {m.mapNumber + 1}
             </div>
           </div>
           <TeamBlock team={m.team2} align="right" />
@@ -166,7 +173,7 @@ function ServerCard({ server: s, onChange }: { server: BroadcastServer; onChange
       )}
 
       <div className="space-y-2">
-        <ConnectRow label="Игра" value={s.connect} />
+        <ConnectRow label={t('Игра', 'Game')} value={s.connect} />
         {s.gotv && <ConnectRow label="GOTV" value={s.gotv} icon={<Tv size={14} />} />}
       </div>
 
@@ -178,14 +185,14 @@ function ServerCard({ server: s, onChange }: { server: BroadcastServer; onChange
           onClick={() => send('pause')}
           className="flex h-12 items-center justify-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 text-sm font-bold text-amber-400 disabled:opacity-40"
         >
-          <Pause size={18} /> Запросить паузу
+          <Pause size={18} /> {t('Запросить паузу', 'Request pause')}
         </button>
         <button
           disabled={busy || !canRequestContinue}
           onClick={() => send('unpause')}
           className="flex h-12 items-center justify-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/10 text-sm font-bold text-emerald-400 disabled:opacity-40"
         >
-          <Play size={18} /> Можно продолжать
+          <Play size={18} /> {t('Можно продолжать', 'Ready to resume')}
         </button>
       </div>
       {error && <p className="text-xs text-red-400">{error}</p>}
@@ -194,22 +201,27 @@ function ServerCard({ server: s, onChange }: { server: BroadcastServer; onChange
 }
 
 function RequestStatus({ request: r, busy, onCancel }: { request: BroadcastRequest | null; busy: boolean; onCancel: () => void }) {
+  const { t } = useT();
   if (!r) return null;
-  const what = r.type === 'pause' ? 'паузу' : 'продолжение';
+  const isPause = r.type === 'pause';
   if (r.status === 'pending') {
     return (
       <div className="flex items-center gap-2 rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-300">
-        <span className="flex-1">Запрос на {what} отправлен, ждём судью...</span>
+        <span className="flex-1">{isPause
+          ? t('Запрос на паузу отправлен, ждём судью...', 'Pause request sent, waiting for the referee...')
+          : t('Запрос на продолжение отправлен, ждём судью...', 'Resume request sent, waiting for the referee...')}</span>
         <button disabled={busy} onClick={onCancel} className="flex items-center gap-1 text-xs text-muted-foreground disabled:opacity-50">
-          <X size={14} /> Отменить
+          <X size={14} /> {t('Отменить', 'Cancel')}
         </button>
       </div>
     );
   }
   if (!r.resolvedAt || Date.now() - new Date(r.resolvedAt).getTime() > ANSWER_VISIBLE_MS) return null;
   const text = r.status === 'accepted'
-    ? (r.type === 'pause' ? 'Судья поставил паузу' : 'Судья продолжил матч')
-    : r.status === 'rejected' ? `Судья отклонил запрос на ${what}` : 'Запрос отменён';
+    ? (isPause ? t('Судья поставил паузу', 'The referee paused the match') : t('Судья продолжил матч', 'The referee resumed the match'))
+    : r.status === 'rejected'
+      ? (isPause ? t('Судья отклонил запрос на паузу', 'The referee declined the pause request') : t('Судья отклонил запрос на продолжение', 'The referee declined the resume request'))
+      : t('Запрос отменён', 'Request cancelled');
   return (
     <div className={cn(
       'rounded-lg px-3 py-2 text-sm',
@@ -232,6 +244,7 @@ function TeamBlock({ team, align }: { team: Team; align: 'left' | 'right' }) {
 }
 
 function ConnectRow({ label, value, icon }: { label: string; value: string; icon?: React.ReactNode }) {
+  const { t } = useT();
   const [copied, setCopied] = React.useState(false);
   return (
     <div className="flex items-center gap-2">
@@ -240,7 +253,7 @@ function ConnectRow({ label, value, icon }: { label: string; value: string; icon
       <button
         onClick={async () => { await copyText(value); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
         className="shrink-0 rounded-md p-2 text-muted-foreground hover:bg-white/5 hover:text-white"
-        aria-label={`Скопировать ${label}`}
+        aria-label={t(`Скопировать ${label}`, `Copy ${label}`)}
       >
         {copied ? <Check size={16} className="text-emerald-400" /> : <Copy size={16} />}
       </button>

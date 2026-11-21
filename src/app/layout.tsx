@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { Providers } from "./providers";
 
 // Self-hosted at build time: the panel works without internet once built
 const inter = Inter({ subsets: ["latin", "cyrillic"], variable: "--font-inter", display: "swap" });
@@ -18,7 +19,7 @@ export default function RootLayout({
   return (
     <html lang="ru" className={`dark ${inter.variable}`}>
       <body className="bg-background text-foreground antialiased overflow-hidden font-sans">
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

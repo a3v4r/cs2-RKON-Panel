@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ServerProfile } from '@/lib/db'
+import { useT } from '@/lib/i18n'
 
 interface ServerModalProps {
   open: boolean
@@ -21,6 +22,7 @@ interface ServerModalProps {
 }
 
 export function ServerModal({ open, onOpenChange, onSave, server }: ServerModalProps) {
+  const { t } = useT()
   const [formData, setFormData] = useState<ServerProfile>({
     name: '',
     host: '',
@@ -54,14 +56,14 @@ export function ServerModal({ open, onOpenChange, onSave, server }: ServerModalP
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px] border-border text-white">
         <DialogHeader>
-          <DialogTitle>{server ? 'Изменить сервер' : 'Новый сервер'}</DialogTitle>
+          <DialogTitle>{server ? t('Изменить сервер', 'Edit server') : t('Новый сервер', 'New server')}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Название</Label>
+            <Label htmlFor="name">{t('Название', 'Name')}</Label>
             <Input
               id="name"
-              placeholder="Турнирный сервер #1"
+              placeholder={t('Турнирный сервер #1', 'Tournament server #1')}
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               className="bg-white/5 border-border"
@@ -70,7 +72,7 @@ export function ServerModal({ open, onOpenChange, onSave, server }: ServerModalP
           </div>
           <div className="grid grid-cols-3 gap-4">
             <div className="col-span-2 space-y-2">
-              <Label htmlFor="host">Адрес / IP</Label>
+              <Label htmlFor="host">{t('Адрес / IP', 'Address / IP')}</Label>
               <Input
                 id="host"
                 placeholder="127.0.0.1"
@@ -81,7 +83,7 @@ export function ServerModal({ open, onOpenChange, onSave, server }: ServerModalP
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="port">Порт</Label>
+              <Label htmlFor="port">{t('Порт', 'Port')}</Label>
               <Input
                 id="port"
                 type="number"
@@ -94,11 +96,11 @@ export function ServerModal({ open, onOpenChange, onSave, server }: ServerModalP
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">RCON-пароль</Label>
+            <Label htmlFor="password">{t('RCON-пароль', 'RCON password')}</Label>
             <Input
               id="password"
               type="password"
-              placeholder={server ? 'Оставьте пустым, чтобы не менять' : '••••••••'}
+              placeholder={server ? t('Оставьте пустым, чтобы не менять', 'Leave empty to keep current') : '••••••••'}
               value={formData.rcon_password}
               onChange={(e) => setFormData({ ...formData, rcon_password: e.target.value })}
               className="bg-white/5 border-border"
@@ -106,7 +108,7 @@ export function ServerModal({ open, onOpenChange, onSave, server }: ServerModalP
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="country">Код страны (флаг)</Label>
+            <Label htmlFor="country">{t('Код страны (флаг)', 'Country code (flag)')}</Label>
             <Input
               id="country"
               placeholder="RU"
@@ -118,10 +120,10 @@ export function ServerModal({ open, onOpenChange, onSave, server }: ServerModalP
           </div>
           <DialogFooter className="pt-4">
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-              Отмена
+              {t('Отмена', 'Cancel')}
             </Button>
             <Button type="submit" className="bg-primary hover:bg-primary/90 text-primary-foreground">
-              {server ? 'Сохранить' : 'Добавить'}
+              {server ? t('Сохранить', 'Save') : t('Добавить', 'Add')}
             </Button>
           </DialogFooter>
         </form>

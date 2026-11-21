@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react';
 import { Crosshair, User, Lock, Eye, EyeOff } from 'lucide-react';
+import { useT } from '@/lib/i18n';
+import { LanguageMenu } from '@/components/layout/language-menu';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -9,6 +11,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const { t } = useT();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,7 +26,7 @@ export default function LoginPage() {
       window.location.href = '/';
     } else {
       const data = await res.json().catch(() => ({}));
-      setError(data.error || 'Не удалось войти');
+      setError(data.error || t('Не удалось войти', 'Sign-in failed'));
       setLoading(false);
     }
   };
@@ -32,6 +35,7 @@ export default function LoginPage() {
 
   return (
     <div className="relative flex min-h-[100dvh] items-center justify-center overflow-hidden bg-background p-4">
+      <div className="absolute top-4 right-4 z-10"><LanguageMenu /></div>
       {/* Soft blue glow in the corners */}
       <div className="pointer-events-none absolute inset-0 -z-0 overflow-hidden">
         <div className="absolute top-[-10%] left-[-10%] h-[40%] w-[40%] rounded-full bg-primary/10 blur-[120px]" />
@@ -44,7 +48,7 @@ export default function LoginPage() {
             <Crosshair size={34} className="text-white" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-white">Matchdesk</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Панель судьи для турниров CS2</p>
+          <p className="mt-2 text-sm text-muted-foreground">{t('Панель судьи для турниров CS2', 'Referee panel for CS2 tournaments')}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5 rounded-2xl border border-border/60 bg-card p-6 shadow-xl sm:p-8">
@@ -52,7 +56,7 @@ export default function LoginPage() {
             <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm font-medium text-red-400">{error}</div>
           )}
           <div>
-            <label htmlFor="username" className="mb-1.5 block text-sm font-medium text-gray-300">Логин</label>
+            <label htmlFor="username" className="mb-1.5 block text-sm font-medium text-gray-300">{t('Логин', 'Username')}</label>
             <div className="relative">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-muted-foreground"><User size={18} /></div>
               <input
@@ -60,7 +64,7 @@ export default function LoginPage() {
                 autoFocus
                 autoCapitalize="none"
                 autoComplete="username"
-                placeholder="Логин"
+                placeholder={t('Логин', 'Username')}
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
@@ -69,7 +73,7 @@ export default function LoginPage() {
             </div>
           </div>
           <div>
-            <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-gray-300">Пароль</label>
+            <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-gray-300">{t('Пароль', 'Password')}</label>
             <div className="relative">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-muted-foreground"><Lock size={18} /></div>
               <input
@@ -85,7 +89,7 @@ export default function LoginPage() {
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-muted-foreground hover:text-gray-300"
-                aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
+                aria-label={showPassword ? t('Скрыть пароль', 'Hide password') : t('Показать пароль', 'Show password')}
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
@@ -97,7 +101,7 @@ export default function LoginPage() {
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50"
           >
             {loading && <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />}
-            {loading ? 'Вход...' : 'Войти'}
+            {loading ? t('Вход...', 'Signing in...') : t('Войти', 'Sign in')}
           </button>
         </form>
       </div>

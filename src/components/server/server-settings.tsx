@@ -4,6 +4,7 @@ import React from 'react'
 import { Settings, Shield, Zap, RefreshCw, Pencil } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ServerProfile } from '@/lib/db'
+import { useT } from '@/lib/i18n'
 
 interface ServerSettingsProps {
   server: ServerProfile
@@ -15,6 +16,7 @@ type RconCheck = { state: 'checking' } | { state: 'ok'; detail: string } | { sta
 
 export function ServerSettings({ server, onEdit, onCommand }: ServerSettingsProps) {
   const [check, setCheck] = React.useState<RconCheck>({ state: 'checking' })
+  const { t } = useT()
 
   const runCheck = React.useCallback(async () => {
     setCheck({ state: 'checking' })
@@ -37,25 +39,25 @@ export function ServerSettings({ server, onEdit, onCommand }: ServerSettingsProp
           </div>
           <div>
             <h2 className="text-2xl font-bold text-white">{server.name}</h2>
-            <p className="text-sm text-muted-foreground">Настройки сервера</p>
+            <p className="text-sm text-muted-foreground">{t('Настройки сервера', 'Server settings')}</p>
           </div>
         </div>
         <Button variant="outline" onClick={onEdit}>
           <Pencil size={14} className="mr-2" />
-          Изменить сервер
+          {t('Изменить сервер', 'Edit server')}
         </Button>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <SettingsGroup title="Подключение" icon={<Zap size={18} />}>
-          <Row label="Адрес"><span className="text-sm text-white font-mono">{server.host}</span></Row>
-          <Row label="Порт"><span className="text-sm text-white font-mono">{server.port}</span></Row>
+        <SettingsGroup title={t('Подключение', 'Connection')} icon={<Zap size={18} />}>
+          <Row label={t('Адрес', 'Address')}><span className="text-sm text-white font-mono">{server.host}</span></Row>
+          <Row label={t('Порт', 'Port')}><span className="text-sm text-white font-mono">{server.port}</span></Row>
           <Row label="RCON" last>
             <div className="flex items-center gap-2 min-w-0">
-              {check.state === 'checking' && <span className="text-xs text-muted-foreground">проверка...</span>}
-              {check.state === 'ok' && <span className="text-xs font-bold text-emerald-500 uppercase">Подключено</span>}
-              {check.state === 'error' && <span className="text-xs font-bold text-red-500 uppercase">Ошибка</span>}
-              <button onClick={runCheck} className="p-1 text-muted-foreground hover:text-white" title="Проверить ещё раз">
+              {check.state === 'checking' && <span className="text-xs text-muted-foreground">{t('проверка...', 'checking...')}</span>}
+              {check.state === 'ok' && <span className="text-xs font-bold text-emerald-500 uppercase">{t('Подключено', 'Connected')}</span>}
+              {check.state === 'error' && <span className="text-xs font-bold text-red-500 uppercase">{t('Ошибка', 'Error')}</span>}
+              <button onClick={runCheck} className="p-1 text-muted-foreground hover:text-white" title={t('Проверить ещё раз', 'Check again')}>
                 <RefreshCw size={14} />
               </button>
             </div>
@@ -67,14 +69,14 @@ export function ServerSettings({ server, onEdit, onCommand }: ServerSettingsProp
           )}
         </SettingsGroup>
 
-        <SettingsGroup title="Безопасность" icon={<Shield size={18} />}>
-          <Row label="RCON-пароль" last>
+        <SettingsGroup title={t('Безопасность', 'Security')} icon={<Shield size={18} />}>
+          <Row label={t('RCON-пароль', 'RCON password')} last>
             {server.has_password
-              ? <span className="text-xs px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-500">Задан</span>
-              : <span className="text-xs px-2 py-0.5 rounded bg-red-500/20 text-red-500">Не задан</span>}
+              ? <span className="text-xs px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-500">{t('Задан', 'Set')}</span>
+              : <span className="text-xs px-2 py-0.5 rounded bg-red-500/20 text-red-500">{t('Не задан', 'Not set')}</span>}
           </Row>
           <p className="pt-2 text-xs text-muted-foreground">
-            Хранится только на сервере панели и не передаётся в браузер. Сменить - кнопкой «Изменить сервер».
+            {t('Хранится только на сервере панели и не передаётся в браузер. Сменить - кнопкой «Изменить сервер».', 'Stored only on the panel server and never sent to the browser. To change it, use "Edit server".')}
           </p>
         </SettingsGroup>
       </div>

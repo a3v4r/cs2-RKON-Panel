@@ -5,6 +5,7 @@ import { Download, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { useT } from '@/lib/i18n';
 
 interface UpdateInfo {
   running: boolean;
@@ -27,6 +28,7 @@ export function Cs2UpdateModal({ open, onOpenChange }: { open: boolean; onOpenCh
   const [error, setError] = React.useState('');
   const [sending, setSending] = React.useState(false);
   const logRef = React.useRef<HTMLDivElement>(null);
+  const { t } = useT();
 
   const load = React.useCallback(() => api<UpdateInfo>('/api/cs2-update').then(setInfo).catch(() => {}), []);
 
@@ -43,7 +45,7 @@ export function Cs2UpdateModal({ open, onOpenChange }: { open: boolean; onOpenCh
   }, [info?.log.length]);
 
   const send = async (action: 'start' | 'cancel') => {
-    if (action === 'cancel' && !confirm('Отменить обновление? Скачанное сохранится, следующее обновление докачает остальное.')) return;
+    if (action === 'cancel' && !confirm(t('Отменить обновление? Скачанное сохранится, следующее обновление докачает остальное.', 'Cancel the update? Downloaded files are kept, the next update fetches the rest.'))) return;
     setSending(true);
     setError('');
     try {
@@ -64,17 +66,17 @@ export function Cs2UpdateModal({ open, onOpenChange }: { open: boolean; onOpenCh
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <span className="p-1.5 rounded-lg bg-primary/15 text-primary"><Download size={16} /></span>
-            Обновление CS2
+            {t('Обновление CS2', 'CS2 update')}
           </DialogTitle>
           <p className="text-sm text-muted-foreground">
-            steamcmd скачает свежую версию выделенного сервера в папку серверов и проверит файлы. Metamod панель подключит сама.
+            {t('steamcmd скачает свежую версию выделенного сервера в папку серверов и проверит файлы. Metamod панель подключит сама.', 'steamcmd downloads the latest dedicated server build into the servers folder and validates the files. The panel hooks up Metamod itself.')}
           </p>
         </DialogHeader>
 
         <div className="space-y-4 pt-2">
           {info && (
             <div className="grid gap-2 text-xs">
-              <PathRow label="Сервер CS2" value={info.cs2Dir} />
+              <PathRow label={t('Сервер CS2', 'CS2 server')} value={info.cs2Dir} />
               <PathRow label="steamcmd" value={info.steamcmd} bad={!info.steamcmdFound} />
             </div>
           )}
@@ -82,7 +84,7 @@ export function Cs2UpdateModal({ open, onOpenChange }: { open: boolean; onOpenCh
           {!running && !finished && (
             <div className="flex gap-3 p-3 rounded-xl border border-amber-500/20 bg-amber-500/10 text-sm text-amber-200">
               <AlertTriangle size={18} className="shrink-0 text-amber-400" />
-              <span>Перед обновлением остановите все серверы CS2 на этом ПК. Первое скачивание занимает ~75 ГБ, обычное обновление быстрее.</span>
+              <span>{t('Перед обновлением остановите все серверы CS2 на этом ПК. Первое скачивание занимает ~75 ГБ, обычное обновление быстрее.', 'Stop all CS2 servers on this PC before updating. The first download is ~75 GB, regular updates are faster.')}</span>
             </div>
           )}
 
@@ -91,9 +93,9 @@ export function Cs2UpdateModal({ open, onOpenChange }: { open: boolean; onOpenCh
           {info && (running || finished) && (
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-3 text-sm">
-                <span className="font-semibold text-white">{running ? info.phase || 'Обновление' : info.ok ? 'Готово' : 'Не удалось'}</span>
+                <span className="font-semibold text-white">{running ? info.phase || t('Обновление', 'Updating') : info.ok ? t('Готово', 'Done') : t('Не удалось', 'Failed')}</span>
                 <span className="tabular-nums text-muted-foreground">
-                  {info.progress !== null ? `${info.progress.toFixed(1)}%` : running ? `попытка ${info.attempt}` : ''}
+                  {info.progress !== null ? `${info.progress.toFixed(1)}%` : running ? t(`попытка ${info.attempt}`, `attempt ${info.attempt}`) : ''}
                 </span>
               </div>
               <div className="h-2.5 rounded-full bg-white/5 overflow-hidden">
@@ -128,12 +130,12 @@ export function Cs2UpdateModal({ open, onOpenChange }: { open: boolean; onOpenCh
                 disabled={sending}
                 className="px-4 py-2.5 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-500 disabled:opacity-50"
               >
-                Отменить
+                {t('Отменить', 'Cancel')}
               </button>
             ) : (
               <>
                 <button onClick={() => onOpenChange(false)} className="px-4 py-2.5 rounded-xl text-sm font-semibold text-muted-foreground hover:text-white hover:bg-white/5">
-                  Закрыть
+                  {t('Закрыть', 'Close')}
                 </button>
                 <button
                   onClick={() => send('start')}
@@ -141,12 +143,12 @@ export function Cs2UpdateModal({ open, onOpenChange }: { open: boolean; onOpenCh
                   className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-white text-sm font-semibold shadow-lg shadow-primary/20 hover:bg-primary/90 active:scale-[0.98] transition-all disabled:opacity-50"
                 >
                   <Download size={16} />
-                  {finished ? 'Обновить ещё раз' : 'Обновить'}
+                  {finished ? t('Обновить ещё раз', 'Update again') : t('Обновить', 'Update')}
                 </button>
               </>
             )}
           </div>
-          {running && <p className="text-xs text-muted-foreground text-right">Окно можно закрыть: обновление продолжится, прогресс виден при повторном открытии.</p>}
+          {running && <p className="text-xs text-muted-foreground text-right">{t('Окно можно закрыть: обновление продолжится, прогресс виден при повторном открытии.', 'You can close this window: the update keeps running, and progress shows when you reopen it.')}</p>}
         </div>
       </DialogContent>
     </Dialog>
@@ -154,11 +156,12 @@ export function Cs2UpdateModal({ open, onOpenChange }: { open: boolean; onOpenCh
 }
 
 function PathRow({ label, value, bad }: { label: string; value: string; bad?: boolean }) {
+  const { t } = useT();
   return (
     <div className="flex items-start gap-3 p-2.5 rounded-lg bg-white/[0.03] border border-white/5 min-w-0">
       <span className="w-24 shrink-0 text-muted-foreground">{label}</span>
       <span className={cn('flex-1 min-w-0 font-mono break-all', bad ? 'text-red-400' : 'text-white')}>{value}</span>
-      {bad && <span className="shrink-0 text-red-400 font-semibold">не найден</span>}
+      {bad && <span className="shrink-0 text-red-400 font-semibold">{t('не найден', 'not found')}</span>}
     </div>
   );
 }

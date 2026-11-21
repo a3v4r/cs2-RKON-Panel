@@ -5,6 +5,7 @@ import { Send, Users, Shield, Zap, Copy, Download, Map as MapIcon, ShieldOff } f
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { api } from '@/lib/api'
+import { useT } from '@/lib/i18n'
 
 interface MatchGeneratorProps {
   serverId: number;
@@ -45,6 +46,7 @@ function loadMatchConfig(serverId: number): MatchFormConfig {
 }
 
 export function MatchGenerator({ serverId, onStartMatch, onLaunchMatch, onStopMatch }: MatchGeneratorProps) {
+  const { t, lang } = useT()
   const [matchConfig, setMatchConfig] = useState<MatchFormConfig>(() => loadMatchConfig(serverId))
 
   React.useEffect(() => {
@@ -56,8 +58,8 @@ export function MatchGenerator({ serverId, onStartMatch, onLaunchMatch, onStopMa
   }, [serverId, matchConfig])
 
   // Side options show the team names typed below
-  const team1Label = matchConfig.team1.name.trim() || 'Команда 1'
-  const team2Label = matchConfig.team2.name.trim() || 'Команда 2'
+  const team1Label = matchConfig.team1.name.trim() || t('Команда 1', 'Team 1')
+  const team2Label = matchConfig.team2.name.trim() || t('Команда 2', 'Team 2')
 
   const [jsonOutput, setJsonOutput] = useState("")
   const [status, setStatus] = useState<{ type: 'success' | 'error' | 'idle', message: string }>({ type: 'idle', message: '' })
@@ -72,9 +74,9 @@ export function MatchGenerator({ serverId, onStartMatch, onLaunchMatch, onStopMa
     setStatus({ type: 'idle', message: '' })
     try {
       await onStopMatch()
-      setStatus({ type: 'success', message: 'Матч остановлен' })
+      setStatus({ type: 'success', message: t('Матч остановлен', 'Match stopped') })
     } catch (error: any) {
-      setStatus({ type: 'error', message: `Не удалось остановить: ${error.message}` })
+      setStatus({ type: 'error', message: `${t('Не удалось остановить', 'Could not stop')}: ${error.message}` })
     } finally {
       setIsLoading(false)
     }
@@ -126,9 +128,9 @@ export function MatchGenerator({ serverId, onStartMatch, onLaunchMatch, onStopMa
     setStatus({ type: 'idle', message: '' })
     try {
       await onStartMatch(json)
-      setStatus({ type: 'success', message: 'Команда отправлена' })
+      setStatus({ type: 'success', message: t('Команда отправлена', 'Command sent') })
     } catch (error: any) {
-      setStatus({ type: 'error', message: `Ошибка: ${error.message || 'неизвестная ошибка'}` })
+      setStatus({ type: 'error', message: `${t('Ошибка', 'Error')}: ${error.message || t('неизвестная ошибка', 'unknown error')}` })
     } finally {
       setIsLoading(false)
     }
@@ -149,9 +151,9 @@ export function MatchGenerator({ serverId, onStartMatch, onLaunchMatch, onStopMa
 
       // 3. Launch via RCON
       await onLaunchMatch(json, configUrl)
-      setStatus({ type: 'success', message: 'Матч загружен на сервер' })
+      setStatus({ type: 'success', message: t('Матч загружен на сервер', 'Match loaded on the server') })
     } catch (error: any) {
-      setStatus({ type: 'error', message: `Не удалось запустить: ${error.message}` })
+      setStatus({ type: 'error', message: `${t('Не удалось запустить', 'Could not start')}: ${error.message}` })
     } finally {
       setIsLoading(false)
     }
@@ -194,7 +196,7 @@ export function MatchGenerator({ serverId, onStartMatch, onLaunchMatch, onStopMa
     <div className="p-3 md:p-6 h-full flex flex-col space-y-6 overflow-auto">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-sm text-muted-foreground">Матч уходит на сервер через MatchZy. Параметры сохраняются в этом браузере.</p>
+          <p className="text-sm text-muted-foreground">{t('Матч уходит на сервер через MatchZy. Параметры сохраняются в этом браузере.', 'The match goes to the server through MatchZy. Settings are saved in this browser.')}</p>
         </div>
         <div className="flex space-x-2 items-center">
           <Button 
@@ -204,14 +206,14 @@ export function MatchGenerator({ serverId, onStartMatch, onLaunchMatch, onStopMa
             className="border-red-500/50 text-red-500 hover:bg-red-500/10 hover:text-red-500"
           >
             <ShieldOff size={16} className="mr-2" />
-            Остановить
+            {t('Остановить', 'Stop')}
           </Button>
           <Button 
             onClick={handleLaunchUrlMatch} 
             disabled={isLoading}
             className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold px-6"
           >
-            {isLoading ? "Подождите..." : <><Zap size={16} className="mr-2" /> Запустить</>}
+            {isLoading ? t('Подождите...', 'Please wait...') : <><Zap size={16} className="mr-2" /> {t('Запустить', 'Start')}</>}
           </Button>
         </div>
       </div>
@@ -226,7 +228,11 @@ export function MatchGenerator({ serverId, onStartMatch, onLaunchMatch, onStopMa
           </div>
           {status.type === 'error' && (
             <p className="text-[10px] text-muted-foreground px-1 italic">
-              Если RCON не работает: скачайте конфиг (кнопка над JSON), положите его в папку <code className="text-primary">csgo</code> сервера и выполните в консоли сервера <code className="text-primary">matchzy_loadmatch имя_файла.json</code>.
+              {lang === 'en' ? (
+                <>If RCON does not work: download the config (button above the JSON), put it in the server's <code className="text-primary">csgo</code> folder and run <code className="text-primary">matchzy_loadmatch file_name.json</code> in the server console.</>
+              ) : (
+                <>Если RCON не работает: скачайте конфиг (кнопка над JSON), положите его в папку <code className="text-primary">csgo</code> сервера и выполните в консоли сервера <code className="text-primary">matchzy_loadmatch имя_файла.json</code>.</>
+              )}
             </p>
           )}
         </div>
@@ -239,7 +245,7 @@ export function MatchGenerator({ serverId, onStartMatch, onLaunchMatch, onStopMa
             <div className="p-4 rounded-2xl border border-border bg-card shadow-lg shadow-black/20">
               <h3 className="text-sm font-bold uppercase tracking-widest text-white mb-4 flex items-center">
                 <Shield size={14} className="mr-2" />
-                Формат серии
+                {t('Формат серии', 'Series format')}
               </h3>
               <div className="flex space-x-4">
                 <Button 
@@ -282,25 +288,27 @@ export function MatchGenerator({ serverId, onStartMatch, onLaunchMatch, onStopMa
             <div className="p-4 rounded-2xl border border-border bg-card shadow-lg shadow-black/20">
               <h3 className="text-sm font-bold uppercase tracking-widest text-primary mb-4 flex items-center">
                 <MapIcon size={14} className="mr-2" />
-                Карты и стороны
+                {t('Карты и стороны', 'Maps and sides')}
               </h3>
               {!matchConfig.skip_veto && (
                 <p className="text-xs text-muted-foreground">
-                  Вето в игре: капитаны банят и пикают из всех {AVAILABLE_MAPS.length} карт командами в чате и сами выбирают стороны.
-                  Чтобы задать карты и стороны здесь, ниже выберите «Вето в игре: Нет».
+                  {t(
+                    `Вето в игре: капитаны банят и пикают из всех ${AVAILABLE_MAPS.length} карт командами в чате и сами выбирают стороны. Чтобы задать карты и стороны здесь, ниже выберите «Вето в игре: Нет».`,
+                    `In-game veto: captains ban and pick from all ${AVAILABLE_MAPS.length} maps with chat commands and choose sides themselves. To set maps and sides here, choose "In-game veto: No" below.`,
+                  )}
                 </p>
               )}
               <div className={matchConfig.skip_veto ? "space-y-6" : "hidden"}>
                 {Array.from({ length: matchConfig.num_maps }).map((_, i) => (
                   <div key={i} className="p-3 rounded-lg border border-border/50 bg-white/5 space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-white uppercase tracking-wider">Карта {i + 1}</span>
+                      <span className="text-xs font-bold text-white uppercase tracking-wider">{t('Карта', 'Map')} {i + 1}</span>
                       <select 
                         value={matchConfig.map_sides[i]}
                         onChange={(e) => updateSideForSlot(i, e.target.value)}
                         className="max-w-[60%] truncate bg-background/50 border border-border rounded px-2 py-1 text-[10px] text-primary font-bold outline-none"
                       >
-                        <option value="knife">Ножевой раунд</option>
+                        <option value="knife">{t('Ножевой раунд', 'Knife round')}</option>
                         <option value="team1_ct">{team1Label} CT</option>
                         <option value="team1_t">{team1Label} T</option>
                         <option value="team2_ct">{team2Label} CT</option>
@@ -332,11 +340,11 @@ export function MatchGenerator({ serverId, onStartMatch, onLaunchMatch, onStopMa
             <div className="p-4 rounded-2xl border border-border bg-card shadow-lg shadow-black/20">
               <h3 className="text-sm font-bold uppercase tracking-widest text-primary mb-4 flex items-center">
                 <Users size={14} className="mr-2" />
-                Команда 1
+                {t('Команда 1', 'Team 1')}
               </h3>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-xs text-muted-foreground">Название</label>
+                  <label className="text-xs text-muted-foreground">{t('Название', 'Name')}</label>
                   <input 
                     value={matchConfig.team1.name}
                     onChange={(e) => setMatchConfig({...matchConfig, team1: {...matchConfig.team1, name: e.target.value}})}
@@ -344,7 +352,7 @@ export function MatchGenerator({ serverId, onStartMatch, onLaunchMatch, onStopMa
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs text-muted-foreground">Тег</label>
+                  <label className="text-xs text-muted-foreground">{t('Тег', 'Tag')}</label>
                   <input 
                     value={matchConfig.team1.tag}
                     onChange={(e) => setMatchConfig({...matchConfig, team1: {...matchConfig.team1, tag: e.target.value}})}
@@ -358,11 +366,11 @@ export function MatchGenerator({ serverId, onStartMatch, onLaunchMatch, onStopMa
             <div className="p-4 rounded-2xl border border-border bg-card shadow-lg shadow-black/20">
               <h3 className="text-sm font-bold uppercase tracking-widest text-white mb-4 flex items-center">
                 <Users size={14} className="mr-2" />
-                Команда 2
+                {t('Команда 2', 'Team 2')}
               </h3>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-xs text-muted-foreground">Название</label>
+                  <label className="text-xs text-muted-foreground">{t('Название', 'Name')}</label>
                   <input 
                     value={matchConfig.team2.name}
                     onChange={(e) => setMatchConfig({...matchConfig, team2: {...matchConfig.team2, name: e.target.value}})}
@@ -370,7 +378,7 @@ export function MatchGenerator({ serverId, onStartMatch, onLaunchMatch, onStopMa
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs text-muted-foreground">Тег</label>
+                  <label className="text-xs text-muted-foreground">{t('Тег', 'Tag')}</label>
                   <input 
                     value={matchConfig.team2.tag}
                     onChange={(e) => setMatchConfig({...matchConfig, team2: {...matchConfig.team2, tag: e.target.value}})}
@@ -384,18 +392,18 @@ export function MatchGenerator({ serverId, onStartMatch, onLaunchMatch, onStopMa
             <div className="p-4 rounded-2xl border border-border bg-card shadow-lg shadow-black/20">
               <h3 className="text-sm font-bold uppercase tracking-widest text-white mb-4 flex items-center">
                 <Shield size={14} className="mr-2" />
-                Дополнительно
+                {t('Дополнительно', 'Advanced')}
               </h3>
               <div className="grid grid-cols-1 gap-4">
                 <div className="space-y-2">
-                  <label className="text-xs text-muted-foreground">Вето в игре?</label>
+                  <label className="text-xs text-muted-foreground">{t('Вето в игре?', 'In-game veto?')}</label>
                   <select 
                     value={matchConfig.skip_veto ? "true" : "false"}
                     onChange={(e) => setMatchConfig({...matchConfig, skip_veto: e.target.value === "true"})}
                     className="w-full bg-background/50 border border-border rounded-md px-3 py-2 text-sm text-white focus:ring-1 focus:ring-primary outline-none"
                   >
-                    <option value="true">Нет, карты и стороны задаю здесь</option>
-                    <option value="false">Да, вето в игре</option>
+                    <option value="true">{t('Нет, карты и стороны задаю здесь', 'No, I set maps and sides here')}</option>
+                    <option value="false">{t('Да, вето в игре', 'Yes, veto in game')}</option>
                   </select>
                 </div>
               </div>
@@ -406,7 +414,7 @@ export function MatchGenerator({ serverId, onStartMatch, onLaunchMatch, onStopMa
         {/* Output Preview */}
         <div className="flex flex-col h-full bg-card border border-border rounded-2xl shadow-lg shadow-black/20 overflow-hidden">
           <div className="flex items-center justify-between p-3 border-b border-border bg-white/5">
-            <span className="text-xs font-bold text-muted-foreground tracking-widest uppercase">Конфиг матча (JSON)</span>
+            <span className="text-xs font-bold text-muted-foreground tracking-widest uppercase">{t('Конфиг матча (JSON)', 'Match config (JSON)')}</span>
             <div className="flex space-x-2">
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={copyToClipboard}>
                 <Copy size={14} />
@@ -419,7 +427,7 @@ export function MatchGenerator({ serverId, onStartMatch, onLaunchMatch, onStopMa
           <textarea
             value={jsonOutput}
             onChange={(e) => setJsonOutput(e.target.value)}
-            placeholder="// Здесь появится конфиг матча"
+            placeholder={t('// Здесь появится конфиг матча', '// The match config will appear here')}
             className="flex-1 w-full h-full p-4 font-mono text-xs text-primary bg-black/30 outline-none resize-none scrollbar-thin scrollbar-thumb-primary/20"
             spellCheck={false}
           />

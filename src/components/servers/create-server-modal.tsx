@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import type { ManagedConfig, ServerProfile } from '@/lib/db';
+import { useT, tNow } from '@/lib/i18n';
 
 interface CreateServerModalProps {
   open: boolean;
@@ -35,7 +36,7 @@ function emptyForm(servers: ServerProfile[]): Form {
   const { port, tvPort } = freePorts(servers);
   const n = servers.filter((s) => s.managed).length + 1;
   return {
-    name: `Турнирный сервер #${n}`,
+    name: tNow(`Турнирный сервер #${n}`, `Tournament server #${n}`),
     port: String(port),
     tvPort: String(tvPort),
     map: 'de_dust2',
@@ -54,6 +55,7 @@ export function CreateServerModal({ open, onOpenChange, server, servers, onSave 
   const [advanced, setAdvanced] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState('');
+  const { t } = useT();
 
   React.useEffect(() => {
     if (!open) return;
@@ -114,60 +116,60 @@ export function CreateServerModal({ open, onOpenChange, server, servers, onSave 
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <span className="p-1.5 rounded-lg bg-primary/15 text-primary"><Rocket size={16} /></span>
-            {server ? 'Параметры сервера' : 'Создать сервер'}
+            {server ? t('Параметры сервера', 'Server options') : t('Создать сервер', 'Create server')}
           </DialogTitle>
           <p className="text-sm text-muted-foreground">
             {server
-              ? 'Новые параметры применятся при следующем запуске сервера.'
-              : 'Панель сама соберёт конфиг и запустит сервер CS2 на этом ПК. Батники больше не нужны.'}
+              ? t('Новые параметры применятся при следующем запуске сервера.', 'New options take effect the next time the server starts.')
+              : t('Панель сама соберёт конфиг и запустит сервер CS2 на этом ПК. Батники больше не нужны.', 'The panel builds the config and runs the CS2 server on this PC. No batch files needed.')}
           </p>
         </DialogHeader>
 
         <form onSubmit={submit} className="space-y-4 pt-2">
           {error && <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm font-medium text-red-400">{error}</div>}
 
-          <Field label="Название (hostname)">
+          <Field label={t('Название (hostname)', 'Name (hostname)')}>
             <Input required value={form.name} onChange={(e) => set('name', e.target.value)} />
           </Field>
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Порт сервера">
+            <Field label={t('Порт сервера', 'Server port')}>
               <Input required inputMode="numeric" value={form.port} onChange={(e) => set('port', e.target.value)} />
             </Field>
-            <Field label="Порт GOTV">
+            <Field label={t('Порт GOTV', 'GOTV port')}>
               <Input required inputMode="numeric" value={form.tvPort} onChange={(e) => set('tvPort', e.target.value)} />
             </Field>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Карта при запуске">
+            <Field label={t('Карта при запуске', 'Startup map')}>
               <Input required list="create-server-maps" value={form.map} onChange={(e) => set('map', e.target.value)} />
               <datalist id="create-server-maps">{MAPS.map((m) => <option key={m} value={m} />)}</datalist>
             </Field>
-            <Field label="Мест на сервере">
+            <Field label={t('Мест на сервере', 'Max players')}>
               <Input required inputMode="numeric" value={form.maxPlayers} onChange={(e) => set('maxPlayers', e.target.value)} />
             </Field>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label="RCON-пароль">
+            <Field label={t('RCON-пароль', 'RCON password')}>
               <Input
                 type="password"
                 autoComplete="new-password"
-                placeholder={server ? 'не менять' : 'сгенерировать'}
+                placeholder={server ? t('не менять', 'keep current') : t('сгенерировать', 'generate')}
                 value={form.rcon_password}
                 onChange={(e) => set('rcon_password', e.target.value)}
               />
             </Field>
-            <Field label="Пароль для игроков">
-              <Input placeholder="без пароля" value={form.password} onChange={(e) => set('password', e.target.value)} />
+            <Field label={t('Пароль для игроков', 'Player password')}>
+              <Input placeholder={t('без пароля', 'no password')} value={form.password} onChange={(e) => set('password', e.target.value)} />
             </Field>
           </div>
 
           <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/5">
             <div>
-              <div className="text-sm font-medium text-white">Перезапуск при падении</div>
-              <div className="text-xs text-muted-foreground">Если сервер упадёт после минуты работы, панель запустит его снова</div>
+              <div className="text-sm font-medium text-white">{t('Перезапуск при падении', 'Restart on crash')}</div>
+              <div className="text-xs text-muted-foreground">{t('Если сервер упадёт после минуты работы, панель запустит его снова', 'If the server crashes after running for a minute, the panel starts it again')}</div>
             </div>
             <Switch checked={form.autoRestart} onCheckedChange={(v) => set('autoRestart', v)} />
           </div>
@@ -178,14 +180,14 @@ export function CreateServerModal({ open, onOpenChange, server, servers, onSave 
             className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground hover:text-white"
           >
             <ChevronDown size={14} className={cn('transition-transform', advanced && 'rotate-180')} />
-            Дополнительно
+            {t('Дополнительно', 'Advanced')}
           </button>
           {advanced && (
             <div className="grid grid-cols-2 gap-3">
-              <Field label="IP для сервера и RCON">
+              <Field label={t('IP для сервера и RCON', 'Server and RCON IP')}>
                 <Input value={form.bindIp} onChange={(e) => set('bindIp', e.target.value)} />
               </Field>
-              <Field label="Код страны (флаг)">
+              <Field label={t('Код страны (флаг)', 'Country code (flag)')}>
                 <Input maxLength={2} value={form.country_code} onChange={(e) => set('country_code', e.target.value)} />
               </Field>
             </div>
@@ -193,7 +195,7 @@ export function CreateServerModal({ open, onOpenChange, server, servers, onSave 
 
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={() => onOpenChange(false)} className="px-4 py-2.5 rounded-xl text-sm font-semibold text-muted-foreground hover:text-white hover:bg-white/5">
-              Отмена
+              {t('Отмена', 'Cancel')}
             </button>
             <button
               type="submit"
@@ -201,7 +203,7 @@ export function CreateServerModal({ open, onOpenChange, server, servers, onSave 
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-white text-sm font-semibold shadow-lg shadow-primary/20 hover:bg-primary/90 active:scale-[0.98] transition-all disabled:opacity-50"
             >
               {saving && <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />}
-              {server ? 'Сохранить' : 'Создать сервер'}
+              {server ? t('Сохранить', 'Save') : t('Создать сервер', 'Create server')}
             </button>
           </div>
         </form>

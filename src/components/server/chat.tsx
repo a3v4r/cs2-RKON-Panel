@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
 import { api } from '@/lib/api';
+import { useT } from '@/lib/i18n';
 
 interface Template {
   id: number;
@@ -28,6 +29,7 @@ interface ServerChatProps {
 const INTERVALS = [1, 2, 3, 5, 10, 15, 30, 60];
 
 export function ServerChat({ serverId, onBroadcast }: ServerChatProps) {
+  const { t } = useT();
   const [message, setMessage] = useState('');
   const [status, setStatus] = useState('');
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -63,7 +65,7 @@ export function ServerChat({ serverId, onBroadcast }: ServerChatProps) {
 
   const send = (text: string) => {
     if (!text.trim()) return;
-    run(() => onBroadcast(text.trim()), 'Отправлено в чат');
+    run(() => onBroadcast(text.trim()), t('Отправлено в чат', 'Sent to chat'));
   };
 
   const saveTemplate = (e: React.FormEvent) => {
@@ -94,19 +96,19 @@ export function ServerChat({ serverId, onBroadcast }: ServerChatProps) {
           <div className="p-4 md:p-6 rounded-2xl border border-border bg-card shadow-lg shadow-black/20">
             <h3 className="text-lg font-semibold mb-4 flex items-center">
               <MessageSquare size={18} className="mr-2 text-primary" />
-              Сообщение в чат
+              {t('Сообщение в чат', 'Chat message')}
             </h3>
             <div className="space-y-4">
               <textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                placeholder="Сообщение всем игрокам..."
+                placeholder={t('Сообщение всем игрокам...', 'Message to all players...')}
                 maxLength={200}
                 className="w-full h-32 bg-white/5 border border-border rounded-md p-3 text-sm text-white resize-none focus:ring-1 focus:ring-primary outline-none"
               />
               <div className="flex flex-wrap justify-between items-center gap-2">
                 <span className="text-xs text-muted-foreground italic">
-                  {status || <>Отправитель: <span className="text-primary font-bold">Console</span></>}
+                  {status || <>{t('Отправитель:', 'Sender:')} <span className="text-primary font-bold">Console</span></>}
                 </span>
                 <div className="flex gap-2">
                   <Button
@@ -114,7 +116,7 @@ export function ServerChat({ serverId, onBroadcast }: ServerChatProps) {
                     disabled={!message.trim()}
                     onClick={() => { setTemplateForm({ name: '', message }); setAddingTemplate(true); }}
                     className="h-11"
-                    title="Сохранить как шаблон"
+                    title={t('Сохранить как шаблон', 'Save as template')}
                   >
                     <Save size={16} />
                   </Button>
@@ -123,7 +125,7 @@ export function ServerChat({ serverId, onBroadcast }: ServerChatProps) {
                     disabled={!message.trim()}
                     className="bg-primary hover:bg-primary/90 text-primary-foreground h-11 px-6"
                   >
-                    Отправить
+                    {t('Отправить', 'Send')}
                   </Button>
                 </div>
               </div>
@@ -133,15 +135,15 @@ export function ServerChat({ serverId, onBroadcast }: ServerChatProps) {
           <div className="p-4 md:p-6 rounded-2xl border border-border bg-card shadow-lg shadow-black/20">
             <h3 className="text-lg font-semibold mb-1 flex items-center">
               <Clock size={18} className="mr-2 text-primary" />
-              Автосообщения
+              {t('Автосообщения', 'Auto messages')}
             </h3>
             <p className="text-xs text-muted-foreground mb-4">
-              Отправляет сам сервер панели - работают, даже если все браузеры закрыты.
+              {t('Отправляет сам сервер панели - работают, даже если все браузеры закрыты.', 'Sent by the panel server itself - they work even with all browsers closed.')}
             </p>
             <div className="space-y-2">
               {autoMessages.length === 0 && !addingAuto && (
                 <div className="text-sm text-muted-foreground/50 italic py-4 text-center border border-dashed border-border rounded-md">
-                  На этом сервере автосообщений нет.
+                  {t('На этом сервере автосообщений нет.', 'No auto messages on this server.')}
                 </div>
               )}
               {autoMessages.map((m) => (
@@ -152,16 +154,16 @@ export function ServerChat({ serverId, onBroadcast }: ServerChatProps) {
                       await api(`/api/auto-messages/${m.id}`, { method: 'PUT', body: { enabled: checked } });
                       loadAuto();
                     })}
-                    aria-label={m.enabled ? 'Выключить' : 'Включить'}
+                    aria-label={m.enabled ? t('Выключить', 'Turn off') : t('Включить', 'Turn on')}
                   />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-white break-words">{m.message}</p>
-                    <p className="text-xs text-muted-foreground">раз в {m.intervalMinutes} мин{m.enabled ? '' : ' • выключено'}</p>
+                    <p className="text-xs text-muted-foreground">{t(`раз в ${m.intervalMinutes} мин`, `every ${m.intervalMinutes} min`)}{m.enabled ? '' : t(' • выключено', ' • off')}</p>
                   </div>
                   <button
-                    onClick={() => { if (confirm('Удалить это автосообщение?')) run(async () => { await api(`/api/auto-messages/${m.id}`, { method: 'DELETE' }); loadAuto(); }); }}
+                    onClick={() => { if (confirm(t('Удалить это автосообщение?', 'Delete this auto message?'))) run(async () => { await api(`/api/auto-messages/${m.id}`, { method: 'DELETE' }); loadAuto(); }); }}
                     className="p-2 text-muted-foreground hover:text-red-500"
-                    title="Удалить"
+                    title={t('Удалить', 'Delete')}
                   >
                     <Trash2 size={16} />
                   </button>
@@ -174,7 +176,7 @@ export function ServerChat({ serverId, onBroadcast }: ServerChatProps) {
                 <textarea
                   value={autoForm.message}
                   onChange={(e) => setAutoForm({ ...autoForm, message: e.target.value })}
-                  placeholder="Текст сообщения"
+                  placeholder={t('Текст сообщения', 'Message text')}
                   maxLength={200}
                   required
                   className="w-full h-20 bg-black/40 border border-border rounded-md p-2 text-sm text-white resize-none outline-none focus:border-primary"
@@ -184,12 +186,12 @@ export function ServerChat({ serverId, onBroadcast }: ServerChatProps) {
                     value={autoForm.intervalMinutes}
                     onChange={(e) => setAutoForm({ ...autoForm, intervalMinutes: Number(e.target.value) })}
                     className="h-10 flex-1 rounded-md border border-border bg-background/50 px-2 text-sm text-white"
-                    aria-label="Интервал"
+                    aria-label={t('Интервал', 'Interval')}
                   >
-                    {INTERVALS.map((n) => <option key={n} value={n}>раз в {n} мин</option>)}
+                    {INTERVALS.map((n) => <option key={n} value={n}>{t(`раз в ${n} мин`, `every ${n} min`)}</option>)}
                   </select>
-                  <Button type="submit" className="h-10 bg-primary hover:bg-primary/90 text-primary-foreground">Добавить</Button>
-                  <Button type="button" variant="ghost" className="h-10" onClick={() => setAddingAuto(false)}>Отмена</Button>
+                  <Button type="submit" className="h-10 bg-primary hover:bg-primary/90 text-primary-foreground">{t('Добавить', 'Add')}</Button>
+                  <Button type="button" variant="ghost" className="h-10" onClick={() => setAddingAuto(false)}>{t('Отмена', 'Cancel')}</Button>
                 </div>
               </form>
             ) : (
@@ -199,7 +201,7 @@ export function ServerChat({ serverId, onBroadcast }: ServerChatProps) {
                 onClick={() => { setAutoForm({ ...autoForm, message: autoForm.message || message }); setAddingAuto(true); }}
               >
                 <Plus size={14} className="mr-2" />
-                Добавить автосообщение
+                {t('Добавить автосообщение', 'Add auto message')}
               </Button>
             )}
           </div>
@@ -210,9 +212,9 @@ export function ServerChat({ serverId, onBroadcast }: ServerChatProps) {
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold flex items-center">
               <Save size={18} className="mr-2 text-primary" />
-              Шаблоны
+              {t('Шаблоны', 'Templates')}
             </h3>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setAddingTemplate(!addingTemplate)} title="Добавить шаблон">
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setAddingTemplate(!addingTemplate)} title={t('Добавить шаблон', 'Add template')}>
               <Plus size={16} />
             </Button>
           </div>
@@ -222,21 +224,21 @@ export function ServerChat({ serverId, onBroadcast }: ServerChatProps) {
               <input
                 value={templateForm.name}
                 onChange={(e) => setTemplateForm({ ...templateForm, name: e.target.value })}
-                placeholder="Название (необязательно)"
+                placeholder={t('Название (необязательно)', 'Name (optional)')}
                 maxLength={60}
                 className="w-full h-10 bg-black/40 border border-border rounded-md px-2 text-sm text-white outline-none focus:border-primary"
               />
               <textarea
                 value={templateForm.message}
                 onChange={(e) => setTemplateForm({ ...templateForm, message: e.target.value })}
-                placeholder="Текст сообщения"
+                placeholder={t('Текст сообщения', 'Message text')}
                 maxLength={200}
                 required
                 className="w-full h-20 bg-black/40 border border-border rounded-md p-2 text-sm text-white resize-none outline-none focus:border-primary"
               />
               <div className="flex gap-2">
-                <Button type="submit" className="h-10 flex-1 bg-primary hover:bg-primary/90 text-primary-foreground">Сохранить</Button>
-                <Button type="button" variant="ghost" className="h-10" onClick={() => setAddingTemplate(false)}>Отмена</Button>
+                <Button type="submit" className="h-10 flex-1 bg-primary hover:bg-primary/90 text-primary-foreground">{t('Сохранить', 'Save')}</Button>
+                <Button type="button" variant="ghost" className="h-10" onClick={() => setAddingTemplate(false)}>{t('Отмена', 'Cancel')}</Button>
               </div>
             </form>
           )}
@@ -244,23 +246,23 @@ export function ServerChat({ serverId, onBroadcast }: ServerChatProps) {
           <ScrollArea className="h-[400px]">
             <div className="space-y-2 pr-4">
               {templates.length === 0 && (
-                <div className="text-sm text-muted-foreground/50 italic py-4 text-center">Шаблонов пока нет.</div>
+                <div className="text-sm text-muted-foreground/50 italic py-4 text-center">{t('Шаблонов пока нет.', 'No templates yet.')}</div>
               )}
               {templates.map((template) => (
                 <div key={template.id} className="p-3 rounded-lg border border-border bg-white/5 hover:border-primary/30 transition-all group">
                   <div className="flex items-center justify-between mb-1 gap-2">
                     <span className="text-sm font-bold text-white truncate">{template.name}</span>
                     <div className="flex items-center space-x-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => setMessage(template.message)} className="p-2 hover:text-primary" title="Вставить в поле сообщения">
+                      <button onClick={() => setMessage(template.message)} className="p-2 hover:text-primary" title={t('Вставить в поле сообщения', 'Insert into message field')}>
                         <CornerDownLeft size={14} />
                       </button>
-                      <button onClick={() => send(template.message)} className="p-2 hover:text-primary" title="Отправить сразу">
+                      <button onClick={() => send(template.message)} className="p-2 hover:text-primary" title={t('Отправить сразу', 'Send now')}>
                         <Send size={14} />
                       </button>
                       <button
-                        onClick={() => { if (confirm(`Удалить шаблон «${template.name}»?`)) run(async () => { await api(`/api/templates/${template.id}`, { method: 'DELETE' }); loadTemplates(); }); }}
+                        onClick={() => { if (confirm(t(`Удалить шаблон «${template.name}»?`, `Delete template "${template.name}"?`))) run(async () => { await api(`/api/templates/${template.id}`, { method: 'DELETE' }); loadTemplates(); }); }}
                         className="p-2 hover:text-red-500"
-                        title="Удалить"
+                        title={t('Удалить', 'Delete')}
                       >
                         <Trash2 size={14} />
                       </button>

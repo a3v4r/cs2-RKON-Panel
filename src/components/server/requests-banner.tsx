@@ -3,6 +3,7 @@
 import React from 'react';
 import { Radio, Pause, Play, X } from 'lucide-react';
 import { api, BroadcastRequest } from '@/lib/api';
+import { useT } from '@/lib/i18n';
 
 // Short beep + vibration so a judge notices a broadcast request even with the phone in hand.
 function signal() {
@@ -23,6 +24,7 @@ function signal() {
 
 // Pending broadcast requests for the judges, shown above every tab.
 export function RequestsBanner() {
+  const { t } = useT();
   const [pending, setPending] = React.useState<BroadcastRequest[]>([]);
   const [busy, setBusy] = React.useState<number | null>(null);
   const [error, setError] = React.useState('');
@@ -66,8 +68,8 @@ export function RequestsBanner() {
         <div key={r.id} className="flex flex-wrap items-center gap-2">
           <Radio size={16} className="shrink-0 text-red-500 animate-pulse" />
           <div className="flex-1 min-w-[12rem] text-sm">
-            <span className="font-bold">Трансляция</span>{' '}
-            {r.type === 'pause' ? 'просит паузу' : 'готова, просит продолжить матч'} на{' '}
+            <span className="font-bold">{t('Трансляция', 'Broadcast')}</span>{' '}
+            {r.type === 'pause' ? t('просит паузу', 'asks for a pause') : t('готова, просит продолжить матч', 'is ready, asks to resume the match')} {t('на', 'on')}{' '}
             <span className="font-bold">{r.serverName}</span>
             {r.reason && <span className="text-amber-200">: {r.reason}</span>}
           </div>
@@ -76,14 +78,14 @@ export function RequestsBanner() {
             onClick={() => decide(r, 'accept')}
             className="flex h-9 items-center gap-1 rounded-md bg-amber-500 px-3 text-sm font-bold text-black disabled:opacity-50"
           >
-            {r.type === 'pause' ? <><Pause size={14} /> Поставить паузу</> : <><Play size={14} /> Продолжить матч</>}
+            {r.type === 'pause' ? <><Pause size={14} /> {t('Поставить паузу', 'Pause')}</> : <><Play size={14} /> {t('Продолжить матч', 'Resume match')}</>}
           </button>
           <button
             disabled={busy === r.id}
             onClick={() => decide(r, 'reject')}
             className="flex h-9 items-center gap-1 rounded-md border border-border px-3 text-sm disabled:opacity-50"
           >
-            <X size={14} /> Отклонить
+            <X size={14} /> {t('Отклонить', 'Decline')}
           </button>
         </div>
       ))}

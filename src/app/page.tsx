@@ -22,20 +22,23 @@ import { BroadcastView } from '@/components/broadcast/broadcast-view';
 import { RequestsBanner } from '@/components/server/requests-banner';
 import { LiveMatch } from '@/components/server/live-match';
 import { fetchMe, Role } from '@/lib/api';
+import { useT } from '@/lib/i18n';
+import { LanguageMenu } from '@/components/layout/language-menu';
 
 const HISTORY_POINTS = 120; // 10 minutes of 5 s polls
 const ACTIVE_SERVER_KEY = 'cs2panel.activeServer';
 
 const INITIAL_INFO = {
-  name: "Загрузка...",
+  name: "...",
   map: "---",
   players: { online: 0, max: 0, bots: 0 },
   ping: 0,
   status: 'loading' as const,
 };
 
-// Local time of the panel viewer, handy when filling in disputes and pause logs
+// Local time of the panel viewer (as the server clock on the Quatrix dashboard), handy for pause and dispute logs
 function HeaderClock() {
+  const { locale } = useT();
   const [now, setNow] = useState<Date | null>(null);
   React.useEffect(() => {
     setNow(new Date());
@@ -43,18 +46,22 @@ function HeaderClock() {
     return () => clearInterval(timer);
   }, []);
   if (!now) return null;
+  const zone = new Intl.DateTimeFormat(locale, { timeZoneName: 'short' }).formatToParts(now).find((p) => p.type === 'timeZoneName')?.value ?? '';
   return (
-    <div className="flex items-center gap-2 h-10 px-3 rounded-xl bg-white/5 border border-white/10">
+    <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl border border-gray-800 bg-sidebar/50 text-gray-400">
       <Clock size={14} className="text-primary" />
-      <div className="leading-none">
-        <div className="text-xs font-bold text-white tabular-nums">{now.toLocaleTimeString('ru-RU')}</div>
-        <div className="text-[9px] text-muted-foreground mt-0.5">{now.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}</div>
+      <div className="flex flex-col">
+        <span className="text-[10px] font-black leading-none uppercase tracking-widest text-white tabular-nums">
+          {now.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
+        </span>
+        <span className="text-[8px] font-medium leading-none text-gray-500 mt-1 uppercase">{zone}</span>
       </div>
     </div>
   );
 }
 
 export default function Home() {
+  const { t, lang } = useT();
   const [servers, setServers] = useState<ServerProfile[]>([]);
   const [activeServerId, setActiveServerId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<Section>("dashboard");
@@ -125,7 +132,7 @@ export default function Home() {
 
   const handleRconCommand = async (command: string) => {
     const server = servers.find(s => s.id === activeServerId);
-    if (!server) throw new Error("Сервер не выбран");
+    if (!server) throw new Error(t('Сервер не выбран', 'No server selected'));
     return await sendRconCommand(server.id!, command);
   };
 
@@ -147,7 +154,7 @@ export default function Home() {
       await loadServers();
       setEditingServer(null);
     } catch (error) {
-      alert(`Не удалось сохранить сервер: ${(error as Error).message}`);
+      alert(`${t('Не удалось сохранить сервер', 'Could not save the server')}: ${(error as Error).message}`);
     }
   };
 
@@ -168,13 +175,13 @@ export default function Home() {
   };
 
   const handleDeleteServer = async (id: number) => {
-    if (confirm("Удалить этот сервер?")) {
+    if (confirm(t('Удалить этот сервер?', 'Delete this server?'))) {
       try {
         await db_helper.deleteServer(id);
         // loadServers moves the selection to another server if this one was selected
         await loadServers();
       } catch (error) {
-        alert(`Не удалось удалить сервер: ${(error as Error).message}`);
+        alert(`${t('Не удалось удалить сервер', 'Could not delete the server')}: ${(error as Error).message}`);
       }
     }
   };
@@ -221,13 +228,13 @@ export default function Home() {
     const matchid = String(JSON.parse(config).matchid ?? '');
     if (status && String(status.matchid) === matchid) return;
     if (status?.gamestate === 'post_game') {
-      throw new Error(`сервер ещё завершает матч ${status.matchid}: GOTV дописывает демку (до ~2 минут после конца карты). Подождите и нажмите ещё раз.`);
+      throw new Error(t(`сервер ещё завершает матч ${status.matchid}: GOTV дописывает демку (до ~2 минут после конца карты). Подождите и нажмите ещё раз.`, `the server is still finishing match ${status.matchid}: GOTV is writing the demo (up to ~2 minutes after the map ends). Wait and press again.`));
     }
     if (status && status.gamestate !== 'none') {
-      throw new Error(`на сервере уже загружен матч ${status.matchid}. Если он не нужен - сначала остановите его.`);
+      throw new Error(t(`на сервере уже загружен матч ${status.matchid}. Если он не нужен - сначала остановите его.`, `match ${status.matchid} is already loaded on the server. If it is not needed, stop it first.`));
     }
     const reply = output.split('\n').map((line) => line.replace(/[\x00-\x1f]/g, '').trim()).filter(Boolean).join(' ');
-    throw new Error(`сервер не загрузил матч${reply ? `: ${reply}` : ''}`);
+    throw new Error(`${t('сервер не загрузил матч', 'the server did not load the match')}${reply ? `: ${reply}` : ''}`);
   };
 
   if (!me) {
@@ -239,7 +246,6 @@ export default function Home() {
   const isJudge = me.role === 'judge';
 
   const needsServer = SERVER_SECTIONS.includes(activeTab);
-  const online = serverInfo.status === 'loading' ? null : serverInfo.status === 'online';
   const openAdd = () => { setEditingServer(null); setIsModalOpen(true); };
 
   return (
@@ -265,12 +271,12 @@ export default function Home() {
             <div className="w-8 h-8 shrink-0 rounded-lg bg-gradient-to-br from-primary to-blue-700 flex items-center justify-center">
               <Crosshair size={18} className="text-white" />
             </div>
-            <div className="text-sm font-bold text-white truncate">{SECTIONS[activeTab].label}</div>
+            <div className="text-sm font-bold text-white truncate">{SECTIONS[activeTab].label[lang]}</div>
           </div>
           <button
             onClick={() => setSidebarOpen(true)}
             className="p-2 -mr-1 rounded-lg text-muted-foreground hover:text-white"
-            aria-label="Открыть меню"
+            aria-label={t('Открыть меню', 'Open menu')}
           >
             <Menu size={24} />
           </button>
@@ -279,30 +285,35 @@ export default function Home() {
         <RequestsBanner />
 
         <div className="flex-1 flex flex-col overflow-auto">
-          {/* Page header: title on the left, server switch, clock and status on the right */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4 px-3 md:px-6 pt-3 md:pt-6">
+          {/* Page header: title on the left; server, language, clock and status on the right, as in Quatrix */}
+          <header className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4 px-3 md:px-6 pt-3 md:pt-6">
             <div className="hidden md:block min-w-0">
-              <h1 className="text-2xl font-bold text-white tracking-tight">{SECTIONS[activeTab].label}</h1>
-              <p className="text-sm text-muted-foreground mt-1">{SECTIONS[activeTab].hint}</p>
+              <h1 className="text-2xl font-bold text-white tracking-tight">{SECTIONS[activeTab].label[lang]}</h1>
+              <p className="text-gray-400 mt-1 font-medium text-sm">{SECTIONS[activeTab].hint[lang]}</p>
             </div>
-            <div className="flex items-center gap-2 md:gap-3 shrink-0">
+            <div className="flex items-center gap-3 shrink-0">
               {needsServer && servers.length > 0 && (
-                <ServerSwitcher className="flex-1 md:flex-none" servers={servers} activeServerId={activeServerId} online={online} onSelect={selectServer} />
+                <ServerSwitcher className="flex-1 md:flex-none md:w-56" servers={servers} activeServerId={activeServerId} onSelect={selectServer} />
               )}
-              <div className="hidden md:block"><HeaderClock /></div>
+              <LanguageMenu />
+              <HeaderClock />
               {needsServer && servers.length > 0 && (
                 <div className={cn(
-                  'hidden md:flex items-center gap-2 h-10 px-3 rounded-xl border text-[10px] font-bold uppercase tracking-wider shrink-0',
-                  serverInfo.status === 'online' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
-                    : serverInfo.status === 'offline' ? 'text-red-400 bg-red-500/10 border-red-500/20'
-                    : 'text-muted-foreground bg-white/5 border-white/10',
+                  'hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-300',
+                  serverInfo.status === 'online' ? 'bg-green-500/10 border-green-500/20 text-green-500'
+                    : serverInfo.status === 'offline' ? 'bg-red-500/10 border-red-500/20 text-red-500'
+                    : 'bg-white/5 border-gray-800 text-gray-400',
                 )}>
-                  <span className={cn('w-1.5 h-1.5 rounded-full', serverInfo.status === 'online' ? 'bg-emerald-400 animate-pulse' : serverInfo.status === 'offline' ? 'bg-red-400' : 'bg-muted-foreground')} />
-                  {serverInfo.status === 'online' ? 'сервер на связи' : serverInfo.status === 'offline' ? 'нет связи' : 'подключение...'}
+                  <span className={cn('w-1.5 h-1.5 rounded-full', serverInfo.status === 'online' ? 'bg-green-500 animate-pulse' : serverInfo.status === 'offline' ? 'bg-red-500' : 'bg-gray-500')} />
+                  <span className="text-[10px] font-black uppercase tracking-widest leading-none">
+                    {serverInfo.status === 'online' ? t('Сервер на связи', 'Server connected')
+                      : serverInfo.status === 'offline' ? t('Нет связи', 'Disconnected')
+                      : t('Подключение...', 'Connecting...')}
+                  </span>
                 </div>
               )}
             </div>
-          </div>
+          </header>
 
           {activeTab === 'general-settings' && <GeneralSettings />}
           {activeTab === 'servers' && (
@@ -322,9 +333,9 @@ export default function Home() {
           {needsServer && !selectedServer ? (
             <div className="flex-1 flex flex-col items-center justify-center gap-3 p-6 text-center">
               <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center"><Layers size={28} /></div>
-              <div className="text-white font-semibold">Серверов пока нет</div>
-              <div className="text-sm text-muted-foreground max-w-xs">Подключите сервер в разделе «Серверы», и здесь появятся его инструменты.</div>
-              <button onClick={() => setActiveTab('servers')} className="mt-1 px-4 py-2 rounded-xl bg-primary text-white text-sm font-semibold shadow-lg shadow-primary/20">Перейти к серверам</button>
+              <div className="text-white font-semibold">{t('Серверов пока нет', 'No servers yet')}</div>
+              <div className="text-sm text-muted-foreground max-w-xs">{t('Создайте или подключите сервер в разделе «Серверы», и здесь появятся его инструменты.', 'Create or connect a server in the Servers section and its tools will appear here.')}</div>
+              <button onClick={() => setActiveTab('servers')} className="mt-1 px-4 py-2 rounded-xl bg-primary text-white text-sm font-semibold shadow-lg shadow-primary/20">{t('Перейти к серверам', 'Go to servers')}</button>
             </div>
           ) : (
             <>
