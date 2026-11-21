@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { dataDir } from './accounts';
 import { addressFor } from './network';
+import { ingestPlayerLines } from './players';
 import { rconCommand } from './rcon';
 import { eventToken } from './session';
 import { StoredServer } from './store';
@@ -60,9 +61,12 @@ function steam64(id: string) {
 const SAY = /"(.*)<\d+><([^>]*)><([^>]*)>" (say|say_team) "(.*)"\s*$/;
 
 export function ingestLog(serverId: number, body: string) {
+  const lines = body.split(/\r?\n/);
+  // Joins, leaves and kicking banned players (Players page)
+  ingestPlayerLines(serverId, lines);
   const added: ChatMessage[] = [];
   const now = Date.now();
-  for (const line of body.split(/\r?\n/)) {
+  for (const line of lines) {
     const m = SAY.exec(line);
     if (!m) continue;
     added.push({ t: now, name: m[1], steamid: steam64(m[2]), team: m[3], type: m[4] as ChatMessage['type'], text: m[5] });

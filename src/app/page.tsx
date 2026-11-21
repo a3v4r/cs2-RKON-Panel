@@ -8,6 +8,7 @@ import { CreateServerModal } from '@/components/servers/create-server-modal';
 import { ServerDashboard, ServerSample } from '@/components/server/dashboard';
 import { RCONConsole } from '@/components/server/console';
 import { ServerChat } from '@/components/server/chat';
+import { PlayersView } from '@/components/server/players-view';
 import { Menu, Crosshair, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MatchGenerator } from '@/components/server/match-generator';
@@ -336,6 +337,9 @@ export default function Home() {
                 <div className="flex-1 min-h-[420px] p-3 md:p-6">
                   <RCONConsole key={activeServerId} onSendCommand={handleRconCommand} />
                 </div>
+              )}
+              {activeTab === "players" && activeServerId && (
+                <PlayersView key={activeServerId} serverId={activeServerId} />
               )}
               {activeTab === "chat" && activeServerId && (
                 <ServerChat key={activeServerId} serverId={activeServerId} managed={!!selectedServer?.managed} onBroadcast={(msg) => handleRconCommand(`say ${msg}`)} />
