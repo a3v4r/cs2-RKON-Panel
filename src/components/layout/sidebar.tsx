@@ -22,13 +22,14 @@ import { Text, useT } from '@/lib/i18n';
 
 export type Section = 'dashboard' | 'servers' | 'live' | 'console' | 'chat' | 'maps' | 'match' | 'settings' | 'general-settings';
 
-export const SECTIONS: Record<Section, { label: Text; hint: Text; icon: LucideIcon }> = {
+// label: menu item; title: page heading when it differs (as the Quatrix page titles)
+export const SECTIONS: Record<Section, { label: Text; title?: Text; hint: Text; icon: LucideIcon }> = {
   dashboard: { label: { ru: 'Обзор', en: 'Overview' }, hint: { ru: 'Состояние сервера и быстрые действия', en: 'Server status and quick actions' }, icon: LayoutDashboard },
   servers: { label: { ru: 'Серверы', en: 'Servers' }, hint: { ru: 'Все серверы панели: состояние, запуск и настройки', en: 'All panel servers: status, start and settings' }, icon: Layers },
   live: { label: { ru: 'Матч', en: 'Match' }, hint: { ru: 'Счёт, раунды, статистика и откат раунда', en: 'Score, rounds, stats and round restore' }, icon: Activity },
   console: { label: { ru: 'Консоль', en: 'Console' }, hint: { ru: 'RCON-команды на сервер', en: 'RCON commands to the server' }, icon: Terminal },
   chat: { label: { ru: 'Чат', en: 'Chat' }, hint: { ru: 'Сообщения в игровой чат и автосообщения', en: 'In-game chat messages and auto messages' }, icon: MessageSquare },
-  maps: { label: { ru: 'Карты', en: 'Maps' }, hint: { ru: 'Смена карты', en: 'Change the map' }, icon: MapIcon },
+  maps: { label: { ru: 'Карты', en: 'Maps' }, title: { ru: 'Обозреватель карт', en: 'Map Explorer' }, hint: { ru: 'Запускайте карты и контент из Workshop на сервере', en: 'Deploy battlegrounds or workshop content to your node' }, icon: MapIcon },
   match: { label: { ru: 'Запуск матча', en: 'Match setup' }, hint: { ru: 'Конфиг MatchZy и запуск', en: 'MatchZy config and launch' }, icon: Trophy },
   settings: { label: { ru: 'Настройки сервера', en: 'Server settings' }, hint: { ru: 'Подключение и параметры сервера', en: 'Connection and server parameters' }, icon: SlidersHorizontal },
   'general-settings': { label: { ru: 'Настройки панели', en: 'Panel settings' }, hint: { ru: 'Журнал действий и версия панели', en: 'Action log and panel version' }, icon: Settings },

@@ -288,7 +288,7 @@ export default function Home() {
           {/* Page header: title on the left; server, language, clock and status on the right, as in Quatrix */}
           <header className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4 px-3 md:px-6 pt-3 md:pt-6">
             <div className="hidden md:block min-w-0">
-              <h1 className="text-2xl font-bold text-white tracking-tight">{SECTIONS[activeTab].label[lang]}</h1>
+              <h1 className="text-2xl font-bold text-white tracking-tight">{(SECTIONS[activeTab].title ?? SECTIONS[activeTab].label)[lang]}</h1>
               <p className="text-gray-400 mt-1 font-medium text-sm">{SECTIONS[activeTab].hint[lang]}</p>
             </div>
             <div className="flex items-center gap-3 shrink-0">
@@ -362,8 +362,10 @@ export default function Home() {
               )}
               {activeTab === "maps" && (
                 <MapSelector
+                  key={activeServerId}
+                  serverId={activeServerId!}
                   currentMap={serverInfo.map}
-                  onChangeMap={(map) => handleRconCommand(`map ${map}`)}
+                  online={serverInfo.status === 'online'}
                   onCommand={handleRconCommand}
                 />
               )}
