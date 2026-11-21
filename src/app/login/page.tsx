@@ -97,7 +97,7 @@ export default function LoginPage() {
             className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50"
           >
             {loading && <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />}
-            {loading ? 'Вход…' : 'Войти'}
+            {loading ? 'Вход...' : 'Войти'}
           </button>
         </form>
       </div>

@@ -96,6 +96,8 @@ export default function Home() {
           name: server.name,
           status: 'offline'
         });
+        // A dropped server shows up on the charts as a fall to zero
+        setHistory((h) => [...h.slice(-(HISTORY_POINTS - 1)), { t: Date.now(), ping: 0, players: 0 }]);
       }
     };
 
@@ -274,7 +276,7 @@ export default function Home() {
                     : 'text-muted-foreground bg-white/5 border-white/10',
                 )}>
                   <span className={cn('w-1.5 h-1.5 rounded-full', serverInfo.status === 'online' ? 'bg-emerald-400 animate-pulse' : serverInfo.status === 'offline' ? 'bg-red-400' : 'bg-muted-foreground')} />
-                  {serverInfo.status === 'online' ? 'сервер на связи' : serverInfo.status === 'offline' ? 'нет связи' : 'подключение…'}
+                  {serverInfo.status === 'online' ? 'сервер на связи' : serverInfo.status === 'offline' ? 'нет связи' : 'подключение...'}
                 </div>
               )}
               </div>

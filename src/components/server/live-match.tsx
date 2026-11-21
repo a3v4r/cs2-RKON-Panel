@@ -117,9 +117,9 @@ export function LiveMatch({ serverId }: { serverId: number }) {
       {error && <div className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-400">{error}</div>}
 
       {/* Scoreboard */}
-      <section className="rounded-xl border border-border p-4">
+      <section className="rounded-2xl border border-border bg-card p-4 shadow-lg shadow-black/20">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1"><Activity size={14} className="text-primary" /> {data.map ?? '—'}{status ? ` • карта ${status.mapNumber + 1}` : ''}{status && status.round >= 0 ? ` • раунд ${status.round + 1}` : ''}</span>
+          <span className="flex items-center gap-1"><Activity size={14} className="text-primary" /> {data.map ?? '---'}{status ? ` • карта ${status.mapNumber + 1}` : ''}{status && status.round >= 0 ? ` • раунд ${status.round + 1}` : ''}</span>
           <span className={cn(
             'rounded-full px-2 py-0.5 font-bold uppercase',
             status?.paused ? 'bg-amber-500/15 text-amber-400' : status?.state === 'live' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-white/10',
@@ -144,7 +144,7 @@ export function LiveMatch({ serverId }: { serverId: number }) {
 
       {status && !live && (
         <p className="text-xs text-muted-foreground">
-          Статистика игроков появится после первого раунда, если матч запущен из панели (вкладка Match).
+          Статистика игроков появится после первого раунда, если матч запущен из панели (раздел «Запуск матча»).
         </p>
       )}
 
@@ -159,13 +159,13 @@ export function LiveMatch({ serverId }: { serverId: number }) {
 
           <div className="grid gap-4 md:grid-cols-2">
             {live.kills.length > 0 && (
-              <section className="rounded-xl border border-border p-4">
+              <section className="rounded-2xl border border-border bg-card p-4 shadow-lg shadow-black/20">
                 <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold"><Crosshair size={14} className="text-primary" /> Последние убийства</h3>
                 <div className="space-y-1 text-sm">
                   {[...live.kills].reverse().slice(0, 10).map((k, i) => (
                     <div key={i} className="flex items-center gap-2 min-w-0">
                       <span className="w-8 shrink-0 text-xs text-muted-foreground">R{k.round + 1}</span>
-                      <span className={cn('truncate', k.attackerTeam ? TEAM_TEXT[k.attackerTeam] : 'text-muted-foreground')}>{k.attacker ?? '—'}</span>
+                      <span className={cn('truncate', k.attackerTeam ? TEAM_TEXT[k.attackerTeam] : 'text-muted-foreground')}>{k.attacker ?? '---'}</span>
                       <span className="shrink-0 rounded bg-white/5 px-1.5 text-xs text-muted-foreground">{weaponName(k.weapon)}{k.headshot ? ' • HS' : ''}</span>
                       <span className={cn('truncate', k.victimTeam ? TEAM_TEXT[k.victimTeam] : '')}>{k.victim}</span>
                     </div>
@@ -174,7 +174,7 @@ export function LiveMatch({ serverId }: { serverId: number }) {
               </section>
             )}
             {live.maps.length > 0 && (
-              <section className="rounded-xl border border-border p-4">
+              <section className="rounded-2xl border border-border bg-card p-4 shadow-lg shadow-black/20">
                 <h3 className="mb-3 text-sm font-semibold">Карты серии</h3>
                 <div className="space-y-1 text-sm">
                   {live.maps.map((m) => (
@@ -289,7 +289,7 @@ function RoundRestore({ serverId, paused, round, onDone }: { serverId: number; p
   };
 
   return (
-    <section className="rounded-xl border border-border p-4 space-y-3">
+    <section className="rounded-2xl border border-border bg-card p-4 shadow-lg shadow-black/20 space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="flex items-center gap-2 text-sm font-semibold"><History size={14} className="text-primary" /> Откат раунда</h3>
         <div className="flex gap-2">
@@ -342,7 +342,7 @@ function TeamHeader({ name, side, team, align = 'left' }: { name: string; side: 
 function RoundStrip({ rounds }: { rounds: { round: number; winner: 'team1' | 'team2'; side: string; reason: number }[] }) {
   const sorted = [...rounds].sort((a, b) => a.round - b.round);
   return (
-    <section className="rounded-xl border border-border p-4">
+    <section className="rounded-2xl border border-border bg-card p-4 shadow-lg shadow-black/20">
       <h3 className="mb-3 text-sm font-semibold">Раунды</h3>
       <div className="flex flex-wrap gap-1">
         {sorted.map((r) => (

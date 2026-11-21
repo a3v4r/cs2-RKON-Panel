@@ -48,21 +48,7 @@ interface ServerDashboardProps {
   canManage: boolean;
 }
 
-const COMMON_MAPS = [
-  'de_dust2',
-  'de_mirage',
-  'de_inferno',
-  'de_nuke',
-  'de_ancient',
-  'de_anubis',
-  'de_vertigo',
-  'de_train',
-  'de_overpass',
-  'de_cache',
-];
-
 export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate, onAddServer, canManage }: ServerDashboardProps) {
-  const [mapInput, setMapInput] = React.useState('');
   const [system, setSystem] = React.useState<SystemInfo | null>(null);
   const [audit, setAudit] = React.useState<AuditEntry[] | null>(null);
 
@@ -126,7 +112,7 @@ export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         <StatCard
           title="Статус"
-          value={serverInfo.status === 'online' ? 'Онлайн' : serverInfo.status === 'offline' ? 'Нет связи' : '…'}
+          value={serverInfo.status === 'online' ? 'Онлайн' : serverInfo.status === 'offline' ? 'Нет связи' : '...'}
           icon={<Radio size={18} />}
           tone={serverInfo.status === 'online' ? 'emerald' : 'red'}
           description={serverInfo.name}
@@ -134,7 +120,7 @@ export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate
         <StatCard title="Карта" value={serverInfo.map} icon={<MapIcon size={18} />} tone="blue" description="Текущая карта сервера" />
         <StatCard
           title="Игроки"
-          value={`${serverInfo.players.online}/${serverInfo.players.max}`}
+          value={`${serverInfo.players.online} / ${serverInfo.players.max}`}
           icon={<Users size={18} />}
           tone="violet"
           description={`ботов: ${serverInfo.players.bots}`}
@@ -142,8 +128,50 @@ export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate
         <StatCard title="Пинг" value={`${serverInfo.ping} мс`} icon={<Wifi size={18} />} tone="orange" description="Задержка до сервера" />
       </div>
 
+      {/* Charts */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4">
+        <ChartCard
+          title="Пинг"
+          subtitle="до игрового сервера"
+          value={`${history.length ? history[history.length - 1].ping : 0} мс`}
+          icon={<Wifi size={18} />}
+          color="#34d399"
+          tone="emerald"
+          points={history.map((s) => s.ping)}
+        />
+        <ChartCard
+          title="Игроки"
+          subtitle={`мест на сервере: ${serverInfo.players.max}`}
+          value={`${history.length ? history[history.length - 1].players : 0} / ${serverInfo.players.max}`}
+          icon={<Users size={18} />}
+          color="#a78bfa"
+          tone="violet"
+          points={history.map((s) => s.players)}
+          max={serverInfo.players.max || undefined}
+        />
+        <ChartCard
+          title="CPU"
+          subtitle={system ? `ПК панели · ${system.cpuModel}` : 'ПК панели'}
+          value={`${(lastSystem?.cpu ?? 0).toFixed(1)}%`}
+          icon={<Cpu size={18} />}
+          color="#1890ff"
+          tone="blue"
+          points={system?.samples.map((s) => s.cpu) ?? []}
+          max={100}
+        />
+        <ChartCard
+          title="RAM"
+          subtitle={system ? `ПК панели · ${system.memUsedGb} / ${system.memTotalGb} ГБ` : 'ПК панели'}
+          value={`${(lastSystem?.mem ?? 0).toFixed(1)}%`}
+          icon={<MemoryStick size={18} />}
+          color="#f97316"
+          tone="orange"
+          points={system?.samples.map((s) => s.mem) ?? []}
+          max={100}
+        />
+      </div>
+
       {/* Quick Actions */}
-      <div className="grid gap-4 md:grid-cols-2">
         <div className="p-4 md:p-6 rounded-2xl border border-border bg-card shadow-lg shadow-black/20 flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-bold text-white flex items-center">
@@ -158,7 +186,7 @@ export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate
             </button>}
           </div>
 
-          <div className="grid grid-cols-2 gap-2 flex-1">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 flex-1">
             <ActionButton label="Старт матча" icon={<Play size={16} />} tone="emerald" onClick={() => onSendCommand('css_start')} />
             <ActionButton label="Рестарт матча" icon={<RotateCcw size={16} />} tone="slate" onClick={() => onSendCommand('mp_restartgame 1')} />
             <ActionButton label="Пауза" icon={<Pause size={16} />} tone="amber" onClick={() => onSendCommand('css_forcepause')} />
@@ -212,79 +240,6 @@ export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate
           )}
         </div>
 
-        <div className="p-4 md:p-6 rounded-2xl border border-border bg-card shadow-lg shadow-black/20">
-          <h3 className="text-sm font-bold text-white mb-4 flex items-center">
-            <MapIcon size={16} className="mr-2 text-primary" />
-            Смена карты
-          </h3>
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              placeholder="Карта (например, de_dust2)..."
-              value={mapInput}
-              onChange={(e) => setMapInput(e.target.value)}
-              list="map-suggestions"
-              className="flex-1 min-w-0 bg-background/50 border border-input rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
-            />
-            <datalist id="map-suggestions">
-              {COMMON_MAPS.map(map => (
-                <option key={map} value={map} />
-              ))}
-            </datalist>
-            <button
-              onClick={() => { if(mapInput) onSendCommand(`map ${mapInput}`); }}
-              className="bg-primary text-primary-foreground px-4 py-2.5 rounded-xl font-semibold text-sm shadow-lg shadow-primary/20 hover:bg-primary/90 active:scale-[0.98] transition-all disabled:opacity-50"
-              disabled={!mapInput}
-            >
-              Сменить
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Charts */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4">
-        <ChartCard
-          title="Пинг"
-          subtitle="до игрового сервера"
-          value={history.length ? `${history[history.length - 1].ping} мс` : '—'}
-          icon={<Wifi size={18} />}
-          color="#34d399"
-          tone="emerald"
-          points={history.map((s) => s.ping)}
-        />
-        <ChartCard
-          title="Игроки"
-          subtitle={`из ${serverInfo.players.max || '—'} мест`}
-          value={history.length ? String(history[history.length - 1].players) : '—'}
-          icon={<Users size={18} />}
-          color="#a78bfa"
-          tone="violet"
-          points={history.map((s) => s.players)}
-          max={serverInfo.players.max || undefined}
-        />
-        <ChartCard
-          title="CPU"
-          subtitle={system ? `ПК панели · ${system.cpuModel}` : 'ПК панели'}
-          value={lastSystem ? `${lastSystem.cpu.toFixed(1)}%` : '—'}
-          icon={<Cpu size={18} />}
-          color="#1890ff"
-          tone="blue"
-          points={system?.samples.map((s) => s.cpu) ?? []}
-          max={100}
-        />
-        <ChartCard
-          title="RAM"
-          subtitle={system ? `ПК панели · ${system.memUsedGb} / ${system.memTotalGb} ГБ` : 'ПК панели'}
-          value={lastSystem ? `${lastSystem.mem.toFixed(1)}%` : '—'}
-          icon={<MemoryStick size={18} />}
-          color="#f97316"
-          tone="orange"
-          points={system?.samples.map((s) => s.mem) ?? []}
-          max={100}
-        />
-      </div>
-
       {/* Shortcuts */}
       <div>
         <div className="px-1 pb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Быстрый переход</div>
@@ -316,7 +271,7 @@ export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate
           ) : (
             <div className="flex flex-col items-center justify-center gap-3 py-10 text-muted-foreground">
               <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center"><ClipboardList size={22} /></div>
-              <span className="text-sm">{audit ? 'Действий пока не было' : 'Загрузка…'}</span>
+              <span className="text-sm">{audit ? 'Действий пока не было' : 'Загрузка...'}</span>
             </div>
           )}
           <button
