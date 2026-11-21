@@ -53,6 +53,7 @@ export function parseManaged(raw: any, port: number, selfId?: number): ManagedCo
     priority,
     extraArgs: extraArgs || undefined,
     extraCfg: extraCfg.trim() || undefined,
+    hideConsole: raw?.hideConsole !== false,
   };
 }
 

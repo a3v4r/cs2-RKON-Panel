@@ -37,6 +37,7 @@ interface Form {
   autoRestart: boolean;
   priority: Priority;
   extraCfg: string;
+  hideConsole: boolean;
 }
 
 const MAPS = ['de_dust2', 'de_mirage', 'de_inferno', 'de_nuke', 'de_ancient', 'de_anubis', 'de_vertigo', 'de_train', 'de_overpass'];
@@ -91,6 +92,7 @@ function newForm(servers: ServerProfile[], start?: number): Form {
     autoRestart: true,
     priority: 'Normal',
     extraCfg: '',
+    hideConsole: true,
   };
 }
 
@@ -118,6 +120,7 @@ function editForm(server: ServerProfile): Form {
     autoRestart: m.autoRestart,
     priority: m.priority ?? 'Normal',
     extraCfg: m.extraCfg ?? '',
+    hideConsole: m.hideConsole !== false,
   };
 }
 
@@ -172,6 +175,7 @@ export function CreateServerWizard({ server, servers, onDone }: CreateServerWiza
           priority: form.priority,
           extraArgs: form.extraArgs.trim() || undefined,
           extraCfg: form.extraCfg.trim() || undefined,
+          hideConsole: form.hideConsole,
         },
       };
       const saved = editing ? await db_helper.updateServer(server!.id!, body) : await db_helper.addServer(body);
@@ -329,6 +333,7 @@ export function CreateServerWizard({ server, servers, onDone }: CreateServerWiza
                   <Toggle on={form.tv} onClick={() => set('tv', !form.tv)} title={t('Включить GOTV', 'Enable SourceTV')} />
                   <Toggle on={form.vac} onClick={() => set('vac', !form.vac)} title={t('Включить VAC (Valve Anti-Cheat)', 'Enable VAC (Valve Anti-Cheat)')} />
                   <Toggle on={form.lan} onClick={() => set('lan', !form.lan)} title={t('Режим LAN', 'LAN Mode')} desc={t('Только локальная сеть (sv_lan 1)', 'Local network only (sv_lan 1)')} />
+                  <Toggle on={form.hideConsole} onClick={() => set('hideConsole', !form.hideConsole)} title={t('Скрыть окно консоли', 'Hide console window')} desc={t('Вывод пишется в csgo\\console_server<ID>.log', 'Output goes to csgo\\console_server<ID>.log')} />
                 </div>
 
                 <div className="pt-6 border-t border-gray-800">

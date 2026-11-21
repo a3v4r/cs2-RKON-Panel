@@ -129,7 +129,7 @@ function onExit(id: number, proc: Proc, code: number | null) {
     procs.set(id, {
       state: 'crashed',
       message: uptime < MIN_UPTIME_FOR_RESTART_MS
-        ? `Сервер упал сразу после запуска${codeText}. Посмотрите окно консоли сервера и логи addons\\counterstrikesharp\\logs.`
+        ? `Сервер упал сразу после запуска${codeText}. ${server?.managed?.hideConsole === false ? 'Посмотрите окно консоли сервера' : `Посмотрите game\\csgo\\console_server${id}.log`} и логи addons\\counterstrikesharp\\logs.`
           // 0xC0000005 right after an update of CS2 is almost always Metamod or CounterStrikeSharp built for the old version
           + (code !== null && ACCESS_VIOLATION.includes(code) ? ' Если CS2 недавно обновился, скорее всего Metamod или CounterStrikeSharp ещё не поддерживают новую версию: обновите их.' : '')
         : `Сервер остановился${codeText}`,
@@ -155,8 +155,12 @@ export async function startServer(id: number) {
   await writeCfg(paths.csgo, server);
 
   const m = server.managed;
+  const hidden = m.hideConsole !== false;
   const args = [
     '-dedicated', '-console', '-usercon',
+    // Without a window the console text goes to a file, to see why a server fell.
+    // The suffix gives each server its own game\csgo\console_server<id>.log instead of one shared console.log.
+    ...(hidden ? ['-condebug', '+con_logfile_suffix', `_server${id}`] : []),
     // Without -ip CS2 binds RCON (TCP) to one interface of its choice, sometimes a VPN adapter
     '-ip', m.bindIp || '0.0.0.0',
     '-port', String(server.port),
@@ -171,6 +175,7 @@ export async function startServer(id: number) {
     ...(m.extraArgs ? [m.extraArgs] : []),
   ];
   const pid = await launch(paths.exe, args, m.priority);
+  if (hidden) hideWindow(pid);
   const proc: Proc = { state: 'running', pid, startedAt: Date.now() };
   procs.set(id, proc);
   waitForExit(id, proc);
@@ -178,6 +183,23 @@ export async function startServer(id: number) {
 }
 
 const psQuote = (s: string) => `'${s.replace(/'/g, "''")}'`;
+
+// cs2.exe opens its console window itself and ignores Start-Process -WindowStyle Hidden, so the window
+// is hidden once it appears (it may flash for a moment). The server keeps running as usual.
+function hideWindow(pid: number) {
+  const script = [
+    `Add-Type -Name W -Namespace Matchdesk -MemberDefinition '[DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int cmd);'`,
+    '$deadline = (Get-Date).AddSeconds(90)',
+    'while ((Get-Date) -lt $deadline) {',
+    `  $p = Get-Process -Id ${pid} -ErrorAction SilentlyContinue`,
+    '  if (-not $p) { break }',
+    '  if ($p.MainWindowHandle -ne 0) { [Matchdesk.W]::ShowWindow($p.MainWindowHandle, 0) | Out-Null; break }',
+    '  Start-Sleep -Milliseconds 100',
+    '}',
+  ].join('\n');
+  const encoded = Buffer.from(script, 'utf16le').toString('base64');
+  execFile('powershell', ['-NoProfile', '-NonInteractive', '-EncodedCommand', encoded], { windowsHide: true, timeout: 120_000 }, () => {});
+}
 
 // cs2.exe is started through PowerShell's Start-Process (as the kit did), so it is not a child of the panel:
 // stopping or restarting the panel, even with its whole process tree, leaves running matches alone.

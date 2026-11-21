@@ -33,6 +33,7 @@ export interface ManagedConfig {
   priority?: Priority; // Windows process priority of cs2.exe
   extraArgs?: string; // more launch arguments
   extraCfg?: string; // more lines for the server cfg
+  hideConsole?: boolean; // start cs2.exe without a console window (default: hidden)
 }
 
 export const GAME_MODES = ['competitive', 'wingman', 'casual', 'deathmatch', 'armsrace', 'demolition', 'training', 'custom'] as const;
