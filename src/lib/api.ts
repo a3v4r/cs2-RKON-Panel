@@ -29,7 +29,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   broadcast: 'Трансляция',
 };
 
-export const fetchMe = () => api<{ role: Role }>('/api/me');
+export const fetchMe = () => api<{ role: Role; name?: string }>('/api/me');
 
 export interface BroadcastRequest {
   id: number;

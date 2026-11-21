@@ -5,6 +5,7 @@ import {
   Settings,
   Archive,
   LineChart,
+  UserCog,
   Terminal,
   LayoutDashboard,
   Map as MapIcon,
@@ -22,7 +23,7 @@ import { cn } from '@/lib/utils';
 import { api, Role } from '@/lib/api';
 import { Text, useT } from '@/lib/i18n';
 
-export type Section = 'dashboard' | 'servers' | 'live' | 'console' | 'chat' | 'maps' | 'match' | 'settings' | 'analytics' | 'backups' | 'general-settings';
+export type Section = 'dashboard' | 'servers' | 'live' | 'console' | 'chat' | 'maps' | 'match' | 'settings' | 'analytics' | 'users' | 'backups' | 'general-settings';
 
 // label: menu item; title: page heading when it differs (as the Quatrix page titles)
 export const SECTIONS: Record<Section, { label: Text; title?: Text; hint: Text; icon: LucideIcon }> = {
@@ -35,6 +36,7 @@ export const SECTIONS: Record<Section, { label: Text; title?: Text; hint: Text; 
   match: { label: { ru: 'Запуск матча', en: 'Match setup' }, hint: { ru: 'Конфиг MatchZy и запуск', en: 'MatchZy config and launch' }, icon: Trophy },
   settings: { label: { ru: 'Настройки сервера', en: 'Server settings' }, hint: { ru: 'Подключение и параметры сервера', en: 'Connection and server parameters' }, icon: SlidersHorizontal },
   analytics: { label: { ru: 'Аналитика', en: 'Analytics' }, title: { ru: 'Аналитика системы', en: 'System Analytics' }, hint: { ru: 'Нагрузка ПК панели и онлайн игроков за сутки, неделю и месяц', en: 'Visual insights into historical system performance and resource utilization' }, icon: LineChart },
+  users: { label: { ru: 'Пользователи', en: 'Users' }, title: { ru: 'Пользователи', en: 'User Management' }, hint: { ru: 'Личные аккаунты судей и трансляции', en: 'List and manage system users and their permissions.' }, icon: UserCog },
   backups: { label: { ru: 'Бэкапы', en: 'Backups' }, title: { ru: 'Управление бэкапами', en: 'Backup Management' }, hint: { ru: 'Резервные копии данных панели и конфигов CS2 с восстановлением', en: 'Create and manage backups of the panel data and CS2 configurations.' }, icon: Archive },
   'general-settings': { label: { ru: 'Настройки', en: 'Settings' }, hint: { ru: 'Настройки панели, сервера CS2 и журнал действий', en: 'Configure your panel settings and security preferences' }, icon: Settings },
 };
@@ -49,13 +51,13 @@ export const SERVER_SECTIONS: Section[] = ['dashboard', 'live', 'console', 'chat
 
 const NAV: Section[] = ['dashboard', 'servers', 'live', 'console', 'chat', 'maps', 'match'];
 // The panel's own pages, in the Quatrix order
-const PANEL_NAV: Section[] = ['analytics', 'backups', 'general-settings'];
+const PANEL_NAV: Section[] = ['analytics', 'users', 'backups', 'general-settings'];
 
 interface SidebarProps {
   activeSection: Section;
   onSelectSection: (section: Section) => void;
   onClose: () => void;
-  user: { role: Role };
+  user: { role: Role; name?: string };
 }
 
 export function Sidebar({ activeSection, onSelectSection, onClose, user }: SidebarProps) {
@@ -102,10 +104,10 @@ export function Sidebar({ activeSection, onSelectSection, onClose, user }: Sideb
       <div className="p-4 border-t border-border">
         <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5">
           <div className="w-10 h-10 shrink-0 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center font-bold text-primary">
-            {role.slice(0, 1).toUpperCase()}
+            {(user.name ?? role).slice(0, 1).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-semibold text-white truncate">{role}</div>
+            <div className="text-sm font-semibold text-white truncate">{user.name ?? role}</div>
             <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-500">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               {t('в сети', 'online')}

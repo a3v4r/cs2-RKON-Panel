@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { Role, accountPassword, dataDir, roleByLogin } from './accounts';
+import { StoredUser, checkLogin, findUser } from './users';
 
 // Session cookie: base64url(JSON payload) + "." + HMAC. The payload carries a fingerprint of the account's
 // current password, so changing a password in settings.ini ends that account's sessions.
@@ -10,6 +11,8 @@ const SESSION_DAYS = 30;
 
 export interface SessionUser {
   role: Role;
+  // Personal account (Users page); absent for the shared kit accounts judge / broadcast
+  name?: string;
 }
 
 let cachedSecret: Buffer | undefined;
@@ -35,10 +38,11 @@ export const eventToken = (serverId: number) => hmac('events:' + serverId);
 // No judge password = development: everyone is a judge without logging in.
 export const authDisabled = () => !accountPassword('judge');
 
-function createSession(role: Role): string {
+function createSession(role: Role, user?: StoredUser): string {
   const payload = Buffer.from(JSON.stringify({
     r: role,
-    f: fingerprint(accountPassword(role)),
+    u: user?.username,
+    f: fingerprint(user ? user.hash : accountPassword(role)),
     exp: Date.now() + SESSION_DAYS * 24 * 3600 * 1000,
   })).toString('base64url');
   return `${payload}.${hmac(payload)}`;
@@ -51,19 +55,26 @@ export function resolveSession(token: string | undefined): SessionUser | null {
   if (!payload || !sig || sig.length !== 64) return null;
   if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(hmac(payload)))) return null;
 
-  let data: { r: Role; f: string; exp: number };
+  let data: { r: Role; u?: string; f: string; exp: number };
   try {
     data = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
   } catch {
     return null;
   }
   if (Date.now() > data.exp || (data.r !== 'judge' && data.r !== 'broadcast')) return null;
+  if (data.u) {
+    // A personal account: still there and with the same password (the role is taken as it is now)
+    const user = findUser(data.u);
+    return user && data.f === fingerprint(user.hash) ? { role: user.role, name: user.username } : null;
+  }
   const password = accountPassword(data.r);
   return password && data.f === fingerprint(password) ? { role: data.r } : null;
 }
 
 // Checks a login; returns the session token or null.
 export function login(username: string, password: string): string | null {
+  const user = checkLogin(username, password);
+  if (user) return createSession(user.role, user);
   const role = roleByLogin(username);
   if (!role) return null;
   const expected = accountPassword(role);

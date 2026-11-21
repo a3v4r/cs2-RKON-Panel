@@ -20,7 +20,8 @@ const ROLE_NAMES: Record<Role, string> = { judge: 'судья', broadcast: 'тр
 
 // Who did what, for disputes after the match (data/audit.log, one line per action).
 export function audit(user: SessionUser, action: string) {
-  const line = `${new Date().toISOString()}\t${ROLE_NAMES[user.role]}\t${action.replace(/\s+/g, ' ')}\n`;
+  // A personal account is logged by its name, the shared ones by their role
+  const line = `${new Date().toISOString()}\t${user.name ?? ROLE_NAMES[user.role]}\t${action.replace(/\s+/g, ' ')}\n`;
   try {
     fs.mkdirSync(dataDir(), { recursive: true });
     fs.appendFileSync(path.join(dataDir(), 'audit.log'), line);

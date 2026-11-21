@@ -14,6 +14,7 @@ import { MatchGenerator } from '@/components/server/match-generator';
 import { GeneralSettings } from '@/components/settings/general-settings';
 import { BackupsView } from '@/components/settings/backups-view';
 import { AnalyticsView } from '@/components/settings/analytics-view';
+import { UsersView } from '@/components/settings/users-view';
 import { db_helper, ServerProfile } from '@/lib/db';
 import { fetchServerInfo } from '@/lib/a2s';
 import { sendRconCommand } from '@/lib/rcon';
@@ -74,7 +75,7 @@ export default function Home() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editingManaged, setEditingManaged] = useState<ServerProfile | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [me, setMe] = useState<{ role: Role } | null>(null);
+  const [me, setMe] = useState<{ role: Role; name?: string } | null>(null);
   // Ping and player count of the selected server over the last minutes, for the overview charts
   const [history, setHistory] = useState<ServerSample[]>([]);
 
@@ -320,6 +321,7 @@ export default function Home() {
           {activeTab === 'general-settings' && <GeneralSettings />}
           {activeTab === 'backups' && <BackupsView />}
           {activeTab === 'analytics' && <AnalyticsView />}
+          {activeTab === 'users' && <UsersView />}
           {activeTab === 'servers' && (
             <ServersView
               servers={servers}
