@@ -12,6 +12,8 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_PANEL_VERSION: version,
   },
+  // No Next.js "N" dev tools button in the corner during npm run dev
+  devIndicators: false,
 };
 
 export default nextConfig;
