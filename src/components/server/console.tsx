@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Terminal as TerminalIcon, MoveRight, History, Trash2, Copy, Check, Play, RotateCcw, Pause, PlayCircle } from 'lucide-react';
+import { Terminal as TerminalIcon, ChevronRight, History, Trash2, Copy, Check, Play, RotateCcw, Pause, PlayCircle, ArrowDown, Send, Zap, ListChecks } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { copyText } from '@/lib/clipboard';
 import { useT } from '@/lib/i18n';
@@ -62,10 +62,8 @@ interface RCONConsoleProps {
   onSendCommand: (command: string) => Promise<string>;
 }
 
-// Quatrix Button (size md) with the className="py-3.5" the console action row gives it
-const actionBtn = 'flex items-center justify-center transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap px-5 py-3.5 text-sm rounded-xl font-bold h-[34px]';
 // Quatrix IconButton, variant ghost, size sm
-const headerBtn = 'flex items-center justify-center transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed group p-1 rounded-lg w-7 h-7 text-gray-400 hover:text-white hover:bg-white/5';
+const headerBtn = 'flex items-center justify-center transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed group p-1.5 rounded-lg w-8 h-8 text-gray-400 hover:text-white hover:bg-white/5';
 
 const newId = () => Math.random().toString(36).slice(2, 11);
 const now = () => new Date().toLocaleTimeString('ru-RU'); // 24-hour HH:MM:SS in both languages
@@ -75,7 +73,6 @@ export function RCONConsole({ onSendCommand }: RCONConsoleProps) {
   const [input, setInput] = useState('');
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [history, setHistory] = useState<string[]>(loadHistory);
-  const [showHistory, setShowHistory] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [isAutoScroll, setIsAutoScroll] = useState(true);
@@ -197,66 +194,50 @@ export function RCONConsole({ onSendCommand }: RCONConsoleProps) {
       : type === 'error' ? <span className="text-red-400 mr-2">ERROR:</span>
       : null;
 
+  // A command from the lists goes into the input; the judge checks it and presses Enter
+  const insert = (command: string) => {
+    setCommand(command);
+    setHistoryIndex(-1);
+    inputRef.current?.focus();
+  };
+
+  const quickActions = [
+    { command: 'css_start', label: t('Старт матча', 'Start match'), icon: <Play size={18} />, className: 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-900/30 border-transparent' },
+    { command: 'mp_restartgame 1', label: t('Рестарт', 'Restart'), icon: <RotateCcw size={18} className={busy ? 'animate-spin' : ''} />, className: 'bg-white/5 hover:bg-white/10 border-gray-800' },
+    { command: 'css_forcepause', label: t('Пауза', 'Pause'), icon: <Pause size={18} />, className: 'bg-amber-500 hover:bg-amber-400 !text-black shadow-amber-900/30 border-transparent' },
+    { command: 'css_forceunpause', label: t('Снять паузу', 'Unpause'), icon: <PlayCircle size={18} />, className: 'bg-primary hover:bg-primary/90 shadow-primary/20 border-transparent' },
+  ];
+
   return (
-    <div className="flex flex-col h-full gap-6">
-      {/* Console Window */}
-      <div className="flex-1 min-h-[360px] flex flex-col bg-[#0d1421] border border-gray-800 rounded-xl overflow-hidden shadow-2xl relative">
-        <div className="px-4 py-3 border-b border-gray-800 flex items-center justify-between gap-3 bg-card">
-          <div className="flex items-center gap-2 min-w-0">
-            <TerminalIcon className="text-primary w-4 h-4 shrink-0" />
-            <span className="text-sm font-semibold text-slate-200 truncate">
-              {t('Живая консоль сервера', 'Server Live Console')}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
+    <div className="grid gap-4 md:gap-6 xl:grid-cols-3 items-start animate-in fade-in slide-in-from-bottom-4 duration-700">
+      {/* Console window, a card as on the Match page */}
+      <section className={cn(card, 'xl:col-span-2 flex flex-col overflow-hidden h-[65dvh] xl:h-[calc(100dvh-10rem)] min-h-[420px] min-w-0')}>
+        <div className="p-4 sm:px-6 border-b border-gray-800/60 flex items-center justify-between gap-3">
+          <CardHeader icon={<TerminalIcon size={18} />} title={t('Живая консоль сервера', 'Server Live Console')} subtitle={t('команды RCON и ответы сервера', 'RCON commands and server replies')} />
+          <div className="flex items-center gap-1 shrink-0">
             {!isAutoScroll && (
               <button
                 onClick={() => setIsAutoScroll(true)}
-                className="hidden sm:block text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded border border-primary/30 hover:bg-primary/30 transition-all animate-pulse"
+                className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 mr-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-all animate-pulse"
               >
-                {t('Автопрокрутка на паузе - нажмите, чтобы догнать', 'Auto-scroll Paused - Click to catch up')}
+                <ArrowDown size={11} /> {t('К новым строкам', 'Catch up')}
               </button>
             )}
             <button onClick={() => setLogs([])} className={headerBtn} title={t('Очистить', 'Clear')} aria-label={t('Очистить', 'Clear')}>
-              <Trash2 size={14} />
-            </button>
-            <button
-              onClick={() => setShowHistory(!showHistory)}
-              className={cn(headerBtn, showHistory && 'text-primary hover:text-primary')}
-              title={t('История команд', 'Command history')}
-              aria-label={t('История команд', 'Command history')}
-            >
-              <History size={14} />
+              <Trash2 size={16} />
             </button>
           </div>
         </div>
 
-        {showHistory && (
-          <div className="max-h-48 overflow-y-auto border-b border-gray-800 bg-black/30 p-2 space-y-1">
-            {history.length === 0 && (
-              <div className="px-2 py-1 text-xs text-slate-500 font-mono">{t('Команд пока не было', 'No commands yet')}</div>
-            )}
-            {[...history].reverse().map((cmd) => (
-              <button
-                key={cmd}
-                onClick={() => { setCommand(cmd); setShowHistory(false); inputRef.current?.focus(); }}
-                className="block w-full truncate rounded-lg px-2 py-1.5 text-left font-mono text-xs text-slate-300 hover:bg-white/5 hover:text-primary transition-colors"
-              >
-                {cmd}
-              </button>
-            ))}
-          </div>
-        )}
-
         <div
           ref={consoleRef}
           onScroll={handleScroll}
-          className="flex-1 overflow-y-auto p-5 font-mono text-sm custom-scrollbar bg-black/20"
+          className="flex-1 overflow-y-auto p-3 sm:p-6 font-mono text-[13px] leading-relaxed custom-scrollbar bg-black/40"
         >
           <div className="space-y-1">
             {logs.length === 0 && (
               <div className="flex gap-3">
-                <span className="text-slate-500 shrink-0 select-none">[{openedAt}]</span>
+                <span className="hidden sm:inline text-slate-500 shrink-0 select-none">[{openedAt}]</span>
                 <p className="break-all">
                   <span className="text-blue-400 mr-2">INFO:</span>
                   <span className="whitespace-pre-wrap">
@@ -267,10 +248,10 @@ export function RCONConsole({ onSendCommand }: RCONConsoleProps) {
             )}
             {logs.map((log) => (
               <div key={log.id} className="group relative flex gap-3 pr-6">
-                <span className="text-slate-500 shrink-0 select-none">[{log.timestamp}]</span>
+                <span className="hidden sm:inline text-slate-500 shrink-0 select-none">[{log.timestamp}]</span>
                 <p className="break-all min-w-0">
                   {typeLabel(log.type)}
-                  <span className={cn('whitespace-pre-wrap', log.type === 'response' && 'text-slate-300')}>
+                  <span className={cn('whitespace-pre-wrap', log.type === 'response' && 'text-slate-300', log.type === 'command' && 'text-white')}>
                     {log.type === 'command' ? `> ${log.content}` : log.content}
                   </span>
                 </p>
@@ -287,83 +268,122 @@ export function RCONConsole({ onSendCommand }: RCONConsoleProps) {
           </div>
         </div>
 
-        {/* Command Input */}
-        <form onSubmit={handleSend} className="p-4 border-t border-gray-800 flex items-center gap-4 bg-card">
-          <div className="flex-1 min-w-0 flex items-center gap-3 text-slate-400 relative group">
-            <MoveRight className="text-primary w-5 h-5 shrink-0" />
-            <div className="relative flex-1 min-w-0 flex items-center">
-              {/* Ghost Suggestion */}
-              {input && suggestions.length > 0 && (
-                <div className="absolute left-0 top-0 text-sm font-mono p-0 pointer-events-none text-slate-600 whitespace-pre overflow-hidden max-w-full">
-                  <span className="opacity-0">{input}</span>
-                  {suggestions[0].slice(input.length)}
-                </div>
-              )}
-              <input
-                ref={inputRef}
-                className="w-full bg-transparent border-none focus:ring-0 text-sm font-mono placeholder:text-slate-600 p-0 outline-none text-white relative z-10"
-                placeholder={t('Введите команду консоли...', 'Type console command...')}
-                type="text"
-                autoComplete="off"
-                spellCheck={false}
-                value={input}
-                onChange={(e) => { setCommand(e.target.value); setHistoryIndex(-1); }}
-                onKeyDown={handleKeyDown}
-                autoFocus
-              />
-            </div>
-            <div className="hidden md:group-focus-within:block shrink-0 text-[10px] text-slate-500 font-mono animate-pulse">
-              {t('Нажмите [Tab] или [→] для подстановки', 'Press [Tab] or [→] to complete')}
-            </div>
+        {/* Command input, the Quatrix input field with the send button next to it */}
+        <form onSubmit={handleSend} className="p-3 sm:p-4 border-t border-gray-800/60 flex items-center gap-2 sm:gap-3">
+          <div className="relative flex-1 min-w-0 group">
+            <ChevronRight className="absolute left-3 top-1/2 -translate-y-1/2 text-primary w-4 h-4 pointer-events-none" />
+            {/* Ghost suggestion */}
+            {input && suggestions.length > 0 && (
+              <div className="absolute left-9 right-3 top-1/2 -translate-y-1/2 text-sm font-mono pointer-events-none text-slate-600 whitespace-pre overflow-hidden">
+                <span className="opacity-0">{input}</span>
+                {suggestions[0].slice(input.length)}
+              </div>
+            )}
+            <input
+              ref={inputRef}
+              className="w-full h-11 bg-background/50 border border-gray-800 rounded-xl pl-9 pr-3 text-sm font-mono text-white placeholder:text-slate-600 outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+              placeholder={t('Введите команду консоли...', 'Type console command...')}
+              type="text"
+              autoComplete="off"
+              spellCheck={false}
+              value={input}
+              onChange={(e) => { setCommand(e.target.value); setHistoryIndex(-1); }}
+              onKeyDown={handleKeyDown}
+              autoFocus
+            />
           </div>
           <button
             type="submit"
-            className="bg-primary hover:bg-primary/90 text-white font-bold text-[10px] tracking-widest px-6 py-2 rounded transition-all shadow-lg shadow-primary/20 shrink-0"
+            className="h-11 inline-flex items-center justify-center gap-2 px-4 sm:px-6 rounded-xl bg-primary hover:bg-blue-600 text-white text-sm font-bold shadow-lg shadow-blue-500/20 active:scale-95 transition-all shrink-0"
+            aria-label={t('Отправить', 'Send')}
           >
-            {t('ОТПРАВИТЬ', 'SEND')}
+            <Send size={16} /> <span className="hidden sm:inline">{t('Отправить', 'Send')}</span>
           </button>
         </form>
-      </div>
+        <p className="hidden md:block px-6 pb-3 -mt-1 text-[10px] text-slate-500 font-mono">
+          {t('[Tab] или [→] подставляет подсказку, [↑] [↓] листают историю', '[Tab] or [→] completes, [↑] [↓] go through the history')}
+        </p>
+      </section>
 
-      {/* Quick referee commands, in the place and style of the Quatrix server action buttons */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 shrink-0">
-        <button
-          disabled={busy}
-          onClick={() => quick('css_start')}
-          className={cn(actionBtn, 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20 active:scale-95')}
-          title="css_start"
-        >
-          <span className="mr-2"><Play size={18} /></span>
-          {t('Старт матча', 'Start match')}
-        </button>
-        <button
-          disabled={busy}
-          onClick={() => quick('mp_restartgame 1')}
-          className={cn(actionBtn, 'bg-gray-800 hover:bg-gray-700 text-white border border-gray-700/50 active:scale-95')}
-          title="mp_restartgame 1"
-        >
-          <span className="mr-2"><RotateCcw size={18} className={busy ? 'animate-spin' : ''} /></span>
-          {t('Рестарт', 'Restart')}
-        </button>
-        <button
-          disabled={busy}
-          onClick={() => quick('css_forcepause')}
-          className={cn(actionBtn, 'bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-500/20 active:scale-95')}
-          title="css_forcepause"
-        >
-          <span className="mr-2"><Pause size={18} /></span>
-          {t('Пауза', 'Pause')}
-        </button>
-        <button
-          disabled={busy}
-          onClick={() => quick('css_forceunpause')}
-          className={cn(actionBtn, 'bg-primary hover:bg-blue-600 text-white shadow-lg shadow-blue-500/20 active:scale-95')}
-          title="css_forceunpause"
-        >
-          <span className="mr-2"><PlayCircle size={18} /></span>
-          {t('Снять паузу', 'Unpause')}
-        </button>
+      <div className="space-y-4 md:space-y-6 min-w-0">
+        {/* Quick referee commands, as the Overview quick actions */}
+        <section className={cn(card, 'p-4 sm:p-6')}>
+          <CardHeader icon={<Zap size={18} />} title={t('Быстрые действия', 'Quick actions')} subtitle={t('отправляются сразу', 'sent right away')} />
+          <div className="mt-5 grid grid-cols-2 gap-3">
+            {quickActions.map((a) => (
+              <button
+                key={a.command}
+                disabled={busy}
+                onClick={() => quick(a.command)}
+                title={a.command}
+                className={cn('min-h-12 flex items-center justify-center gap-2 px-3 py-3 rounded-xl border text-sm font-semibold text-white text-center shadow-lg active:scale-[0.98] transition-all disabled:opacity-50', a.className)}
+              >
+                {a.icon} {a.label}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* Frequent commands: a click puts the command into the input */}
+        <section className={cn(card, 'p-4 sm:p-6')}>
+          <CardHeader icon={<ListChecks size={18} />} title={t('Частые команды', 'Common commands')} subtitle={t('нажмите, чтобы вставить в строку', 'click to put into the input')} />
+          <div className="mt-5 flex flex-wrap gap-2">
+            {FREQUENT.map((cmd) => (
+              <button
+                key={cmd}
+                onClick={() => insert(cmd)}
+                className="px-3 py-1.5 rounded-lg bg-background/50 border border-gray-800 text-xs font-mono text-slate-300 hover:border-primary/50 hover:text-primary transition-all"
+              >
+                {cmd.trim()}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* Command history, kept in this browser */}
+        <section className={cn(card, 'overflow-hidden')}>
+          <div className="p-4 sm:px-6 border-b border-gray-800/60 flex items-center justify-between gap-3">
+            <CardHeader icon={<History size={18} />} title={t('История команд', 'Command history')} subtitle={t('нажмите, чтобы повторить', 'click to repeat')} />
+            {history.length > 0 && (
+              <button onClick={() => setHistory([])} className={headerBtn} title={t('Очистить историю', 'Clear history')} aria-label={t('Очистить историю', 'Clear history')}>
+                <Trash2 size={16} />
+              </button>
+            )}
+          </div>
+          <div className="max-h-64 overflow-y-auto divide-y divide-gray-800/40">
+            {history.length === 0 && (
+              <p className="px-6 py-8 text-center text-sm text-gray-500">{t('Команд пока не было', 'No commands yet')}</p>
+            )}
+            {[...history].reverse().map((cmd) => (
+              <button
+                key={cmd}
+                onClick={() => insert(cmd)}
+                className="block w-full truncate px-4 sm:px-6 py-2.5 text-left font-mono text-xs text-slate-300 hover:bg-white/[0.02] hover:text-primary transition-colors"
+              >
+                {cmd}
+              </button>
+            ))}
+          </div>
+        </section>
       </div>
     </div>
   );
 }
+
+// Card and header as on the Match page
+const card = 'bg-card rounded-2xl border border-gray-800 shadow-2xl';
+
+function CardHeader({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle?: string }) {
+  return (
+    <div className="flex items-center gap-3 min-w-0">
+      <div className="p-2.5 rounded-xl bg-primary/10 text-primary shrink-0">{icon}</div>
+      <div className="min-w-0">
+        <h3 className="text-xs font-black text-white uppercase tracking-wider truncate">{title}</h3>
+        {subtitle && <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest truncate mt-0.5">{subtitle}</p>}
+      </div>
+    </div>
+  );
+}
+
+// Shown as chips on the side; a trailing space means the command takes an argument
+const FREQUENT = ['status', 'get5_status', 'tv_status', 'mp_warmup_end', 'mp_restartgame 1', 'css_restore ', 'changelevel ', 'say ', 'mp_maxrounds ', 'bot_kick'];
