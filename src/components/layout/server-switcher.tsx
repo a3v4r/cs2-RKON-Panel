@@ -36,12 +36,12 @@ export function ServerSwitcher({ servers, activeServerId, onSelect, className }:
         onClick={() => setOpen(!open)}
         aria-expanded={open}
         className={cn(
-          'w-full bg-background/50 border border-gray-800 rounded-xl px-4 py-1.5 h-[34px] flex items-center justify-between gap-2 cursor-pointer transition-all hover:border-gray-700',
+          'w-full bg-background/50 border border-gray-800 rounded-xl px-4 py-3 flex items-center justify-between gap-2 cursor-pointer transition-all hover:border-gray-700 outline-none focus:outline-none focus-visible:outline-none text-left',
           open && 'ring-2 ring-primary border-transparent',
         )}
       >
         <span className="flex items-center gap-2 min-w-0">
-          <Server size={16} className="text-gray-500 shrink-0" />
+          <Server className="w-4 h-4 text-gray-500 shrink-0" />
           <span className={cn('truncate text-sm font-medium', active ? 'text-gray-200' : 'text-gray-500')}>
             {active?.name ?? t('Выберите сервер...', 'Select server...')}
           </span>
@@ -59,7 +59,7 @@ export function ServerSwitcher({ servers, activeServerId, onSelect, className }:
                 aria-selected={server.id === activeServerId}
                 onClick={() => { onSelect(server.id!); setOpen(false); }}
                 className={cn(
-                  'px-4 py-2 text-xs cursor-pointer flex items-center justify-between gap-2 hover:bg-white/5 transition-colors',
+                  'px-4 py-2.5 text-sm cursor-pointer flex items-center justify-between gap-2 hover:bg-white/5 transition-colors',
                   server.id === activeServerId ? 'text-primary bg-primary/5 font-bold' : 'text-gray-300',
                 )}
               >
