@@ -264,8 +264,9 @@ export default function Home() {
         <RequestsBanner />
 
         <div className="flex-1 flex flex-col overflow-auto">
-          {/* Page header: title on the left; server, language, clock and status on the right, as in Quatrix */}
-          <header className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4 px-3 md:px-6 pt-3 md:pt-6">
+          {/* Page header: title on the left; language, server and status on the right, as in Quatrix.
+              The Servers page draws its own header with the Instances toolbar. */}
+          {activeTab !== 'servers' && (<header className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4 px-3 md:px-6 pt-3 md:pt-6">
             <div className="hidden md:block min-w-0">
               <h1 className="text-2xl font-bold text-white tracking-tight">{(SECTIONS[activeTab].title ?? SECTIONS[activeTab].label)[lang]}</h1>
               <p className="text-gray-400 mt-1 font-medium text-sm">{SECTIONS[activeTab].hint[lang]}</p>
@@ -291,7 +292,7 @@ export default function Home() {
                 </div>
               )}
             </div>
-          </header>
+          </header>)}
 
           {activeTab === 'general-settings' && <GeneralSettings />}
           {activeTab === 'backups' && <BackupsView />}
