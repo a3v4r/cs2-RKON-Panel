@@ -292,7 +292,7 @@ export default function Home() {
               <p className="text-gray-400 mt-1 font-medium text-sm">{SECTIONS[activeTab].hint[lang]}</p>
             </div>
             <div className="flex items-center gap-3 shrink-0">
-              <LanguageMenu />
+              {activeTab === 'dashboard' && <LanguageMenu />}
               {needsServer && servers.length > 0 && (
                 <ServerSwitcher className="flex-1 md:flex-none md:w-64 md:min-w-[200px]" servers={servers} activeServerId={activeServerId} onSelect={selectServer} />
               )}
