@@ -2,6 +2,8 @@ import { execFile, spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { dataDir } from './accounts';
+import { ensureMetamod, ensureRussian } from './cs2-files';
+import { isUpdating } from './cs2-update';
 import { cs2Paths } from './panel-settings';
 import { rconCommand } from './rcon';
 import { StoredServer, servers } from './store';
@@ -78,31 +80,6 @@ export function allStates() {
   return result;
 }
 
-// Steam rewrites gameinfo.gi on every CS2 update, so Metamod is checked before each start
-function ensureMetamod(gameinfo: string) {
-  if (!fs.existsSync(gameinfo)) throw new Error(`Не найден ${gameinfo}: сервер CS2 не установлен?`);
-  const content = fs.readFileSync(gameinfo, 'utf8');
-  if (content.includes('csgo/addons/metamod')) return;
-  const patched = content.replace(/^(\s*)(Game_LowViolence\s+csgo_lv[^\r\n]*)(\r?\n)/m, '$1$2$3$1Game\tcsgo/addons/metamod$3');
-  if (patched === content) throw new Error('Не удалось подключить Metamod: в gameinfo.gi нет строки Game_LowViolence');
-  fs.writeFileSync(gameinfo, patched);
-}
-
-// Plugin messages in Russian (MatchZy takes lang/ru.json). CounterStrikeSharp creates core.json only on its
-// first start, so it is made from core.example.json when missing. Without CounterStrikeSharp nothing is done.
-function ensureRussian(csgo: string) {
-  const dir = path.join(csgo, 'addons', 'counterstrikesharp', 'configs');
-  const core = path.join(dir, 'core.json');
-  const example = path.join(dir, 'core.example.json');
-  if (!fs.existsSync(core)) {
-    if (!fs.existsSync(example)) return;
-    fs.copyFileSync(example, core);
-  }
-  const text = fs.readFileSync(core, 'utf8');
-  const patched = text.replace(/"ServerLanguage"\s*:\s*"[^"]*"/, '"ServerLanguage": "ru"');
-  if (patched !== text) fs.writeFileSync(core, patched);
-}
-
 const cfgName = (id: number) => `matchdesk_server${id}.cfg`;
 const cfgValue = (v: string) => v.replace(/["\r\n]/g, '');
 
@@ -154,6 +131,7 @@ export async function startServer(id: number) {
   const current = procs.get(id);
   if (current?.state === 'running' || current?.state === 'stopping') return;
   if (current?.restartTimer) clearTimeout(current.restartTimer);
+  if (isUpdating()) throw new Error('Идёт обновление CS2: запустите сервер, когда оно закончится');
 
   const paths = cs2Paths();
   if (!fs.existsSync(paths.exe)) {

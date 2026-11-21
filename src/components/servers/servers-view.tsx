@@ -3,13 +3,14 @@
 import React from 'react';
 import {
   LayoutGrid, List, Search, RefreshCw, Plus, Link2, Terminal, LayoutDashboard, SlidersHorizontal, Pencil, Trash2,
-  Users, Map as MapIcon, Layers, Play, Square, RotateCcw, AlertTriangle, Cpu,
+  Users, Map as MapIcon, Layers, Play, Square, RotateCcw, AlertTriangle, Cpu, Download,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { db_helper, InstancesInfo, ProcState, ServerProfile } from '@/lib/db';
 import { fetchServerInfo, ServerStatus } from '@/lib/a2s';
 import { Badge } from '@/components/layout/server-switcher';
 import type { Section } from '@/components/layout/sidebar';
+import { Cs2UpdateModal } from './cs2-update-modal';
 
 interface ServersViewProps {
   servers: ServerProfile[];
@@ -38,6 +39,7 @@ export function ServersView({ servers, canManage, onRefresh, onCreate, onConnect
   const [busy, setBusy] = React.useState<Record<number, Action | undefined>>({});
   const [errors, setErrors] = React.useState<Record<number, string | undefined>>({});
   const [refreshing, setRefreshing] = React.useState(false);
+  const [updateOpen, setUpdateOpen] = React.useState(false);
 
   React.useEffect(() => {
     try { if (localStorage.getItem(VIEW_KEY) === 'list') setView('list'); } catch {}
@@ -115,9 +117,10 @@ export function ServersView({ servers, canManage, onRefresh, onCreate, onConnect
 
   return (
     <div className="p-3 md:p-6 space-y-4 md:space-y-6 animate-in fade-in duration-500">
+      {canManage && <Cs2UpdateModal open={updateOpen} onOpenChange={setUpdateOpen} />}
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2 md:gap-3">
-        <div className="flex p-1 rounded-xl bg-white/5 border border-white/10">
+        <div className="flex items-center h-10 p-1 rounded-xl bg-white/5 border border-white/10">
           {(['grid', 'list'] as const).map((v) => (
             <button
               key={v}
@@ -136,33 +139,41 @@ export function ServersView({ servers, canManage, onRefresh, onCreate, onConnect
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             placeholder="Найти сервер..."
-            className="w-full pl-9 pr-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+            className="w-full h-10 pl-9 pr-3 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
           />
         </div>
         <button
           onClick={refresh}
-          className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-muted-foreground hover:text-white transition-colors"
+          className="flex items-center justify-center h-10 w-10 shrink-0 rounded-xl bg-white/5 border border-white/10 text-muted-foreground hover:text-white transition-colors"
           aria-label="Обновить"
           title="Обновить"
         >
           <RefreshCw size={16} className={cn(refreshing && 'animate-spin')} />
         </button>
         {canManage && (
-          <div className="flex items-center gap-2 w-full sm:w-auto md:ml-auto">
+          <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:items-center sm:w-auto md:ml-auto">
             <button
               onClick={onCreate}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-primary text-white text-sm font-semibold shadow-lg shadow-primary/20 hover:bg-primary/90 active:scale-[0.98] transition-all"
+              className="col-span-2 flex-1 sm:flex-none flex items-center justify-center gap-2 h-10 px-4 rounded-xl bg-primary text-white text-sm font-semibold shadow-lg shadow-primary/20 hover:bg-primary/90 active:scale-[0.98] transition-all"
             >
               <Plus size={16} />
               Создать сервер
             </button>
             <button
               onClick={onConnect}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-sm font-semibold text-white hover:bg-white/10 transition-colors"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 h-10 px-4 rounded-xl bg-white/5 border border-white/10 text-sm font-semibold text-white hover:bg-white/10 transition-colors"
               title="Добавить сервер, запущенный не из панели (другой ПК или батник)"
             >
               <Link2 size={16} />
               Подключить
+            </button>
+            <button
+              onClick={() => setUpdateOpen(true)}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 h-10 px-4 rounded-xl bg-white/5 border border-white/10 text-sm font-semibold text-white hover:bg-white/10 transition-colors"
+              title="Скачать свежую версию сервера CS2 через steamcmd"
+            >
+              <Download size={16} />
+              Обновить CS2
             </button>
           </div>
         )}
@@ -175,7 +186,7 @@ export function ServersView({ servers, canManage, onRefresh, onCreate, onConnect
             <div className="font-semibold text-amber-300">Сервер CS2 не найден на этом ПК</div>
             <div className="text-amber-200/70 break-all">Панель ищет cs2.exe в папке {inst.cs2Dir}</div>
           </div>
-          <button onClick={onOpenSettings} className="px-4 py-2 rounded-xl bg-amber-500 text-black text-sm font-semibold hover:bg-amber-400 shrink-0">
+          <button onClick={onOpenSettings} className="h-10 px-4 rounded-xl bg-amber-500 text-black text-sm font-semibold hover:bg-amber-400 shrink-0">
             Указать папку
           </button>
         </div>

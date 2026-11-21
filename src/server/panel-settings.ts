@@ -35,6 +35,8 @@ export function cs2Paths(dir = cs2Dir()) {
   const csgo = path.join(game, 'csgo');
   return {
     dir,
+    // The kit puts steamcmd next to the server: INSTALL_DIR\steamcmd and INSTALL_DIR\cs2
+    steamcmd: process.env.STEAMCMD || path.join(path.dirname(dir), 'steamcmd', 'steamcmd.exe'),
     csgo,
     exe: path.join(game, 'bin', 'win64', 'cs2.exe'),
     gameinfo: path.join(csgo, 'gameinfo.gi'),

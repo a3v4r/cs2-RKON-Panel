@@ -44,7 +44,7 @@ function HeaderClock() {
   }, []);
   if (!now) return null;
   return (
-    <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10">
+    <div className="flex items-center gap-2 h-10 px-3 rounded-xl bg-white/5 border border-white/10">
       <Clock size={14} className="text-primary" />
       <div className="leading-none">
         <div className="text-xs font-bold text-white tabular-nums">{now.toLocaleTimeString('ru-RU')}</div>
@@ -280,19 +280,19 @@ export default function Home() {
 
         <div className="flex-1 flex flex-col overflow-auto">
           {/* Page header: title on the left, server switch, clock and status on the right */}
-          <div className="flex flex-col md:flex-row md:items-start justify-between gap-3 md:gap-4 px-3 md:px-6 pt-3 md:pt-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4 px-3 md:px-6 pt-3 md:pt-6">
             <div className="hidden md:block min-w-0">
               <h1 className="text-2xl font-bold text-white tracking-tight">{SECTIONS[activeTab].label}</h1>
               <p className="text-sm text-muted-foreground mt-1">{SECTIONS[activeTab].hint}</p>
             </div>
-            <div className="flex items-end gap-3 shrink-0">
+            <div className="flex items-center gap-2 md:gap-3 shrink-0">
               {needsServer && servers.length > 0 && (
                 <ServerSwitcher className="flex-1 md:flex-none" servers={servers} activeServerId={activeServerId} online={online} onSelect={selectServer} />
               )}
               <div className="hidden md:block"><HeaderClock /></div>
               {needsServer && servers.length > 0 && (
                 <div className={cn(
-                  'hidden md:flex items-center gap-2 px-3 py-2 rounded-full border text-[10px] font-bold uppercase tracking-wider shrink-0',
+                  'hidden md:flex items-center gap-2 h-10 px-3 rounded-xl border text-[10px] font-bold uppercase tracking-wider shrink-0',
                   serverInfo.status === 'online' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
                     : serverInfo.status === 'offline' ? 'text-red-400 bg-red-500/10 border-red-500/20'
                     : 'text-muted-foreground bg-white/5 border-white/10',
