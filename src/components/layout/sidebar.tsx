@@ -4,6 +4,7 @@ import React from 'react';
 import {
   Settings,
   Archive,
+  LineChart,
   Terminal,
   LayoutDashboard,
   Map as MapIcon,
@@ -21,7 +22,7 @@ import { cn } from '@/lib/utils';
 import { api, Role } from '@/lib/api';
 import { Text, useT } from '@/lib/i18n';
 
-export type Section = 'dashboard' | 'servers' | 'live' | 'console' | 'chat' | 'maps' | 'match' | 'settings' | 'backups' | 'general-settings';
+export type Section = 'dashboard' | 'servers' | 'live' | 'console' | 'chat' | 'maps' | 'match' | 'settings' | 'analytics' | 'backups' | 'general-settings';
 
 // label: menu item; title: page heading when it differs (as the Quatrix page titles)
 export const SECTIONS: Record<Section, { label: Text; title?: Text; hint: Text; icon: LucideIcon }> = {
@@ -33,6 +34,7 @@ export const SECTIONS: Record<Section, { label: Text; title?: Text; hint: Text; 
   maps: { label: { ru: 'Карты', en: 'Maps' }, title: { ru: 'Обозреватель карт', en: 'Map Explorer' }, hint: { ru: 'Запускайте карты и контент из Workshop на сервере', en: 'Deploy battlegrounds or workshop content to your node' }, icon: MapIcon },
   match: { label: { ru: 'Запуск матча', en: 'Match setup' }, hint: { ru: 'Конфиг MatchZy и запуск', en: 'MatchZy config and launch' }, icon: Trophy },
   settings: { label: { ru: 'Настройки сервера', en: 'Server settings' }, hint: { ru: 'Подключение и параметры сервера', en: 'Connection and server parameters' }, icon: SlidersHorizontal },
+  analytics: { label: { ru: 'Аналитика', en: 'Analytics' }, title: { ru: 'Аналитика системы', en: 'System Analytics' }, hint: { ru: 'Нагрузка ПК панели и онлайн игроков за сутки, неделю и месяц', en: 'Visual insights into historical system performance and resource utilization' }, icon: LineChart },
   backups: { label: { ru: 'Бэкапы', en: 'Backups' }, title: { ru: 'Управление бэкапами', en: 'Backup Management' }, hint: { ru: 'Резервные копии данных панели и конфигов CS2 с восстановлением', en: 'Create and manage backups of the panel data and CS2 configurations.' }, icon: Archive },
   'general-settings': { label: { ru: 'Настройки', en: 'Settings' }, hint: { ru: 'Настройки панели, сервера CS2 и журнал действий', en: 'Configure your panel settings and security preferences' }, icon: Settings },
 };
@@ -47,7 +49,7 @@ export const SERVER_SECTIONS: Section[] = ['dashboard', 'live', 'console', 'chat
 
 const NAV: Section[] = ['dashboard', 'servers', 'live', 'console', 'chat', 'maps', 'match'];
 // The panel's own pages, in the Quatrix order
-const PANEL_NAV: Section[] = ['backups', 'general-settings'];
+const PANEL_NAV: Section[] = ['analytics', 'backups', 'general-settings'];
 
 interface SidebarProps {
   activeSection: Section;
