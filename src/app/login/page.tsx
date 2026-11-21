@@ -34,7 +34,7 @@ export default function LoginPage() {
       <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4 rounded-xl border border-border p-6">
         <div className="flex items-center gap-3 text-white">
           <Lock className="text-primary" size={22} />
-          <h1 className="text-xl font-bold">CS2 RCON Panel</h1>
+          <h1 className="text-xl font-bold">Matchdesk</h1>
         </div>
         <Input
           autoFocus

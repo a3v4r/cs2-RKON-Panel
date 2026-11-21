@@ -31,11 +31,11 @@ jobs:
         run: |
           $version = node -p "require('./package.json').version"
           "VERSION=$version" >> $env:GITHUB_ENV
-          Compress-Archive -Path .next/standalone/* -DestinationPath "cs2-rcon-panel-web-$version.zip"
+          Compress-Archive -Path .next/standalone/* -DestinationPath "matchdesk-$version.zip"
 
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ env.VERSION }}
           name: Release v${{ env.VERSION }}
-          files: cs2-rcon-panel-web-*.zip
+          files: matchdesk-*.zip

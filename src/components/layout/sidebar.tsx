@@ -55,7 +55,7 @@ export function Sidebar({
     )}>
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border">
-        {!collapsed && <h1 className="text-xl font-bold tracking-tight text-white">CS2 RCON</h1>}
+        {!collapsed && <h1 className="text-xl font-bold tracking-tight text-white">Matchdesk</h1>}
         <Button 
           variant="ghost" 
           size="icon" 

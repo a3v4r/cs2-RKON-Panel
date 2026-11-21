@@ -25,7 +25,7 @@ export function GeneralSettings() {
             <span className="text-xs font-semibold uppercase tracking-wider">О панели</span>
           </div>
           <div className="text-sm text-muted-foreground">
-            <p>CS2 RCON Panel, версия {process.env.NEXT_PUBLIC_PANEL_VERSION}</p>
+            <p>Matchdesk, версия {process.env.NEXT_PUBLIC_PANEL_VERSION}</p>
             <p className="mt-1">Логины и пароли задаются в settings.ini турнирного комплекта.</p>
           </div>
         </div>

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "CS2 RCON Panel",
+  title: "Matchdesk",
   description: "Modern RCON management for Counter-Strike 2",
 };
 

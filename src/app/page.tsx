@@ -211,7 +211,7 @@ export default function Home() {
           >
             <Menu size={22} />
           </button>
-          <span className="text-sm font-medium truncate">{selectedServer?.name ?? 'CS2 RCON'}</span>
+          <span className="text-sm font-medium truncate">{selectedServer?.name ?? 'Matchdesk'}</span>
         </div>
 
         <RequestsBanner />
