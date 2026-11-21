@@ -358,7 +358,7 @@ export default function Home() {
                 </div>
               )}
               {activeTab === "chat" && activeServerId && (
-                <ServerChat key={activeServerId} serverId={activeServerId} onBroadcast={(msg) => handleRconCommand(`say ${msg}`)} />
+                <ServerChat key={activeServerId} serverId={activeServerId} managed={!!selectedServer?.managed} onBroadcast={(msg) => handleRconCommand(`say ${msg}`)} />
               )}
               {activeTab === "maps" && (
                 <MapSelector

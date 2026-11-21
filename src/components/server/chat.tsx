@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useState } from 'react';
-import { MessageSquare, Send, Clock, Save, Trash2, Plus, CornerDownLeft } from 'lucide-react';
+import { Send, Clock, Save, Trash2, Plus, CornerDownLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
 import { api } from '@/lib/api';
 import { useT } from '@/lib/i18n';
+import { ChatHistory } from './chat-history';
 
 interface Template {
   id: number;
@@ -24,11 +25,13 @@ interface AutoMessage {
 interface ServerChatProps {
   serverId: number;
   onBroadcast: (message: string) => Promise<string>;
+  // Started by the panel: the chat log is set up in its cfg
+  managed?: boolean;
 }
 
 const INTERVALS = [1, 2, 3, 5, 10, 15, 30, 60];
 
-export function ServerChat({ serverId, onBroadcast }: ServerChatProps) {
+export function ServerChat({ serverId, onBroadcast, managed }: ServerChatProps) {
   const { t } = useT();
   const [message, setMessage] = useState('');
   const [status, setStatus] = useState('');
@@ -90,48 +93,45 @@ export function ServerChat({ serverId, onBroadcast }: ServerChatProps) {
 
   return (
     <div className="p-3 md:p-6 space-y-6 animate-in fade-in duration-500">
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Chat Input */}
-        <div className="space-y-4">
-          <div className="p-4 md:p-6 rounded-2xl border border-border bg-card shadow-lg shadow-black/20">
-            <h3 className="text-lg font-semibold mb-4 flex items-center">
-              <MessageSquare size={18} className="mr-2 text-primary" />
-              {t('Сообщение в чат', 'Chat message')}
-            </h3>
-            <div className="space-y-4">
-              <textarea
+      <ChatHistory
+        serverId={serverId}
+        managed={managed}
+        footer={
+          <form onSubmit={(e) => { e.preventDefault(); send(message); setMessage(''); }} className="space-y-2">
+            <div className="flex gap-2">
+              <input
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder={t('Сообщение всем игрокам...', 'Message to all players...')}
                 maxLength={200}
-                className="w-full h-32 bg-white/5 border border-border rounded-md p-3 text-sm text-white resize-none focus:ring-1 focus:ring-primary outline-none"
+                className="flex-1 min-w-0 h-[42px] bg-background/50 border border-gray-800 focus:border-primary focus:ring-1 focus:ring-primary/20 rounded-xl px-4 text-sm text-gray-200 placeholder-gray-600 outline-none transition-all"
               />
-              <div className="flex flex-wrap justify-between items-center gap-2">
-                <span className="text-xs text-muted-foreground italic">
-                  {status || <>{t('Отправитель:', 'Sender:')} <span className="text-primary font-bold">Console</span></>}
-                </span>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    disabled={!message.trim()}
-                    onClick={() => { setTemplateForm({ name: '', message }); setAddingTemplate(true); }}
-                    className="h-11"
-                    title={t('Сохранить как шаблон', 'Save as template')}
-                  >
-                    <Save size={16} />
-                  </Button>
-                  <Button
-                    onClick={() => send(message)}
-                    disabled={!message.trim()}
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground h-11 px-6"
-                  >
-                    {t('Отправить', 'Send')}
-                  </Button>
-                </div>
-              </div>
+              <button
+                type="button"
+                disabled={!message.trim()}
+                onClick={() => { setTemplateForm({ name: '', message }); setAddingTemplate(true); }}
+                className="flex items-center justify-center w-[42px] h-[42px] shrink-0 rounded-xl border border-gray-800 text-gray-400 hover:text-primary hover:border-primary/50 transition-all active:scale-95 disabled:opacity-50"
+                title={t('Сохранить как шаблон', 'Save as template')}
+              >
+                <Save size={16} />
+              </button>
+              <button
+                type="submit"
+                disabled={!message.trim()}
+                className="flex items-center justify-center gap-2 h-[42px] px-5 shrink-0 rounded-xl bg-primary hover:bg-blue-600 text-white text-sm font-bold shadow-lg shadow-blue-500/20 transition-all active:scale-95 disabled:opacity-50"
+              >
+                <Send size={16} />
+                <span className="hidden sm:inline">{t('Отправить', 'Send')}</span>
+              </button>
             </div>
-          </div>
+            <div className="text-xs text-muted-foreground italic px-1">
+              {status || <>{t('Отправитель:', 'Sender:')} <span className="text-primary font-bold">Console</span></>}
+            </div>
+          </form>
+        }
+      />
 
+      <div className="grid gap-6 md:grid-cols-2">
           <div className="p-4 md:p-6 rounded-2xl border border-border bg-card shadow-lg shadow-black/20">
             <h3 className="text-lg font-semibold mb-1 flex items-center">
               <Clock size={18} className="mr-2 text-primary" />
@@ -205,7 +205,6 @@ export function ServerChat({ serverId, onBroadcast }: ServerChatProps) {
               </Button>
             )}
           </div>
-        </div>
 
         {/* Templates */}
         <div className="p-4 md:p-6 rounded-2xl border border-border bg-card shadow-lg shadow-black/20">
