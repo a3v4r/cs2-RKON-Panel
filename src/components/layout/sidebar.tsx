@@ -2,7 +2,6 @@
 
 import React from 'react';
 import {
-  Plus,
   Settings,
   Terminal,
   LayoutDashboard,
@@ -10,11 +9,8 @@ import {
   MessageSquare,
   Activity,
   Trophy,
-  Server,
-  Edit,
-  Trash2,
+  Layers,
   LogOut,
-  ChevronDown,
   Crosshair,
   SlidersHorizontal,
   X,
@@ -22,12 +18,12 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ROLE_LABELS, Role } from '@/lib/api';
-import type { ServerProfile } from '@/lib/db';
 
-export type Section = 'dashboard' | 'live' | 'console' | 'chat' | 'maps' | 'match' | 'settings' | 'general-settings';
+export type Section = 'dashboard' | 'servers' | 'live' | 'console' | 'chat' | 'maps' | 'match' | 'settings' | 'general-settings';
 
 export const SECTIONS: Record<Section, { label: string; hint: string; icon: LucideIcon }> = {
   dashboard: { label: 'Обзор', hint: 'Состояние сервера и быстрые действия', icon: LayoutDashboard },
+  servers: { label: 'Серверы', hint: 'Все серверы панели: состояние, запуск и настройки', icon: Layers },
   live: { label: 'Матч', hint: 'Счёт, раунды, статистика и откат раунда', icon: Activity },
   console: { label: 'Консоль', hint: 'RCON-команды на сервер', icon: Terminal },
   chat: { label: 'Чат', hint: 'Сообщения в игровой чат и автосообщения', icon: MessageSquare },
@@ -37,40 +33,19 @@ export const SECTIONS: Record<Section, { label: string; hint: string; icon: Luci
   'general-settings': { label: 'Настройки панели', hint: 'Журнал действий и версия панели', icon: Settings },
 };
 
-const SERVER_SECTIONS: Section[] = ['dashboard', 'live', 'console', 'chat', 'maps', 'match', 'settings'];
+// Sections that work with one chosen server (the server is picked in their page header)
+export const SERVER_SECTIONS: Section[] = ['dashboard', 'live', 'console', 'chat', 'maps', 'match', 'settings'];
+
+const NAV: Section[] = ['dashboard', 'servers', 'live', 'console', 'chat', 'maps', 'match'];
 
 interface SidebarProps {
-  servers: ServerProfile[];
-  activeServerId: number | null;
-  serverOnline: boolean | null;
   activeSection: Section;
   onSelectSection: (section: Section) => void;
-  onSelectServer: (id: number) => void;
-  onAddServer: () => void;
-  onEditServer: (server: ServerProfile) => void;
-  onDeleteServer: (id: number) => void;
   onClose: () => void;
-  canManage: boolean;
   user: { role: Role };
 }
 
-export function Sidebar({
-  servers,
-  activeServerId,
-  serverOnline,
-  activeSection,
-  onSelectSection,
-  onSelectServer,
-  onAddServer,
-  onEditServer,
-  onDeleteServer,
-  onClose,
-  canManage,
-  user,
-}: SidebarProps) {
-  const [pickerOpen, setPickerOpen] = React.useState(false);
-  const active = servers.find((s) => s.id === activeServerId);
-
+export function Sidebar({ activeSection, onSelectSection, onClose, user }: SidebarProps) {
   return (
     <aside className="flex flex-col h-[100dvh] w-72 md:w-64 bg-sidebar text-muted-foreground border-r border-border">
       {/* Logo */}
@@ -89,83 +64,10 @@ export function Sidebar({
         </button>
       </div>
 
-      {/* Server picker */}
-      <div className="px-4 pb-3">
-        <div className="px-1 pb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">Сервер</div>
-        <button
-          onClick={() => setPickerOpen(!pickerOpen)}
-          className="flex items-center gap-3 w-full p-3 rounded-xl bg-white/5 border border-white/5 hover:border-white/10 transition-colors text-left"
-          aria-expanded={pickerOpen}
-        >
-          <ServerBadge server={active} />
-          <div className="flex-1 min-w-0">
-            <div className="text-sm font-semibold text-white truncate">{active?.name ?? (servers.length ? 'Выберите сервер' : 'Серверов нет')}</div>
-            {active && (
-              <div className="flex items-center gap-1.5 text-[11px] truncate">
-                <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', serverOnline === null ? 'bg-muted-foreground' : serverOnline ? 'bg-emerald-500 animate-pulse' : 'bg-red-500')} />
-                <span className="truncate">{active.host}:{active.port}</span>
-              </div>
-            )}
-          </div>
-          <ChevronDown size={16} className={cn('shrink-0 transition-transform', pickerOpen && 'rotate-180')} />
-        </button>
-
-        {pickerOpen && (
-          <div className="mt-2 p-1.5 rounded-xl bg-black/20 border border-white/5 space-y-0.5 max-h-64 overflow-y-auto">
-            {servers.map((server) => (
-              <div
-                key={server.id}
-                role="button"
-                tabIndex={0}
-                onClick={() => { onSelectServer(server.id!); setPickerOpen(false); }}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { onSelectServer(server.id!); setPickerOpen(false); } }}
-                className={cn(
-                  'group flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors',
-                  server.id === activeServerId ? 'bg-primary/15 text-white' : 'hover:bg-white/5 hover:text-white',
-                )}
-              >
-                <ServerBadge server={server} small />
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium truncate">{server.name}</div>
-                  <div className="text-[10px] opacity-60 truncate">{server.host}:{server.port}</div>
-                </div>
-                {canManage && (
-                  <div className="flex md:hidden md:group-hover:flex items-center">
-                    <button
-                      className="p-2 md:p-1.5 rounded-md text-muted-foreground hover:text-white hover:bg-white/10"
-                      onClick={(e) => { e.stopPropagation(); setPickerOpen(false); onEditServer(server); }}
-                      aria-label={`Изменить ${server.name}`}
-                    >
-                      <Edit size={13} />
-                    </button>
-                    <button
-                      className="p-2 md:p-1.5 rounded-md text-muted-foreground hover:text-red-400 hover:bg-red-400/10"
-                      onClick={(e) => { e.stopPropagation(); onDeleteServer(server.id!); }}
-                      aria-label={`Удалить ${server.name}`}
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))}
-            {canManage && (
-              <button
-                onClick={() => { setPickerOpen(false); onAddServer(); }}
-                className="flex items-center gap-3 w-full p-2 rounded-lg text-sm text-primary hover:bg-primary/10 transition-colors"
-              >
-                <span className="w-7 h-7 rounded-lg border border-dashed border-primary/40 flex items-center justify-center"><Plus size={14} /></span>
-                Добавить сервер
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-
       {/* Sections */}
       <nav className="flex-1 px-4 space-y-1 overflow-y-auto" aria-label="Разделы">
-        {active && SERVER_SECTIONS.map((id) => (
-          <NavItem key={id} section={id} active={activeSection === id} onClick={() => onSelectSection(id)} />
+        {NAV.map((id) => (
+          <NavItem key={id} section={id} active={activeSection === id || (id === 'servers' && activeSection === 'settings')} onClick={() => onSelectSection(id)} />
         ))}
         <div className="pt-4 pb-1 px-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">Панель</div>
         <NavItem section="general-settings" active={activeSection === 'general-settings'} onClick={() => onSelectSection('general-settings')} />
@@ -215,19 +117,7 @@ function NavItem({ section, active, onClick }: { section: Section; active: boole
   );
 }
 
-function ServerBadge({ server, small }: { server?: ServerProfile; small?: boolean }) {
-  return (
-    <span className={cn('shrink-0 rounded-lg bg-white/5 flex items-center justify-center', small ? 'w-7 h-7' : 'w-9 h-9')}>
-      {server?.country_code ? (
-        <span className={small ? 'text-base leading-none' : 'text-lg leading-none'}>{getFlagEmoji(server.country_code)}</span>
-      ) : (
-        <Server size={small ? 14 : 16} />
-      )}
-    </span>
-  );
-}
-
-function getFlagEmoji(countryCode: string) {
+export function getFlagEmoji(countryCode: string) {
   const codePoints = countryCode
     .toUpperCase()
     .split('')

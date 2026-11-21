@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Sidebar, SECTIONS, Section } from '@/components/layout/sidebar';
+import { Sidebar, SECTIONS, SERVER_SECTIONS, Section } from '@/components/layout/sidebar';
+import { ServerSwitcher } from '@/components/layout/server-switcher';
+import { ServersView } from '@/components/servers/servers-view';
 import { ServerDashboard, ServerSample } from '@/components/server/dashboard';
 import { RCONConsole } from '@/components/server/console';
 import { ServerChat } from '@/components/server/chat';
-import { Menu, Crosshair, Clock } from 'lucide-react';
+import { Menu, Crosshair, Clock, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MatchGenerator } from '@/components/server/match-generator';
 import { GeneralSettings } from '@/components/settings/general-settings';
@@ -21,6 +23,7 @@ import { LiveMatch } from '@/components/server/live-match';
 import { fetchMe, Role } from '@/lib/api';
 
 const HISTORY_POINTS = 120; // 10 minutes of 5 s polls
+const ACTIVE_SERVER_KEY = 'cs2panel.activeServer';
 
 const INITIAL_INFO = {
   name: "Загрузка...",
@@ -66,12 +69,21 @@ export default function Home() {
     try {
       const data = await db_helper.getServers();
       setServers(data);
-      if (data.length > 0 && !activeServerId) {
-        setActiveServerId(data[0].id || null);
-      }
+      setActiveServerId((current) => {
+        if (current && data.some((s) => s.id === current)) return current;
+        let saved: number | null = null;
+        try { saved = Number(localStorage.getItem(ACTIVE_SERVER_KEY)) || null; } catch {}
+        return data.find((s) => s.id === saved)?.id ?? data[0]?.id ?? null;
+      });
+      if (data.length === 0) setActiveTab((tab) => (SERVER_SECTIONS.includes(tab) ? 'servers' : tab));
     } catch (error) {
       console.error("Failed to load servers:", error);
     }
+  };
+
+  const selectServer = (id: number) => {
+    setActiveServerId(id);
+    try { localStorage.setItem(ACTIVE_SERVER_KEY, String(id)); } catch {}
   };
 
   // Poll server info
@@ -139,10 +151,8 @@ export default function Home() {
     if (confirm("Удалить этот сервер?")) {
       try {
         await db_helper.deleteServer(id);
+        // loadServers moves the selection to another server if this one was selected
         await loadServers();
-        if (activeServerId === id) {
-          setActiveServerId(null);
-        }
       } catch (error) {
         alert(`Не удалось удалить сервер: ${(error as Error).message}`);
       }
@@ -208,6 +218,10 @@ export default function Home() {
   }
   const isJudge = me.role === 'judge';
 
+  const needsServer = SERVER_SECTIONS.includes(activeTab);
+  const online = serverInfo.status === 'loading' ? null : serverInfo.status === 'online';
+  const openAdd = () => { setEditingServer(null); setIsModalOpen(true); };
+
   return (
     <div className="flex h-[100dvh] w-full bg-background text-white">
       {/* Sidebar: static on desktop, drawer on phones */}
@@ -216,17 +230,9 @@ export default function Home() {
       )}
       <div className={`fixed inset-y-0 left-0 z-50 transition-transform duration-300 md:static md:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <Sidebar
-          servers={servers}
-          activeServerId={activeServerId}
-          serverOnline={serverInfo.status === 'loading' ? null : serverInfo.status === 'online'}
           activeSection={activeTab}
           onSelectSection={(section) => { setActiveTab(section); setSidebarOpen(false); }}
-          onSelectServer={(id) => { setActiveServerId(id); setActiveTab('dashboard'); setSidebarOpen(false); }}
-          onAddServer={() => { setEditingServer(null); setIsModalOpen(true); setSidebarOpen(false); }}
-          onEditServer={(server) => { setEditingServer(server); setIsModalOpen(true); setSidebarOpen(false); }}
-          onDeleteServer={handleDeleteServer}
           onClose={() => setSidebarOpen(false)}
-          canManage={isJudge}
           user={me}
         />
       </div>
@@ -239,10 +245,7 @@ export default function Home() {
             <div className="w-8 h-8 shrink-0 rounded-lg bg-gradient-to-br from-primary to-blue-700 flex items-center justify-center">
               <Crosshair size={18} className="text-white" />
             </div>
-            <div className="min-w-0">
-              <div className="text-sm font-bold text-white truncate leading-tight">{SECTIONS[activeTab].label}</div>
-              <div className="text-[11px] text-muted-foreground truncate leading-tight">{selectedServer?.name ?? 'Matchdesk'}</div>
-            </div>
+            <div className="text-sm font-bold text-white truncate">{SECTIONS[activeTab].label}</div>
           </div>
           <button
             onClick={() => setSidebarOpen(true)}
@@ -255,22 +258,21 @@ export default function Home() {
 
         <RequestsBanner />
 
-        {activeTab === 'general-settings' || activeServerId ? (
-          <div className="flex-1 flex flex-col overflow-auto">
-            {/* Page header (desktop) */}
-            <div className="hidden md:flex items-start justify-between gap-4 px-6 pt-6">
-              <div className="min-w-0">
-                <h1 className="text-2xl font-bold text-white tracking-tight">{SECTIONS[activeTab].label}</h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {SECTIONS[activeTab].hint}
-                  {activeTab !== 'general-settings' && <> · <span className="text-white/80">{selectedServer?.name}</span></>}
-                </p>
-              </div>
-              <div className="flex items-center gap-3 shrink-0">
-              <HeaderClock />
-              {activeTab !== 'general-settings' && (
+        <div className="flex-1 flex flex-col overflow-auto">
+          {/* Page header: title on the left, server switch, clock and status on the right */}
+          <div className="flex flex-col md:flex-row md:items-start justify-between gap-3 md:gap-4 px-3 md:px-6 pt-3 md:pt-6">
+            <div className="hidden md:block min-w-0">
+              <h1 className="text-2xl font-bold text-white tracking-tight">{SECTIONS[activeTab].label}</h1>
+              <p className="text-sm text-muted-foreground mt-1">{SECTIONS[activeTab].hint}</p>
+            </div>
+            <div className="flex items-end gap-3 shrink-0">
+              {needsServer && servers.length > 0 && (
+                <ServerSwitcher className="flex-1 md:flex-none" servers={servers} activeServerId={activeServerId} online={online} onSelect={selectServer} />
+              )}
+              <div className="hidden md:block"><HeaderClock /></div>
+              {needsServer && servers.length > 0 && (
                 <div className={cn(
-                  'flex items-center gap-2 px-3 py-1.5 rounded-full border text-[10px] font-bold uppercase tracking-wider shrink-0',
+                  'hidden md:flex items-center gap-2 px-3 py-2 rounded-full border text-[10px] font-bold uppercase tracking-wider shrink-0',
                   serverInfo.status === 'online' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
                     : serverInfo.status === 'offline' ? 'text-red-400 bg-red-500/10 border-red-500/20'
                     : 'text-muted-foreground bg-white/5 border-white/10',
@@ -279,66 +281,79 @@ export default function Home() {
                   {serverInfo.status === 'online' ? 'сервер на связи' : serverInfo.status === 'offline' ? 'нет связи' : 'подключение...'}
                 </div>
               )}
-              </div>
             </div>
+          </div>
 
-            {activeTab === 'general-settings' && <GeneralSettings />}
-            {activeTab === "dashboard" && (
-              <ServerDashboard
-                serverInfo={serverInfo}
-                history={history}
-                canManage={isJudge}
-                onSendCommand={handleRconCommand}
-                onNavigate={setActiveTab}
-                onAddServer={() => { setEditingServer(null); setIsModalOpen(true); }}
-              />
-            )}
-            {activeTab === "live" && activeServerId && (
-              <LiveMatch key={activeServerId} serverId={activeServerId} />
-            )}
-            {activeTab === "console" && (
-              <div className="flex-1 min-h-[420px] p-3 md:p-6">
-                <RCONConsole onSendCommand={handleRconCommand} />
-              </div>
-            )}
-            {activeTab === "chat" && activeServerId && (
-              <ServerChat serverId={activeServerId} onBroadcast={(msg) => handleRconCommand(`say ${msg}`)} />
-            )}
-            {activeTab === "maps" && (
-              <MapSelector
-                currentMap={serverInfo.map}
-                onChangeMap={(map) => handleRconCommand(`map ${map}`)}
-                onCommand={handleRconCommand}
-              />
-            )}
-            {activeTab === "settings" && selectedServer && (
-              <ServerSettings
-                key={selectedServer.id}
-                server={selectedServer}
-                onEdit={() => { setEditingServer(selectedServer); setIsModalOpen(true); }}
-                onCommand={handleRconCommand}
-              />
-            )}
-            {activeTab === "match" && activeServerId && (
-              <MatchGenerator
-                key={activeServerId}
-                serverId={activeServerId}
-                onStartMatch={handleStartMatch}
-                onLaunchMatch={handleLaunchMatch}
-                onStopMatch={handleStopMatch}
-              />
-            )}
-          </div>
-        ) : (
-          <div className="flex-1 flex flex-col items-center justify-center gap-3 p-6 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center"><Crosshair size={28} /></div>
-            <div className="text-white font-semibold">Сервер не выбран</div>
-            <div className="text-sm text-muted-foreground max-w-xs">
-              {servers.length ? 'Выберите сервер в меню.' : isJudge ? 'Добавьте первый сервер: меню → блок «Сервер» → «Добавить сервер».' : 'Судьи ещё не добавили серверы.'}
+          {activeTab === 'general-settings' && <GeneralSettings />}
+          {activeTab === 'servers' && (
+            <ServersView
+              servers={servers}
+              canManage={isJudge}
+              onRefresh={loadServers}
+              onConnect={openAdd}
+              onEdit={(server) => { setEditingServer(server); setIsModalOpen(true); }}
+              onDelete={handleDeleteServer}
+              onOpen={(id, section) => { selectServer(id); setActiveTab(section); }}
+            />
+          )}
+
+          {needsServer && !selectedServer ? (
+            <div className="flex-1 flex flex-col items-center justify-center gap-3 p-6 text-center">
+              <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center"><Layers size={28} /></div>
+              <div className="text-white font-semibold">Серверов пока нет</div>
+              <div className="text-sm text-muted-foreground max-w-xs">Подключите сервер в разделе «Серверы», и здесь появятся его инструменты.</div>
+              <button onClick={() => setActiveTab('servers')} className="mt-1 px-4 py-2 rounded-xl bg-primary text-white text-sm font-semibold shadow-lg shadow-primary/20">Перейти к серверам</button>
             </div>
-            <button onClick={() => setSidebarOpen(true)} className="md:hidden mt-1 px-4 py-2 rounded-xl bg-primary text-white text-sm font-semibold">Открыть меню</button>
-          </div>
-        )}
+          ) : (
+            <>
+              {activeTab === "dashboard" && (
+                <ServerDashboard
+                  serverInfo={serverInfo}
+                  history={history}
+                  canManage={isJudge}
+                  onSendCommand={handleRconCommand}
+                  onNavigate={setActiveTab}
+                  onAddServer={() => setActiveTab('servers')}
+                />
+              )}
+              {activeTab === "live" && activeServerId && (
+                <LiveMatch key={activeServerId} serverId={activeServerId} />
+              )}
+              {activeTab === "console" && (
+                <div className="flex-1 min-h-[420px] p-3 md:p-6">
+                  <RCONConsole key={activeServerId} onSendCommand={handleRconCommand} />
+                </div>
+              )}
+              {activeTab === "chat" && activeServerId && (
+                <ServerChat key={activeServerId} serverId={activeServerId} onBroadcast={(msg) => handleRconCommand(`say ${msg}`)} />
+              )}
+              {activeTab === "maps" && (
+                <MapSelector
+                  currentMap={serverInfo.map}
+                  onChangeMap={(map) => handleRconCommand(`map ${map}`)}
+                  onCommand={handleRconCommand}
+                />
+              )}
+              {activeTab === "settings" && selectedServer && (
+                <ServerSettings
+                  key={selectedServer.id}
+                  server={selectedServer}
+                  onEdit={() => { setEditingServer(selectedServer); setIsModalOpen(true); }}
+                  onCommand={handleRconCommand}
+                />
+              )}
+              {activeTab === "match" && activeServerId && (
+                <MatchGenerator
+                  key={activeServerId}
+                  serverId={activeServerId}
+                  onStartMatch={handleStartMatch}
+                  onLaunchMatch={handleLaunchMatch}
+                  onStopMatch={handleStopMatch}
+                />
+              )}
+            </>
+          )}
+        </div>
       </main>
 
       <ServerModal 

@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Activity, Users, Map as MapIcon, Wifi, Plus, Trash2, Play, Pause, RotateCcw, Radio, Cpu, MemoryStick, Terminal, Trophy, ClipboardList, ChevronRight } from 'lucide-react';
+import { Activity, Users, Map as MapIcon, Wifi, Plus, Trash2, Play, Pause, RotateCcw, Radio, Cpu, MemoryStick, Terminal, Trophy, ClipboardList, ChevronRight, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { db_helper } from '@/lib/db';
 import { api } from '@/lib/api';
@@ -107,9 +107,9 @@ export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate
   };
 
   return (
-    <div className="p-3 md:p-6 space-y-4 md:space-y-6 animate-in fade-in duration-500">
+    <div className="p-3 md:p-6 flex flex-col gap-4 md:gap-6 animate-in fade-in duration-500">
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+      <div className="order-1 grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         <StatCard
           title="Статус"
           value={serverInfo.status === 'online' ? 'Онлайн' : serverInfo.status === 'offline' ? 'Нет связи' : '...'}
@@ -129,7 +129,7 @@ export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4">
+      <div className="order-3 md:order-2 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4">
         <ChartCard
           title="Пинг"
           subtitle="до игрового сервера"
@@ -172,7 +172,7 @@ export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate
       </div>
 
       {/* Quick Actions */}
-        <div className="p-4 md:p-6 rounded-2xl border border-border bg-card shadow-lg shadow-black/20 flex flex-col">
+        <div className="order-2 md:order-3 p-4 md:p-6 rounded-2xl border border-border bg-card shadow-lg shadow-black/20 flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-bold text-white flex items-center">
               <Activity size={16} className="mr-2 text-primary" />
@@ -241,19 +241,19 @@ export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate
         </div>
 
       {/* Shortcuts */}
-      <div>
+      <div className="order-4">
         <div className="px-1 pb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Быстрый переход</div>
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4">
           <ShortcutTile icon={<Terminal size={18} />} label="Консоль" onClick={() => onNavigate('console')} />
           <ShortcutTile icon={<Trophy size={18} />} label="Запуск матча" onClick={() => onNavigate('match')} />
           <ShortcutTile icon={<MapIcon size={18} />} label="Карты" onClick={() => onNavigate('maps')} />
-          {canManage && <ShortcutTile icon={<Plus size={18} />} label="Новый сервер" onClick={onAddServer} />}
+          <ShortcutTile icon={<Layers size={18} />} label="Серверы" onClick={onAddServer} />
         </div>
       </div>
 
       {/* Latest judge actions */}
       {canManage && (
-        <div className="rounded-2xl border border-border bg-card shadow-lg shadow-black/20 overflow-hidden">
+        <div className="order-5 rounded-2xl border border-border bg-card shadow-lg shadow-black/20 overflow-hidden">
           <div className="flex items-center gap-2 px-4 md:px-6 pt-4 md:pt-5 pb-3">
             <ClipboardList size={16} className="text-primary" />
             <h3 className="text-sm font-bold text-white">Последние действия</h3>
