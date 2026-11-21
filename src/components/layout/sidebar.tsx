@@ -17,7 +17,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Role } from '@/lib/api';
+import { api, Role } from '@/lib/api';
 import { Text, useT } from '@/lib/i18n';
 
 export type Section = 'dashboard' | 'servers' | 'live' | 'console' | 'chat' | 'maps' | 'match' | 'settings' | 'general-settings';
@@ -32,7 +32,7 @@ export const SECTIONS: Record<Section, { label: Text; title?: Text; hint: Text; 
   maps: { label: { ru: 'Карты', en: 'Maps' }, title: { ru: 'Обозреватель карт', en: 'Map Explorer' }, hint: { ru: 'Запускайте карты и контент из Workshop на сервере', en: 'Deploy battlegrounds or workshop content to your node' }, icon: MapIcon },
   match: { label: { ru: 'Запуск матча', en: 'Match setup' }, hint: { ru: 'Конфиг MatchZy и запуск', en: 'MatchZy config and launch' }, icon: Trophy },
   settings: { label: { ru: 'Настройки сервера', en: 'Server settings' }, hint: { ru: 'Подключение и параметры сервера', en: 'Connection and server parameters' }, icon: SlidersHorizontal },
-  'general-settings': { label: { ru: 'Настройки панели', en: 'Panel settings' }, hint: { ru: 'Журнал действий и версия панели', en: 'Action log and panel version' }, icon: Settings },
+  'general-settings': { label: { ru: 'Настройки', en: 'Settings' }, hint: { ru: 'Настройки панели, сервера CS2 и журнал действий', en: 'Configure your panel settings and security preferences' }, icon: Settings },
 };
 
 export const ROLE_TEXT: Record<Role, Text> = {
@@ -55,6 +55,14 @@ interface SidebarProps {
 export function Sidebar({ activeSection, onSelectSection, onClose, user }: SidebarProps) {
   const { t, lang } = useT();
   const role = ROLE_TEXT[user.role][lang];
+  // Panel name from the settings, as in Quatrix; refreshed when the settings page saves
+  const [panelName, setPanelName] = React.useState('');
+  React.useEffect(() => {
+    const load = () => { api<{ panelName: string }>('/api/panel-settings').then((s) => setPanelName(s.panelName)).catch(() => {}); };
+    load();
+    window.addEventListener('panel-settings-changed', load);
+    return () => window.removeEventListener('panel-settings-changed', load);
+  }, []);
   return (
     <aside className="flex flex-col h-[100dvh] w-72 md:w-64 bg-sidebar text-muted-foreground border-r border-border">
       {/* Logo */}
@@ -64,7 +72,7 @@ export function Sidebar({ activeSection, onSelectSection, onClose, user }: Sideb
             <Crosshair size={22} className="text-white" />
           </div>
           <div className="min-w-0">
-            <div className="text-lg font-bold text-white tracking-tight leading-tight">Matchdesk</div>
+            <div className="text-lg font-bold text-white tracking-tight leading-tight truncate">{panelName || 'Matchdesk'}</div>
             <div className="text-[11px] text-muted-foreground leading-tight">{t('панель судьи CS2', 'CS2 referee panel')}</div>
           </div>
         </div>

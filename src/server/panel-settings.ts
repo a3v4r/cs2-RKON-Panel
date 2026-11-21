@@ -5,6 +5,9 @@ import { dataDir } from './accounts';
 // Panel-wide settings judges change in the interface (data/settings.json)
 export interface PanelSettings {
   cs2Dir?: string;
+  steamcmd?: string;
+  panelName?: string;
+  defaultPort?: number;
 }
 
 const file = () => path.join(dataDir(), 'settings.json');
@@ -36,7 +39,7 @@ export function cs2Paths(dir = cs2Dir()) {
   return {
     dir,
     // The kit puts steamcmd next to the server: INSTALL_DIR\steamcmd and INSTALL_DIR\cs2
-    steamcmd: process.env.STEAMCMD || path.join(path.dirname(dir), 'steamcmd', 'steamcmd.exe'),
+    steamcmd: readSettings().steamcmd || process.env.STEAMCMD || path.join(path.dirname(dir), 'steamcmd', 'steamcmd.exe'),
     csgo,
     exe: path.join(game, 'bin', 'win64', 'cs2.exe'),
     gameinfo: path.join(csgo, 'gameinfo.gi'),

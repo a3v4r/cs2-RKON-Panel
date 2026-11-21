@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
+import { api } from '@/lib/api';
 import type { ManagedConfig, ServerProfile } from '@/lib/db';
 import { useT, tNow } from '@/lib/i18n';
 
@@ -24,16 +25,16 @@ type Form = { name: string; port: string; rcon_password: string; country_code: s
 const MAPS = ['de_dust2', 'de_mirage', 'de_inferno', 'de_nuke', 'de_ancient', 'de_anubis', 'de_vertigo', 'de_train', 'de_overpass'];
 
 // Next free pair of ports on this PC: 27015/27020, 27025/27030, ...
-function freePorts(servers: ServerProfile[]) {
+function freePorts(servers: ServerProfile[], start = 27015) {
   const taken = new Set(servers.flatMap((s) => [s.port, s.managed?.tvPort ?? 0]));
-  for (let port = 27015; port < 28000; port += 10) {
+  for (let port = start; port < start + 1000; port += 10) {
     if (!taken.has(port) && !taken.has(port + 5)) return { port, tvPort: port + 5 };
   }
   return { port: 27015, tvPort: 27020 };
 }
 
-function emptyForm(servers: ServerProfile[]): Form {
-  const { port, tvPort } = freePorts(servers);
+function emptyForm(servers: ServerProfile[], start?: number): Form {
+  const { port, tvPort } = freePorts(servers, start);
   const n = servers.filter((s) => s.managed).length + 1;
   return {
     name: tNow(`Турнирный сервер #${n}`, `Tournament server #${n}`),
@@ -76,6 +77,8 @@ export function CreateServerModal({ open, onOpenChange, server, servers, onSave 
       });
     } else {
       setForm(emptyForm(servers));
+      // Ports start from the default port set in the panel settings
+      api<{ defaultPort: number }>('/api/panel-settings').then((st) => setForm(emptyForm(servers, st.defaultPort))).catch(() => {});
     }
   }, [open, server]); // eslint-disable-line react-hooks/exhaustive-deps
 
