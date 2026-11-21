@@ -6,7 +6,6 @@ import { cn } from '@/lib/utils';
 import { db_helper } from '@/lib/db';
 import { api } from '@/lib/api';
 import { auditWho, useT } from '@/lib/i18n';
-import { mapImage, stockMap } from '@/lib/maps';
 import type { Section } from '@/components/layout/sidebar';
 
 export interface ServerSample {
@@ -68,7 +67,6 @@ export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate
   }, [canManage]);
 
   const lastSystem = system?.samples[system.samples.length - 1];
-  const online = serverInfo.status === 'online';
   const [customCommands, setCustomCommands] = React.useState<any[]>([]);
   const [newCmdLabel, setNewCmdLabel] = React.useState('');
   const [newCmdValue, setNewCmdValue] = React.useState('');
@@ -111,34 +109,29 @@ export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate
   };
 
   return (
-    <div className="w-full p-3 md:p-6 grid xl:grid-cols-3 gap-4 md:gap-6 items-start animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {/* Hero, as on the Match and Maps pages: the current map behind the server, the key numbers inside */}
-      <section className="order-1 xl:col-span-3 relative overflow-hidden rounded-2xl border border-gray-800 shadow-2xl bg-card">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={mapImage(serverInfo.map)} alt="" className={cn('absolute inset-0 w-full h-full object-cover', online ? 'opacity-30' : 'opacity-10 grayscale')} />
-        <div className="absolute inset-0 bg-gradient-to-r from-card via-card/85 to-card/40" />
-        <div className="relative p-4 sm:p-8 flex flex-col lg:flex-row lg:items-end justify-between gap-5">
-          <div className="min-w-0">
-            <span className={cn(pill, online ? 'bg-green-500/10 text-green-500 border-green-500/20' : serverInfo.status === 'loading' ? 'bg-gray-500/10 text-gray-400 border-gray-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20')}>
-              <span className={cn('w-1.5 h-1.5 rounded-full', online ? 'bg-green-500 animate-pulse' : serverInfo.status === 'loading' ? 'bg-gray-500' : 'bg-red-500')} />
-              {online ? t('Онлайн', 'Online') : serverInfo.status === 'offline' ? t('Нет связи', 'No connection') : t('Проверка...', 'Checking...')}
-            </span>
-            <h2 className="mt-3 text-2xl sm:text-4xl font-black text-white tracking-tight truncate">{serverInfo.name}</h2>
-            {serverInfo.status === 'offline' && (
-              <p className="mt-1 text-[10px] text-gray-400 font-bold uppercase tracking-widest truncate">{t('Сервер не отвечает на запросы', 'The server does not answer')}</p>
-            )}
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 shrink-0">
-            <HeroStat icon={<MapIcon size={14} />} label={t('Карта', 'Map')} value={online ? (stockMap(serverInfo.map)?.displayName ?? serverInfo.map) : '---'} />
-            <HeroStat icon={<Users size={14} />} label={t('Игроки', 'Players')} value={`${serverInfo.players.online} / ${serverInfo.players.max}`} />
-            <HeroStat icon={<Radio size={14} />} label={t('Боты', 'Bots')} value={String(serverInfo.players.bots)} />
-            <HeroStat icon={<Wifi size={14} />} label={t('Пинг', 'Ping')} value={t(`${serverInfo.ping} мс`, `${serverInfo.ping} ms`)} />
-          </div>
-        </div>
-      </section>
+    <div className="w-full p-3 md:p-6 flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      {/* Stats Summary Cards, as on the Quatrix dashboard */}
+      <div className="order-1 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <StatCard
+          title={t('Статус', 'Status')}
+          value={serverInfo.status === 'online' ? t('Онлайн', 'Online') : serverInfo.status === 'offline' ? t('Нет связи', 'No connection') : '...'}
+          icon={<Radio size={18} />}
+          color={serverInfo.status === 'online' ? 'text-green-500' : 'text-red-500'}
+          description={serverInfo.name}
+        />
+        <StatCard title={t('Карта', 'Map')} value={serverInfo.map} icon={<MapIcon size={18} />} color="text-orange-500" description={t('Текущая карта сервера', 'Current server map')} />
+        <StatCard
+          title={t('Игроки', 'Players')}
+          value={`${serverInfo.players.online} / ${serverInfo.players.max}`}
+          icon={<Users size={18} />}
+          color="text-purple-500"
+          description={t(`ботов: ${serverInfo.players.bots}`, `bots: ${serverInfo.players.bots}`)}
+        />
+        <StatCard title={t('Пинг', 'Ping')} value={t(`${serverInfo.ping} мс`, `${serverInfo.ping} ms`)} icon={<Wifi size={18} />} color="text-blue-500" description={t('Задержка до сервера', 'Latency to the server')} />
+      </div>
 
       {/* Real-time monitoring cards, as the Quatrix CPU / RAM / Network / Disk cards */}
-      <div className="order-3 md:order-2 xl:col-span-3 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
+      <div className="order-3 md:order-2 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
         <ChartCard
           title={t('Пинг', 'Ping')}
           subtitle={t('до игрового сервера', 'to the game server')}
@@ -181,9 +174,16 @@ export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate
       </div>
 
       {/* Quick Actions: our match controls in a Quatrix card container */}
-      <div className="order-2 md:order-3 xl:col-span-2 p-4 sm:p-6 bg-card rounded-2xl border border-gray-800 shadow-2xl flex flex-col min-w-0">
-        <div className="flex items-center justify-between gap-3 mb-5">
-          <CardHeader icon={<Activity size={18} />} title={t('Быстрые действия', 'Quick actions')} subtitle={t('команды на сервер в один клик', 'one-click server commands')} />
+      <div className="order-2 md:order-3 p-4 sm:p-6 bg-card rounded-2xl border border-gray-800/60 shadow-lg shadow-black/20 flex flex-col">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="p-2.5 rounded-xl bg-primary/10 text-primary shrink-0">
+              <Activity size={20} />
+            </div>
+            <h3 className="text-xs font-black text-white uppercase tracking-wider truncate">
+              {t('Быстрые действия', 'Quick actions')}
+            </h3>
+          </div>
           {canManage && <button
             onClick={() => setIsAddingCmd(!isAddingCmd)}
             className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-primary/20 bg-primary/10 text-primary hover:bg-primary/20 text-[10px] font-black uppercase tracking-wider transition-all active:scale-95"
@@ -246,25 +246,23 @@ export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate
         )}
       </div>
 
-      <div className="order-4 space-y-4 md:space-y-6 min-w-0">
       {/* Shortcuts, as the Quatrix Quick Actions bar */}
-      <section className="p-4 sm:p-6 bg-card rounded-2xl border border-gray-800 shadow-2xl">
-        <CardHeader icon={<ChevronRight size={18} />} title={t('Быстрый переход', 'Shortcuts')} />
-        <div className="mt-5 grid grid-cols-2 gap-2 sm:gap-3">
-          <ShortcutTile icon={<Terminal size={18} />} label={t('Консоль', 'Console')} onClick={() => onNavigate('console')} />
+      <div className="order-4">
+        <SectionLabel>{t('Быстрый переход', 'Shortcuts')}</SectionLabel>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+          <ShortcutTile icon={<Terminal size={18} />} label={t('Открыть консоль', 'Open Console')} onClick={() => onNavigate('console')} />
           <ShortcutTile icon={<Trophy size={18} />} label={t('Запуск матча', 'Match setup')} onClick={() => onNavigate('match')} />
           <ShortcutTile icon={<MapIcon size={18} />} label={t('Карты', 'Maps')} onClick={() => onNavigate('maps')} />
           <ShortcutTile icon={<Layers size={18} />} label={t('Серверы', 'Servers')} onClick={onAddServer} />
         </div>
-      </section>
+      </div>
 
       {/* Latest judge actions, as the Quatrix activity feed */}
       {canManage && (
-          <section className="bg-card rounded-2xl border border-gray-800 overflow-hidden flex flex-col shadow-2xl">
-            <div className="p-4 sm:px-6 border-b border-gray-800/60">
-              <CardHeader icon={<ClipboardList size={18} />} title={t('Последние действия', 'Recent actions')} subtitle={t('журнал судей', 'judges\' log')} />
-            </div>
-            <div className="flex-1 divide-y divide-gray-800/40 overflow-y-auto max-h-[260px]">
+        <div className="order-5">
+          <SectionLabel>{t('Последние действия', 'Recent actions')}</SectionLabel>
+          <div className="bg-card rounded-2xl border border-gray-800/60 overflow-hidden flex flex-col shadow-lg shadow-black/20 min-h-[220px]">
+            <div className="flex-1 divide-y divide-gray-800/40 overflow-y-auto max-h-[220px]">
               {audit && audit.length > 0 ? (
                 audit.map((e, i) => {
                   const Icon = e.who === 'трансляция' ? Radio : Bell;
@@ -307,36 +305,16 @@ export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate
               </div>
               <ChevronRight size={12} className="group-hover:translate-x-1 transition-transform" />
             </button>
-          </section>
+          </div>
+        </div>
       )}
-      </div>
     </div>
   );
 }
 
-const pill = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border';
-
-// Card header as on the Match, Console and Players pages
-function CardHeader({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle?: string }) {
-  return (
-    <div className="flex items-center gap-3 min-w-0">
-      <div className="p-2.5 rounded-xl bg-primary/10 text-primary shrink-0">{icon}</div>
-      <div className="min-w-0">
-        <h3 className="text-xs font-black text-white uppercase tracking-wider truncate">{title}</h3>
-        {subtitle && <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest truncate mt-0.5">{subtitle}</p>}
-      </div>
-    </div>
-  );
-}
-
-// A number in the hero card
-function HeroStat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-  return (
-    <div className="min-w-0 sm:min-w-[7.5rem] px-3 sm:px-4 py-2.5 rounded-xl bg-background/60 backdrop-blur-sm border border-gray-800">
-      <div className="flex items-center gap-1.5 text-[9px] text-gray-500 font-black uppercase tracking-widest">{icon}{label}</div>
-      <div className="mt-1 text-base sm:text-lg font-black text-white tabular-nums truncate">{value}</div>
-    </div>
-  );
+// Section heading above a block, as "QUICK ACTIONS" on the Quatrix dashboard
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return <h2 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4 pl-1">{children}</h2>;
 }
 
 // Tailwind needs the full class names in the source, so every chart color is spelled out
@@ -402,7 +380,7 @@ function ChartCard({ title, subtitle, value, unit, icon, tone, data, max }: {
           <div className="flex items-center gap-3 min-w-0">
             <div className={cn('p-2.5 rounded-xl transition-colors shrink-0', c.chip)}>{icon}</div>
             <div className="min-w-0">
-              <h3 className="text-xs font-black text-white uppercase tracking-wider leading-tight" title={title}>{title}</h3>
+              <h3 className="text-xs font-black text-white uppercase tracking-wider whitespace-nowrap">{title}</h3>
               <p className="text-[9px] text-gray-500 font-bold truncate">{subtitle}</p>
             </div>
           </div>
@@ -469,16 +447,31 @@ function ShortcutTile({ icon, label, onClick }: { icon: React.ReactNode; label: 
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-3 p-3 bg-background/50 rounded-xl border border-gray-800 hover:border-primary/50 hover:bg-primary/5 transition-all group text-left min-w-0"
+      className="flex items-center gap-3 sm:gap-4 p-4 bg-card rounded-2xl border border-gray-800/60 hover:border-primary/50 hover:bg-primary/5 transition-all group shadow-lg shadow-black/10 text-left min-w-0"
     >
       <div className="p-2.5 rounded-xl bg-gray-800/50 text-gray-400 group-hover:bg-primary/10 group-hover:text-primary transition-colors shrink-0">
         {icon}
       </div>
-      <span className="text-[10px] font-black text-gray-400 group-hover:text-white uppercase tracking-wider leading-tight line-clamp-2">{label}</span>
+      <span className="text-[10px] font-black text-gray-400 group-hover:text-white uppercase tracking-wider truncate">{label}</span>
     </button>
   );
 }
 
+// Summary card, as the Quatrix Servers / Players / Uptime / Maps cards
+function StatCard({ title, value, icon, description, color }: { title: string, value: string, icon: React.ReactNode, description: string, color: string }) {
+  return (
+    <div className="p-4 sm:p-6 bg-card rounded-2xl border border-gray-800/60 hover:border-white/10 transition-all hover:translate-y-[-2px] group shadow-lg shadow-black/20 min-w-0">
+      <div className="flex items-center justify-between gap-2 mb-4">
+        <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest truncate">{title}</span>
+        <div className={cn('p-2 rounded-lg bg-white/5 group-hover:scale-110 transition-transform shrink-0', color)}>{icon}</div>
+      </div>
+      <div className="flex items-baseline gap-2 min-w-0">
+        <span className="text-xl sm:text-3xl font-black text-white truncate">{value}</span>
+      </div>
+      <p className="text-xs text-gray-500 mt-2 font-medium opacity-80 truncate">{description}</p>
+    </div>
+  );
+}
 
 const ACTION_TONES = {
   emerald: 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-900/30 border-transparent',
