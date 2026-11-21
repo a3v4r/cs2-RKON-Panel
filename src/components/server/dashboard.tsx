@@ -1,9 +1,31 @@
 "use client";
 
 import React from 'react';
-import { Activity, Users, Map as MapIcon, Wifi, Plus, Trash2, Play, Pause, RotateCcw, Radio } from 'lucide-react';
+import { Activity, Users, Map as MapIcon, Wifi, Plus, Trash2, Play, Pause, RotateCcw, Radio, Cpu, MemoryStick, Terminal, Trophy, ClipboardList, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { db_helper } from '@/lib/db';
+import { api } from '@/lib/api';
+import type { Section } from '@/components/layout/sidebar';
+
+export interface ServerSample {
+  t: number;
+  ping: number;
+  players: number;
+}
+
+interface SystemInfo {
+  cpuModel: string;
+  cores: number;
+  memTotalGb: number;
+  memUsedGb: number;
+  samples: { t: number; cpu: number; mem: number }[];
+}
+
+interface AuditEntry {
+  time: string;
+  who: string;
+  action: string;
+}
 
 interface ServerDashboardProps {
   serverInfo: {
@@ -18,7 +40,10 @@ interface ServerDashboardProps {
     keywords: string;
     status: 'online' | 'offline' | 'loading';
   };
+  history: ServerSample[];
   onSendCommand: (command: string) => Promise<string>;
+  onNavigate: (section: Section) => void;
+  onAddServer: () => void;
   // Custom quick commands can be added/removed by admins only
   canManage: boolean;
 }
@@ -36,8 +61,24 @@ const COMMON_MAPS = [
   'de_cache',
 ];
 
-export function ServerDashboard({ serverInfo, onSendCommand, canManage }: ServerDashboardProps) {
+export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate, onAddServer, canManage }: ServerDashboardProps) {
   const [mapInput, setMapInput] = React.useState('');
+  const [system, setSystem] = React.useState<SystemInfo | null>(null);
+  const [audit, setAudit] = React.useState<AuditEntry[] | null>(null);
+
+  // Panel PC load and the latest judge actions refresh while the overview is open
+  React.useEffect(() => {
+    if (!canManage) return;
+    const load = () => {
+      api<SystemInfo>('/api/system').then(setSystem).catch(() => {});
+      api<AuditEntry[]>('/api/audit').then((e) => setAudit(e.slice(0, 6))).catch(() => {});
+    };
+    load();
+    const timer = setInterval(load, 5000);
+    return () => clearInterval(timer);
+  }, [canManage]);
+
+  const lastSystem = system?.samples[system.samples.length - 1];
   const [customCommands, setCustomCommands] = React.useState<any[]>([]);
   const [newCmdLabel, setNewCmdLabel] = React.useState('');
   const [newCmdValue, setNewCmdValue] = React.useState('');
@@ -200,7 +241,150 @@ export function ServerDashboard({ serverInfo, onSendCommand, canManage }: Server
           </div>
         </div>
       </div>
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4">
+        <ChartCard
+          title="Пинг"
+          subtitle="до игрового сервера"
+          value={history.length ? `${history[history.length - 1].ping} мс` : '—'}
+          icon={<Wifi size={18} />}
+          color="#34d399"
+          tone="emerald"
+          points={history.map((s) => s.ping)}
+        />
+        <ChartCard
+          title="Игроки"
+          subtitle={`из ${serverInfo.players.max || '—'} мест`}
+          value={history.length ? String(history[history.length - 1].players) : '—'}
+          icon={<Users size={18} />}
+          color="#a78bfa"
+          tone="violet"
+          points={history.map((s) => s.players)}
+          max={serverInfo.players.max || undefined}
+        />
+        <ChartCard
+          title="CPU"
+          subtitle={system ? `ПК панели · ${system.cpuModel}` : 'ПК панели'}
+          value={lastSystem ? `${lastSystem.cpu.toFixed(1)}%` : '—'}
+          icon={<Cpu size={18} />}
+          color="#1890ff"
+          tone="blue"
+          points={system?.samples.map((s) => s.cpu) ?? []}
+          max={100}
+        />
+        <ChartCard
+          title="RAM"
+          subtitle={system ? `ПК панели · ${system.memUsedGb} / ${system.memTotalGb} ГБ` : 'ПК панели'}
+          value={lastSystem ? `${lastSystem.mem.toFixed(1)}%` : '—'}
+          icon={<MemoryStick size={18} />}
+          color="#f97316"
+          tone="orange"
+          points={system?.samples.map((s) => s.mem) ?? []}
+          max={100}
+        />
+      </div>
+
+      {/* Shortcuts */}
+      <div>
+        <div className="px-1 pb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Быстрый переход</div>
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4">
+          <ShortcutTile icon={<Terminal size={18} />} label="Консоль" onClick={() => onNavigate('console')} />
+          <ShortcutTile icon={<Trophy size={18} />} label="Запуск матча" onClick={() => onNavigate('match')} />
+          <ShortcutTile icon={<MapIcon size={18} />} label="Карты" onClick={() => onNavigate('maps')} />
+          {canManage && <ShortcutTile icon={<Plus size={18} />} label="Новый сервер" onClick={onAddServer} />}
+        </div>
+      </div>
+
+      {/* Latest judge actions */}
+      {canManage && (
+        <div className="rounded-2xl border border-border bg-card shadow-lg shadow-black/20 overflow-hidden">
+          <div className="flex items-center gap-2 px-4 md:px-6 pt-4 md:pt-5 pb-3">
+            <ClipboardList size={16} className="text-primary" />
+            <h3 className="text-sm font-bold text-white">Последние действия</h3>
+          </div>
+          {audit && audit.length > 0 ? (
+            <div className="px-4 md:px-6 pb-3 space-y-1">
+              {audit.map((e, i) => (
+                <div key={i} className="flex items-baseline gap-3 py-1.5 border-b border-border/40 last:border-0 text-sm min-w-0">
+                  <span className="text-[11px] text-muted-foreground tabular-nums shrink-0">{new Date(e.time).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</span>
+                  <span className="text-[11px] font-semibold text-primary shrink-0">{e.who}</span>
+                  <span className="text-white/90 truncate">{e.action}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center gap-3 py-10 text-muted-foreground">
+              <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center"><ClipboardList size={22} /></div>
+              <span className="text-sm">{audit ? 'Действий пока не было' : 'Загрузка…'}</span>
+            </div>
+          )}
+          <button
+            onClick={() => onNavigate('general-settings')}
+            className="w-full flex items-center justify-between px-4 md:px-6 py-2.5 border-t border-border/60 text-[11px] font-bold text-muted-foreground hover:text-white hover:bg-white/[0.02] transition-colors"
+          >
+            <span className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-primary" />Весь журнал</span>
+            <ChevronRight size={14} />
+          </button>
+        </div>
+      )}
     </div>
+  );
+}
+
+// Card with a filled line chart, as on the Quatrix overview
+function ChartCard({ title, subtitle, value, icon, color, tone, points, max }: {
+  title: string; subtitle: string; value: string; icon: React.ReactNode; color: string; tone: keyof typeof TONES; points: number[]; max?: number;
+}) {
+  const id = React.useId().replace(/:/g, '');
+  const W = 300, H = 100;
+  const top = max ?? Math.max(1, ...points) * 1.25;
+  const xy = points.map((v, i) => [
+    points.length === 1 ? W : (i / (points.length - 1)) * W,
+    H - Math.min(1, Math.max(0, v / top)) * (H - 4) - 2,
+  ]);
+  const line = xy.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+  return (
+    <div className="p-4 md:p-5 rounded-2xl border border-border bg-card shadow-lg shadow-black/20 min-w-0 flex flex-col">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className={cn('p-2 rounded-lg border shrink-0', TONES[tone])}>{icon}</div>
+          <div className="min-w-0">
+            <div className="text-xs font-bold uppercase tracking-wide text-white truncate">{title}</div>
+            <div className="text-[10px] text-muted-foreground truncate">{subtitle}</div>
+          </div>
+        </div>
+        <div className="text-xl md:text-2xl font-semibold tabular-nums shrink-0" style={{ color }}>{value}</div>
+      </div>
+      <div className="mt-4 h-24 md:h-28">
+        {points.length > 1 ? (
+          <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="w-full h-full overflow-visible">
+            <defs>
+              <linearGradient id={`fill-${id}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={color} stopOpacity="0.35" />
+                <stop offset="100%" stopColor={color} stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            <path d={`${line} L${W},${H} L0,${H} Z`} fill={`url(#fill-${id})`} />
+            <path d={line} fill="none" stroke={color} strokeWidth="2" vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
+          </svg>
+        ) : (
+          <div className="h-full flex items-center justify-center text-[11px] text-muted-foreground">График появится через несколько секунд</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ShortcutTile({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="group flex items-center gap-3 p-3 md:p-4 rounded-2xl border border-border bg-card shadow-lg shadow-black/20 hover:border-primary/40 hover:bg-primary/5 transition-all text-left min-w-0"
+    >
+      <span className="w-9 h-9 shrink-0 rounded-lg bg-white/5 flex items-center justify-center text-muted-foreground group-hover:text-primary transition-colors">{icon}</span>
+      <span className="text-[11px] font-bold uppercase tracking-wider text-white truncate">{label}</span>
+    </button>
   );
 }
 

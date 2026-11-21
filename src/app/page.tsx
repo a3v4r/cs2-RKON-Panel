@@ -2,10 +2,10 @@
 
 import React, { useState } from 'react';
 import { Sidebar, SECTIONS, Section } from '@/components/layout/sidebar';
-import { ServerDashboard } from '@/components/server/dashboard';
+import { ServerDashboard, ServerSample } from '@/components/server/dashboard';
 import { RCONConsole } from '@/components/server/console';
 import { ServerChat } from '@/components/server/chat';
-import { Menu, Crosshair } from 'lucide-react';
+import { Menu, Crosshair, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MatchGenerator } from '@/components/server/match-generator';
 import { GeneralSettings } from '@/components/settings/general-settings';
@@ -20,6 +20,8 @@ import { RequestsBanner } from '@/components/server/requests-banner';
 import { LiveMatch } from '@/components/server/live-match';
 import { fetchMe, Role } from '@/lib/api';
 
+const HISTORY_POINTS = 120; // 10 minutes of 5 s polls
+
 const INITIAL_INFO = {
   name: "Загрузка...",
   map: "---",
@@ -27,6 +29,26 @@ const INITIAL_INFO = {
   ping: 0,
   status: 'loading' as const,
 };
+
+// Local time of the panel viewer, handy when filling in disputes and pause logs
+function HeaderClock() {
+  const [now, setNow] = useState<Date | null>(null);
+  React.useEffect(() => {
+    setNow(new Date());
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+  if (!now) return null;
+  return (
+    <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10">
+      <Clock size={14} className="text-primary" />
+      <div className="leading-none">
+        <div className="text-xs font-bold text-white tabular-nums">{now.toLocaleTimeString('ru-RU')}</div>
+        <div className="text-[9px] text-muted-foreground mt-0.5">{now.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}</div>
+      </div>
+    </div>
+  );
+}
 
 export default function Home() {
   const [servers, setServers] = useState<ServerProfile[]>([]);
@@ -37,6 +59,8 @@ export default function Home() {
   const [editingServer, setEditingServer] = useState<ServerProfile | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [me, setMe] = useState<{ role: Role } | null>(null);
+  // Ping and player count of the selected server over the last minutes, for the overview charts
+  const [history, setHistory] = useState<ServerSample[]>([]);
 
   const loadServers = async () => {
     try {
@@ -57,6 +81,7 @@ export default function Home() {
     const server = servers.find(s => s.id === activeServerId);
     if (!server) return;
 
+    setHistory([]);
     const updateInfo = async () => {
       try {
         const info = await fetchServerInfo(server.id!);
@@ -64,6 +89,7 @@ export default function Home() {
           ...info,
           status: 'online'
         });
+        setHistory((h) => [...h.slice(-(HISTORY_POINTS - 1)), { t: Date.now(), ping: info.ping, players: info.players.online }]);
       } catch (error) {
         setServerInfo({
           ...INITIAL_INFO,
@@ -238,6 +264,8 @@ export default function Home() {
                   {activeTab !== 'general-settings' && <> · <span className="text-white/80">{selectedServer?.name}</span></>}
                 </p>
               </div>
+              <div className="flex items-center gap-3 shrink-0">
+              <HeaderClock />
               {activeTab !== 'general-settings' && (
                 <div className={cn(
                   'flex items-center gap-2 px-3 py-1.5 rounded-full border text-[10px] font-bold uppercase tracking-wider shrink-0',
@@ -249,14 +277,18 @@ export default function Home() {
                   {serverInfo.status === 'online' ? 'сервер на связи' : serverInfo.status === 'offline' ? 'нет связи' : 'подключение…'}
                 </div>
               )}
+              </div>
             </div>
 
             {activeTab === 'general-settings' && <GeneralSettings />}
             {activeTab === "dashboard" && (
               <ServerDashboard
                 serverInfo={serverInfo}
+                history={history}
                 canManage={isJudge}
                 onSendCommand={handleRconCommand}
+                onNavigate={setActiveTab}
+                onAddServer={() => { setEditingServer(null); setIsModalOpen(true); }}
               />
             )}
             {activeTab === "live" && activeServerId && (
