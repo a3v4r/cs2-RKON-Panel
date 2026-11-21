@@ -12,6 +12,7 @@ import { Menu, Crosshair, Clock, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MatchGenerator } from '@/components/server/match-generator';
 import { GeneralSettings } from '@/components/settings/general-settings';
+import { BackupsView } from '@/components/settings/backups-view';
 import { db_helper, ServerProfile } from '@/lib/db';
 import { fetchServerInfo } from '@/lib/a2s';
 import { sendRconCommand } from '@/lib/rcon';
@@ -316,6 +317,7 @@ export default function Home() {
           </header>
 
           {activeTab === 'general-settings' && <GeneralSettings />}
+          {activeTab === 'backups' && <BackupsView />}
           {activeTab === 'servers' && (
             <ServersView
               servers={servers}
