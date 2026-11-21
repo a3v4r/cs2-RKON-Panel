@@ -6,6 +6,7 @@ import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
 import { ChatHistory } from './chat-history';
+import { CustomSelect } from '@/components/ui/custom-select';
 
 interface Template {
   id: number;
@@ -30,7 +31,7 @@ interface ServerChatProps {
 const INTERVALS = [1, 2, 3, 5, 10, 15, 30, 60];
 
 // Quatrix styles: cards, form inputs, Button (md) and IconButton (sm, ghost)
-const card = 'bg-card border border-gray-800 rounded-2xl p-6 shadow-xl';
+const card = 'bg-card border border-gray-800 rounded-2xl p-4 sm:p-6 shadow-2xl';
 const field = 'w-full bg-background/50 border border-gray-800 rounded-xl px-4 py-3 text-sm text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-600';
 const btn = 'flex items-center justify-center transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap px-5 py-1.5 text-sm rounded-xl font-bold h-[34px]';
 const btnPrimary = 'bg-primary hover:bg-blue-600 text-white shadow-lg shadow-blue-500/20 active:scale-95';
@@ -112,7 +113,8 @@ export function ServerChat({ serverId, onBroadcast, managed }: ServerChatProps) 
   };
 
   return (
-    <div className="p-3 md:p-6 space-y-6 animate-in fade-in duration-500">
+    <div className="p-3 md:p-6 grid gap-4 md:gap-6 xl:grid-cols-3 items-start animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="xl:col-span-2 min-w-0">
       <ChatHistory
         serverId={serverId}
         managed={managed}
@@ -124,13 +126,13 @@ export function ServerChat({ serverId, onBroadcast, managed }: ServerChatProps) 
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder={t('Сообщение всем игрокам...', 'Message to all players...')}
                 maxLength={200}
-                className="flex-1 min-w-0 h-[42px] bg-background/50 border border-gray-800 rounded-xl px-4 text-sm text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-600"
+                className="flex-1 min-w-0 h-11 bg-background/50 border border-gray-800 rounded-xl px-4 text-sm text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-600"
               />
               <button
                 type="button"
                 disabled={!message.trim()}
                 onClick={() => { setTemplateForm({ name: '', message }); setAddingTemplate(true); }}
-                className="flex items-center justify-center w-[42px] h-[42px] shrink-0 rounded-xl bg-card border border-gray-800 hover:border-primary/50 text-gray-400 hover:text-primary shadow-xl transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center justify-center w-11 h-11 shrink-0 rounded-xl bg-background/50 border border-gray-800 hover:border-primary/50 text-gray-400 hover:text-primary transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 title={t('Сохранить как шаблон', 'Save as template')}
                 aria-label={t('Сохранить как шаблон', 'Save as template')}
               >
@@ -139,30 +141,26 @@ export function ServerChat({ serverId, onBroadcast, managed }: ServerChatProps) 
               <button
                 type="submit"
                 disabled={!message.trim()}
-                className={cn(btn, btnPrimary, 'h-[42px] shrink-0')}
+                className="h-11 inline-flex items-center justify-center gap-2 px-4 sm:px-6 rounded-xl bg-primary hover:bg-blue-600 text-white text-sm font-bold shadow-lg shadow-blue-500/20 active:scale-95 transition-all shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label={t('Отправить', 'Send')}
               >
-                <Send size={16} className="sm:mr-2" />
+                <Send size={16} />
                 <span className="hidden sm:inline">{t('Отправить', 'Send')}</span>
               </button>
             </div>
-            <div className="text-xs text-gray-500 px-1">
-              {status || <>{t('Отправитель:', 'Sender:')} <span className="text-primary font-bold">Console</span></>}
+            <div className="text-[11px] text-gray-500 px-1">
+              {status || <>{t('Сообщение уйдёт в общий чат от имени', 'The message goes to all chat as')} <span className="text-primary font-bold">Console</span></>}
             </div>
           </form>
         }
       />
+      </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="space-y-4 md:space-y-6 min-w-0">
         {/* Auto messages */}
-        <div className={card}>
-          <div className="flex items-center gap-2 mb-1">
-            <Clock className="text-primary w-5 h-5" />
-            <h3 className="text-lg font-bold text-white tracking-tight">{t('Автосообщения', 'Auto messages')}</h3>
-          </div>
-          <p className="text-[10px] text-gray-500 mb-4">
-            {t('Отправляет сам сервер панели - работают, даже если все браузеры закрыты.', 'Sent by the panel server itself - they work even with all browsers closed.')}
-          </p>
-          <div className="space-y-2">
+        <section className={card}>
+          <CardHeader icon={<Clock size={18} />} title={t('Автосообщения', 'Auto messages')} subtitle={t('шлёт сервер панели, даже без браузера', 'sent by the panel, no browser needed')} />
+          <div className="mt-5 space-y-2">
             {autoMessages.length === 0 && !addingAuto && (
               <div className="text-sm text-gray-500 py-6 text-center border border-dashed border-gray-800 rounded-xl">
                 {t('На этом сервере автосообщений нет.', 'No auto messages on this server.')}
@@ -204,16 +202,14 @@ export function ServerChat({ serverId, onBroadcast, managed }: ServerChatProps) 
                 required
                 className={cn(field, 'h-24 resize-none')}
               />
+              <CustomSelect
+                options={INTERVALS.map((n) => ({ value: n, label: t(`раз в ${n} мин`, `every ${n} min`) }))}
+                value={autoForm.intervalMinutes}
+                onChange={(v) => setAutoForm({ ...autoForm, intervalMinutes: v })}
+                icon={<Clock className="w-4 h-4" />}
+              />
               <div className="flex gap-2">
-                <select
-                  value={autoForm.intervalMinutes}
-                  onChange={(e) => setAutoForm({ ...autoForm, intervalMinutes: Number(e.target.value) })}
-                  className="flex-1 min-w-0 h-[34px] bg-background/50 border border-gray-800 rounded-xl px-3 text-sm text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
-                  aria-label={t('Интервал', 'Interval')}
-                >
-                  {INTERVALS.map((n) => <option key={n} value={n} className="bg-card">{t(`раз в ${n} мин`, `every ${n} min`)}</option>)}
-                </select>
-                <button type="submit" className={cn(btn, btnPrimary)}>{t('Добавить', 'Add')}</button>
+                <button type="submit" className={cn(btn, btnPrimary, 'flex-1')}>{t('Добавить', 'Add')}</button>
                 <button type="button" className={cn(btn, btnGhost)} onClick={() => setAddingAuto(false)}>{t('Отмена', 'Cancel')}</button>
               </div>
             </form>
@@ -226,15 +222,12 @@ export function ServerChat({ serverId, onBroadcast, managed }: ServerChatProps) 
               {t('Добавить автосообщение', 'Add auto message')}
             </button>
           )}
-        </div>
+        </section>
 
         {/* Templates */}
-        <div className={card}>
-          <div className="flex items-center justify-between gap-2 mb-4">
-            <div className="flex items-center gap-2">
-              <Save className="text-primary w-5 h-5" />
-              <h3 className="text-lg font-bold text-white tracking-tight">{t('Шаблоны', 'Templates')}</h3>
-            </div>
+        <section className={card}>
+          <div className="flex items-center justify-between gap-2 mb-5">
+            <CardHeader icon={<Save size={18} />} title={t('Шаблоны', 'Templates')} subtitle={t('вставить или отправить сразу', 'insert or send at once')} />
             <button
               onClick={() => setAddingTemplate(!addingTemplate)}
               className={cn(iconBtnSm, addingTemplate && 'text-primary hover:text-primary')}
@@ -269,8 +262,8 @@ export function ServerChat({ serverId, onBroadcast, managed }: ServerChatProps) 
             </form>
           )}
 
-          <div className="h-[400px] overflow-y-auto custom-scrollbar">
-            <div className="space-y-2 pr-2">
+          <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
+            <div className="space-y-2">
               {templates.length === 0 && (
                 <div className="text-sm text-gray-500 py-6 text-center border border-dashed border-gray-800 rounded-xl">{t('Шаблонов пока нет.', 'No templates yet.')}</div>
               )}
@@ -300,7 +293,20 @@ export function ServerChat({ serverId, onBroadcast, managed }: ServerChatProps) 
               ))}
             </div>
           </div>
-        </div>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+// Header as on the Match and Console pages
+function CardHeader({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle?: string }) {
+  return (
+    <div className="flex items-center gap-3 min-w-0">
+      <div className="p-2.5 rounded-xl bg-primary/10 text-primary shrink-0">{icon}</div>
+      <div className="min-w-0">
+        <h3 className="text-xs font-black text-white uppercase tracking-wider truncate">{title}</h3>
+        {subtitle && <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest truncate mt-0.5">{subtitle}</p>}
       </div>
     </div>
   );
