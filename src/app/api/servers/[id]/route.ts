@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { JUDGE, audit, requireRole } from '@/server/auth';
 import { isRunning } from '@/server/instances';
-import { parseManaged } from '@/server/managed';
+import { managedHost, parseManaged } from '@/server/managed';
 import { publicServer, servers } from '@/server/store';
 
 type Params = { params: Promise<{ id: string }> };
@@ -23,7 +23,9 @@ export async function PUT(req: Request, { params }: Params) {
   if (body.rcon_password) update.rcon_password = String(body.rcon_password);
   if (current.managed && body.managed) {
     try {
-      update.managed = parseManaged(body.managed, Number(update.port ?? current.port), id);
+      const managed = parseManaged(body.managed, Number(update.port ?? current.port), id);
+      update.managed = managed;
+      update.host = managedHost(managed);
     } catch (e) {
       return NextResponse.json({ error: (e as Error).message }, { status: 400 });
     }

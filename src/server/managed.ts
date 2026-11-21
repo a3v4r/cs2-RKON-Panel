@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { ManagedConfig, servers } from './store';
+import { GAME_MODES, GameMode, ManagedConfig, PRIORITIES, Priority, servers } from './store';
 
 // Checks the launch settings of a server the panel starts itself; throws a message for the judge
 export function parseManaged(raw: any, port: number, selfId?: number): ManagedConfig {
@@ -22,17 +22,41 @@ export function parseManaged(raw: any, port: number, selfId?: number): ManagedCo
 
   const map = String(raw?.map ?? 'de_dust2').trim();
   if (!/^[\w/.-]+$/.test(map)) throw new Error('Карта: только латиница, цифры и _ - / .');
+  const workshopMap = String(raw?.workshopMap ?? '').trim();
+  if (workshopMap && !/^\d{4,20}$/.test(workshopMap)) throw new Error('Карта из Workshop: только цифры ID');
   const bindIp = String(raw?.bindIp ?? '0.0.0.0').trim() || '0.0.0.0';
   if (!/^\d{1,3}(\.\d{1,3}){3}$/.test(bindIp)) throw new Error('IP: адрес вида 0.0.0.0');
+
+  const gameMode = (GAME_MODES as readonly string[]).includes(raw?.gameMode) ? (raw.gameMode as GameMode) : 'competitive';
+  const priority = (PRIORITIES as readonly string[]).includes(raw?.priority) ? (raw.priority as Priority) : 'Normal';
+  const gslt = String(raw?.gslt ?? '').trim();
+  if (gslt && !/^[A-Fa-f0-9]{32}$/.test(gslt)) throw new Error('GSLT: 32 символа 0-9 и A-F (выдаётся на steamcommunity.com/dev/managegameservers)');
+  // Passed to cs2.exe inside a quoted PowerShell string: one line, no quotes of either kind
+  const extraArgs = String(raw?.extraArgs ?? '').trim();
+  if (/[\r\n'"`]/.test(extraArgs)) throw new Error('Дополнительные аргументы: одна строка без кавычек');
+  const extraCfg = String(raw?.extraCfg ?? '').replace(/\r/g, '').slice(0, 4000);
 
   return {
     tvPort,
     map,
+    workshopMap: workshopMap || undefined,
     maxPlayers,
     password: String(raw?.password ?? ''),
     bindIp,
     autoRestart: raw?.autoRestart !== false,
+    gameMode,
+    gslt: gslt || undefined,
+    vac: raw?.vac !== false,
+    hibernate: raw?.hibernate === true,
+    tv: raw?.tv !== false,
+    lan: raw?.lan !== false,
+    priority,
+    extraArgs: extraArgs || undefined,
+    extraCfg: extraCfg.trim() || undefined,
   };
 }
 
-export const generatePassword = () => crypto.randomBytes(9).toString('base64url');
+// Address the panel reaches a server on this PC at: a server bound to one IP does not answer on 127.0.0.1
+export const managedHost = (m: ManagedConfig) => (m.bindIp && m.bindIp !== '0.0.0.0' ? m.bindIp : '127.0.0.1');
+
+export const generatePassword =() => crypto.randomBytes(9).toString('base64url');

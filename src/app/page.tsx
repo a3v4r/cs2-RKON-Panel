@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Sidebar, SECTIONS, SERVER_SECTIONS, Section } from '@/components/layout/sidebar';
 import { ServerSwitcher } from '@/components/layout/server-switcher';
 import { ServersView } from '@/components/servers/servers-view';
-import { CreateServerModal } from '@/components/servers/create-server-modal';
+import { CreateServerWizard } from '@/components/servers/create-server-wizard';
 import { ServerDashboard, ServerSample } from '@/components/server/dashboard';
 import { RCONConsole } from '@/components/server/console';
 import { ServerChat } from '@/components/server/chat';
@@ -137,16 +137,11 @@ export default function Home() {
     }
   };
 
-  const handleSaveManaged = async (server: ServerProfile) => {
-    if (server.id) await db_helper.updateServer(server.id, server);
-    else await db_helper.addServer(server);
-    await loadServers();
-  };
-
   const editServer = (server: ServerProfile) => {
     if (server.managed) {
       setEditingManaged(server);
       setCreateOpen(true);
+      setActiveTab('servers');
     } else {
       setEditingServer(server);
       setIsModalOpen(true);
@@ -236,7 +231,7 @@ export default function Home() {
       <div className={`fixed inset-y-0 left-0 z-50 transition-transform duration-300 md:static md:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <Sidebar
           activeSection={activeTab}
-          onSelectSection={(section) => { setActiveTab(section); setSidebarOpen(false); }}
+          onSelectSection={(section) => { setActiveTab(section); setCreateOpen(false); setSidebarOpen(false); }}
           onClose={() => setSidebarOpen(false)}
           user={me}
         />
@@ -297,7 +292,15 @@ export default function Home() {
           {activeTab === 'general-settings' && <GeneralSettings />}
           {activeTab === 'backups' && <BackupsView />}
           {activeTab === 'users' && <UsersView />}
-          {activeTab === 'servers' && (
+          {activeTab === 'servers' && createOpen && (
+            <CreateServerWizard
+              key={editingManaged?.id ?? 'new'}
+              server={editingManaged}
+              servers={servers}
+              onDone={() => { setCreateOpen(false); setEditingManaged(null); loadServers(); }}
+            />
+          )}
+          {activeTab === 'servers' && !createOpen && (
             <ServersView
               servers={servers}
               canManage={isJudge}
@@ -374,14 +377,6 @@ export default function Home() {
           )}
         </div>
       </main>
-
-      <CreateServerModal
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        server={editingManaged}
-        servers={servers}
-        onSave={handleSaveManaged}
-      />
 
       <ServerModal 
         open={isModalOpen} 

@@ -7,7 +7,7 @@ import { ensureMetamod, ensureRussian } from './cs2-files';
 import { isUpdating } from './cs2-update';
 import { cs2Paths } from './panel-settings';
 import { rconCommand } from './rcon';
-import { StoredServer, servers } from './store';
+import { GameMode, Priority, StoredServer, servers } from './store';
 
 // Runs CS2 servers on this PC the way the tournament kit's start-server.ps1 did:
 // one CS2 install, a generated cfg per server, Metamod in gameinfo.gi, restart after a crash.
@@ -31,6 +31,11 @@ const RESTART_DELAY_MS = 5_000;
 const STOP_WAIT_MS = 10_000;
 // 0xC000013A: the server console window was closed (or Ctrl+C) - a manual stop, not a crash
 const CONSOLE_CLOSED = [3221225786, -1073741510];
+// +game_type / +game_mode for each mode (Valve's gamemodes.txt)
+const GAME_TYPE_MODE: Record<GameMode, [number, number]> = {
+  competitive: [0, 1], casual: [0, 0], wingman: [0, 2], deathmatch: [1, 2],
+  armsrace: [1, 0], demolition: [1, 1], training: [2, 0], custom: [3, 0],
+};
 
 const g = globalThis as unknown as { instProcs?: Map<number, Proc>; instWatcher?: NodeJS.Timeout };
 const procs = (g.instProcs ??= new Map<number, Proc>());
@@ -91,11 +96,12 @@ async function writeCfg(csgo: string, server: StoredServer) {
     `hostname "${cfgValue(server.name)}"`,
     `rcon_password "${cfgValue(server.rcon_password)}"`,
     `sv_password "${cfgValue(m.password)}"`,
-    'sv_lan 1',
-    'sv_hibernate_when_empty 0',
-    'tv_enable 1',
+    `sv_lan ${m.lan === false ? 0 : 1}`,
+    `sv_hibernate_when_empty ${m.hibernate ? 1 : 0}`,
+    `tv_enable ${m.tv === false ? 0 : 1}`,
     // In-game chat goes to the panel's Chat section
     ...(await chatCfgLines(server)),
+    ...(m.extraCfg ? ['', '// Extra lines from the server settings', ...m.extraCfg.split('\n')] : []),
     '',
   ].join('\n');
   fs.writeFileSync(path.join(csgo, 'cfg', cfgName(server.id)), cfg);
@@ -152,11 +158,15 @@ export async function startServer(id: number) {
     '-port', String(server.port),
     '-maxplayers', String(m.maxPlayers),
     '+tv_port', String(m.tvPort),
-    '+game_type', '0', '+game_mode', '1',
-    '+map', m.map,
+    '+game_type', String(GAME_TYPE_MODE[m.gameMode ?? 'competitive'][0]),
+    '+game_mode', String(GAME_TYPE_MODE[m.gameMode ?? 'competitive'][1]),
+    ...(m.workshopMap ? ['+host_workshop_map', m.workshopMap] : ['+map', m.map]),
+    ...(m.gslt ? ['+sv_setsteamaccount', m.gslt] : []),
+    ...(m.vac === false ? ['-insecure'] : []),
     '+exec', cfgName(id),
+    ...(m.extraArgs ? [m.extraArgs] : []),
   ];
-  const pid = await launch(paths.exe, args);
+  const pid = await launch(paths.exe, args, m.priority);
   const proc: Proc = { state: 'running', pid, startedAt: Date.now() };
   procs.set(id, proc);
   waitForExit(id, proc);
@@ -167,9 +177,11 @@ const psQuote = (s: string) => `'${s.replace(/'/g, "''")}'`;
 
 // cs2.exe is started through PowerShell's Start-Process (as the kit did), so it is not a child of the panel:
 // stopping or restarting the panel, even with its whole process tree, leaves running matches alone.
-// All arguments are validated numbers, map names and IPs, so joining them with spaces is safe.
-function launch(exe: string, args: string[]): Promise<number> {
-  const command = `$p = Start-Process -FilePath ${psQuote(exe)} -ArgumentList ${psQuote(args.join(' '))} -WorkingDirectory ${psQuote(path.dirname(exe))} -PassThru; $p.Id`;
+// All arguments are validated numbers, map names and IPs (extra arguments: one line without quotes),
+// so joining them with spaces is safe.
+function launch(exe: string, args: string[], priority: Priority = 'Normal'): Promise<number> {
+  const setPriority = priority === 'Normal' ? '' : ` try { $p.PriorityClass = '${priority}' } catch {};`;
+  const command = `$p = Start-Process -FilePath ${psQuote(exe)} -ArgumentList ${psQuote(args.join(' '))} -WorkingDirectory ${psQuote(path.dirname(exe))} -PassThru;${setPriority} $p.Id`;
   return new Promise((resolve, reject) => {
     execFile('powershell', ['-NoProfile', '-NonInteractive', '-Command', command], { windowsHide: true, timeout: 30_000 }, (err, out, stderr) => {
       const pid = Number(String(out).trim());
@@ -207,7 +219,7 @@ export async function stopServer(id: number) {
 
   // Ask the server to quit by itself first, then end the process
   const server = servers.get(id);
-  if (server) await rconCommand('127.0.0.1', server.port, server.rcon_password, 'quit').catch(() => {});
+  if (server) await rconCommand(server.host, server.port, server.rcon_password, 'quit').catch(() => {});
   for (let waited = 0; waited < STOP_WAIT_MS && alive(pid); waited += 500) await sleep(500);
   if (alive(pid)) {
     await new Promise((resolve) => execFile('taskkill', ['/PID', String(pid), '/T', '/F'], { windowsHide: true }, resolve));

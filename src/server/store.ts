@@ -21,7 +21,24 @@ export interface ManagedConfig {
   password: string; // sv_password for players, empty = none
   bindIp: string;
   autoRestart: boolean;
+  // Game mode (game_type / game_mode), as the Quatrix "Game Alias"
+  gameMode?: GameMode;
+  // Workshop map id to start with instead of `map` (host_workshop_map)
+  workshopMap?: string;
+  gslt?: string; // Game Server Login Token (sv_setsteamaccount)
+  vac?: boolean; // false = -insecure
+  hibernate?: boolean; // sv_hibernate_when_empty
+  tv?: boolean; // tv_enable (GOTV)
+  lan?: boolean; // sv_lan
+  priority?: Priority; // Windows process priority of cs2.exe
+  extraArgs?: string; // more launch arguments
+  extraCfg?: string; // more lines for the server cfg
 }
+
+export const GAME_MODES = ['competitive', 'wingman', 'casual', 'deathmatch', 'armsrace', 'demolition', 'training', 'custom'] as const;
+export type GameMode = (typeof GAME_MODES)[number];
+export const PRIORITIES = ['Normal', 'AboveNormal', 'High'] as const;
+export type Priority = (typeof PRIORITIES)[number];
 
 export interface StoredCommand {
   id: number;

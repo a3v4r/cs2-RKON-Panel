@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { JUDGE, audit, requireRole } from '@/server/auth';
-import { generatePassword, parseManaged } from '@/server/managed';
+import { generatePassword, managedHost, parseManaged } from '@/server/managed';
 import { publicServer, servers } from '@/server/store';
 
 export const dynamic = 'force-dynamic';
@@ -28,7 +28,7 @@ export async function POST(req: Request) {
     }
     const server = servers.add({
       name: String(body.name),
-      host: '127.0.0.1',
+      host: managedHost(managed),
       port,
       rcon_password: String(body.rcon_password || generatePassword()),
       country_code: body.country_code || undefined,
