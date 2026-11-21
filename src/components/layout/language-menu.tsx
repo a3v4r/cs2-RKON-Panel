@@ -20,7 +20,7 @@ export function LanguageMenu() {
       <button
         onClick={() => setOpen(!open)}
         className={cn(
-          'flex items-center gap-1.5 px-2 py-1.5 rounded-xl border transition-all duration-300 group active:scale-95',
+          'flex items-center gap-1.5 h-[46px] px-2.5 rounded-xl border transition-all duration-300 group active:scale-95',
           open ? 'bg-primary/10 border-primary/30 text-white' : 'bg-white/5 border-gray-800 text-gray-400 hover:border-white/10 hover:bg-white/10',
         )}
         title={t('Язык', 'Language')}

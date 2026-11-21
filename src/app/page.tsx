@@ -48,7 +48,7 @@ function HeaderClock() {
   if (!now) return null;
   const zone = new Intl.DateTimeFormat(locale, { timeZoneName: 'short' }).formatToParts(now).find((p) => p.type === 'timeZoneName')?.value ?? '';
   return (
-    <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl border border-gray-800 bg-sidebar/50 text-gray-400">
+    <div className="hidden md:flex items-center gap-2 h-[46px] px-3 rounded-xl border border-gray-800 bg-sidebar/50 text-gray-400">
       <Clock size={14} className="text-primary" />
       <div className="flex flex-col">
         <span className="text-[10px] font-black leading-none uppercase tracking-widest text-white tabular-nums">
@@ -299,7 +299,7 @@ export default function Home() {
               <HeaderClock />
               {needsServer && servers.length > 0 && (
                 <div className={cn(
-                  'hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-300',
+                  'hidden md:flex items-center gap-2 h-[46px] px-3 rounded-xl border transition-all duration-300',
                   serverInfo.status === 'online' ? 'bg-green-500/10 border-green-500/20 text-green-500'
                     : serverInfo.status === 'offline' ? 'bg-red-500/10 border-red-500/20 text-red-500'
                     : 'bg-white/5 border-gray-800 text-gray-400',
