@@ -109,6 +109,26 @@ export function isEnabled(id: PluginId, records = readRecords()) {
   return records[id]?.enabled ?? isInstalled(id);
 }
 
+// WeaponPaints swaps items, which CounterStrikeSharp blocks while it follows Valve's server guidelines
+// (FollowCS2ServerGuidelines in configs/core.json, on by default): skins then silently do nothing.
+// Turned off before each start while WeaponPaints is on; left as it is when WeaponPaints is off.
+export function syncWeaponPaintsGuidelines() {
+  if (!isEnabled('weaponpaints') || !isInstalled('weaponpaints')) return;
+  const dir = path.join(addons(), 'counterstrikesharp', 'configs');
+  const core = path.join(dir, 'core.json');
+  if (!fs.existsSync(core)) {
+    // CounterStrikeSharp ships core.example.json; core.json is ours to make
+    const example = path.join(dir, 'core.example.json');
+    if (!fs.existsSync(example)) return;
+    fs.copyFileSync(example, core);
+  }
+  const text = fs.readFileSync(core, 'utf8');
+  const next = /"FollowCS2ServerGuidelines"\s*:/.test(text)
+    ? text.replace(/("FollowCS2ServerGuidelines"\s*:\s*)true/, '$1false')
+    : text.replace('{', '{\n    "FollowCS2ServerGuidelines": false,');
+  if (next !== text) fs.writeFileSync(core, next);
+}
+
 function move(from: string, to: string) {
   if (!fs.existsSync(from)) return;
   fs.mkdirSync(path.dirname(to), { recursive: true });

@@ -6,7 +6,7 @@ import { chatCfgLines } from './chat-log';
 import { applyChatPrefix } from './chat-prefix';
 import { ensureRussian } from './cs2-files';
 import { isUpdating } from './cs2-update';
-import { installPendingBeforeStart, pluginJobRunning, syncMetamod } from './plugins';
+import { installPendingBeforeStart, pluginJobRunning, syncMetamod, syncWeaponPaintsGuidelines } from './plugins';
 import { cs2Paths } from './panel-settings';
 import { rconCommand } from './rcon';
 import { GameMode, Priority, StoredServer, servers } from './store';
@@ -159,6 +159,7 @@ export async function startServer(id: number) {
   ensureRussian(paths.csgo);
   try {
     applyChatPrefix(paths.csgo);
+    syncWeaponPaintsGuidelines();
   } catch {
     // A broken plugin config must not stop the server from starting
   }
