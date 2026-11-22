@@ -168,7 +168,7 @@ export function GeneralSettings() {
                     <div>
                       <label className="block text-sm font-medium text-gray-400 mb-2">{t('Префикс в чате', 'Chat Prefix')}</label>
                       <input className={field} type="text" maxLength={32} value={chatPrefix} placeholder="Server" onChange={(e) => setChatPrefix(e.target.value)} />
-                      <p className="text-[10px] text-gray-500 mt-2 px-1">{t(`Стоит в скобках перед сообщениями плагинов в игре: [${chatPrefix.trim() || 'Server'}]. MatchZy меняет его сразу, WeaponPaints — после перезапуска сервера.`, `Shown in brackets before plugin chat messages: [${chatPrefix.trim() || 'Server'}]. MatchZy picks it up at once, WeaponPaints after a server restart.`)}</p>
+                      <p className="text-[10px] text-gray-500 mt-2 px-1">{t(`Стоит в скобках перед сообщениями плагинов в игре: [${chatPrefix.trim() || 'Server'}]. MatchZy меняет его сразу, WeaponPaints - после перезапуска сервера.`, `Shown in brackets before plugin chat messages: [${chatPrefix.trim() || 'Server'}]. MatchZy picks it up at once, WeaponPaints after a server restart.`)}</p>
                     </div>
                   </div>
                 </div>
