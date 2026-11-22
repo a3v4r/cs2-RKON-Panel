@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { forgetServer } from '@/server/forget-server';
 import { audit, requireUser } from '@/server/auth';
 import { generatePassword, managedHost, parseManaged } from '@/server/managed';
 import { publicServer, servers } from '@/server/store';
@@ -34,6 +35,7 @@ export async function POST(req: Request) {
       country_code: body.country_code || undefined,
       managed,
     });
+    forgetServer(server.id);
     audit(user, `server create #${server.id} ${server.name} port ${port} tv ${managed.tvPort}`);
     return NextResponse.json(publicServer(server));
   }
@@ -48,6 +50,7 @@ export async function POST(req: Request) {
     rcon_password: String(body.rcon_password ?? ''),
     country_code: body.country_code || undefined,
   });
+  forgetServer(server.id);
   audit(user, `server add #${server.id} ${server.name} ${server.host}:${server.port}`);
   return NextResponse.json(publicServer(server));
 }

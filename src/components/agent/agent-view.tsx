@@ -29,7 +29,7 @@ function parseArgs(raw: string): Record<string, unknown> {
   try { return JSON.parse(raw || '{}') } catch { return {} }
 }
 
-export function AgentView() {
+export function AgentView({ selectedServerId }: { selectedServerId?: number | null }) {
   const { t } = useT()
   const [config, setConfig] = React.useState<Config | null>(null)
   const [showSettings, setShowSettings] = React.useState(false)
@@ -61,7 +61,7 @@ export function AgentView() {
     setDecisions({})
     setMessages(next)
     try {
-      const res = await api<{ messages: Message[]; pending: Pending[] }>('/api/agent', { body: { messages: next, decisions: decided } })
+      const res = await api<{ messages: Message[]; pending: Pending[] }>('/api/agent', { body: { messages: next, decisions: decided, selectedServerId: selectedServerId ?? undefined } })
       setMessages(res.messages)
       setPending(res.pending)
     } catch (e) {
@@ -105,6 +105,7 @@ export function AgentView() {
     const a = parseArgs(call.function.arguments)
     const sid = a.server_id !== undefined ? ` #${a.server_id}` : ''
     switch (call.function.name) {
+      case 'wait': return t(`Подождал ${a.seconds ?? ''} с`, `Waited ${a.seconds ?? ''} s`)
       case 'list_servers': return t('Посмотрел список серверов', 'Listed the servers')
       case 'server_status': return t(`Проверил состояние сервера${sid}`, `Checked server${sid}`)
       case 'list_players': return t(`Посмотрел игроков на сервере${sid}`, `Listed players on server${sid}`)

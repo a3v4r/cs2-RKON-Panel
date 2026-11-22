@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { forgetServer } from '@/server/forget-server';
 import { audit, requireUser } from '@/server/auth';
 import { isRunning } from '@/server/instances';
 import { managedHost, parseManaged } from '@/server/managed';
@@ -43,6 +44,7 @@ export async function DELETE(_req: Request, { params }: Params) {
   const id = Number((await params).id);
   if (isRunning(id)) return NextResponse.json({ error: 'Сервер запущен: сначала остановите его' }, { status: 409 });
   servers.remove(id);
+  forgetServer(id);
   audit(user, `server delete #${id}`);
   return NextResponse.json({ ok: true });
 }

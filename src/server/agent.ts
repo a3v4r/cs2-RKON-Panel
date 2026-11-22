@@ -18,7 +18,7 @@ import { StoredServer, servers } from './store';
 // user presses "Run" in the chat. The conversation lives in the browser and is sent with every turn.
 
 export const DEFAULT_AGENT_URL = 'https://openrouter.ai/api/v1';
-const MAX_STEPS = 10; // model calls per turn
+const MAX_STEPS = 30; // model calls per turn; waiting for a plugin install or a server start takes several
 const TOOL_OUTPUT_CHARS = 12_000;
 const REQUEST_TIMEOUT_MS = 120_000;
 
@@ -124,6 +124,8 @@ export async function listModels() {
 // The request the turn came with: panel_api calls the panel's API with the same session
 export interface TurnContext {
   cookie?: string;
+  // The server picked at the top right of the panel: "the server" when the user names none
+  selectedServerId?: number;
 }
 
 // ---- Tools ------------------------------------------------------------------------------------------------
@@ -214,6 +216,15 @@ function panelRequest(args: Record<string, unknown>) {
 }
 
 const TOOLS: Record<string, Tool> = {
+  wait: {
+    description: 'Подождать указанное число секунд (до 60), например пока ставятся плагины, обновляется CS2 или запускается сервер. После ожидания проверь состояние снова.',
+    parameters: obj({ seconds: { type: 'integer', description: 'От 1 до 60' } }, ['seconds']),
+    run: async (args) => {
+      const seconds = Math.min(Math.max(Math.round(Number(args.seconds) || 10), 1), 60);
+      await new Promise((r) => setTimeout(r, seconds * 1000));
+      return `Прошло ${seconds} с`;
+    },
+  },
   panel_api: {
     description: `Любое действие или данные панели через её API. GET выполняется сразу, POST / PUT / DELETE - после подтверждения пользователем.\n${PANEL_API}`,
     parameters: obj({
@@ -249,6 +260,7 @@ const TOOLS: Record<string, Tool> = {
       id: s.id,
       name: s.name,
       address: `${s.host}:${s.port}`,
+      gotv_port: s.managed?.tvPort ?? null,
       mode: s.mode === 'vanilla' ? 'vanilla' : 'matchzy',
       started_by_panel: Boolean(s.managed),
       process: s.managed ? procState(s.id).state : 'не управляется панелью',
@@ -383,15 +395,20 @@ const TOOL_SPECS = Object.entries(TOOLS).map(([name, t]) => ({
 }));
 
 const SYSTEM_PROMPT = `Ты помощник судьи в Matchdesk - панели управления серверами CS2 для турниров в локальной сети (компьютерный клуб).
-Отвечай по-русски, коротко и по делу. Вместо длинного тире пиши обычный дефис. Чат показывает простой текст: без таблиц и markdown-разметки, списки - строками через дефис.
+Всегда отвечай по-русски, коротко и по делу. Вместо длинного тире пиши обычный дефис. Чат показывает простой текст: без таблиц и markdown-разметки, списки - строками через дефис.
 
 Как работать:
 - О состоянии серверов, игроков, матчей, плагинов и логов узнавай через инструменты, не выдумывай. Если данных не хватает, так и скажи.
 - Всё, что умеет панель (серверы, матчи, игроки, баны, быстрые действия, команды, карты, плагины, сайт скинов, бэкапы, настройки, пользователи), доступно через panel_api; его описание есть в инструменте. Для обзора серверов, игроков, чата, логов и плагинов удобнее отдельные инструменты.
 - Если просят сделать что-то, для чего нужны команды CS2 (например, кнопку в быстрых действиях), подбери команды сам и коротко объясни, что каждая делает.
 - panel_api с POST / PUT / DELETE, rcon и server_process меняют что-то в панели или на сервере. Вызывай их, когда пользователь просит что-то сделать: панель сама покажет ему действие и спросит подтверждение. Не спрашивай подтверждение текстом, просто вызови инструмент.
-- Не выполняй действий, о которых пользователь не просил. Если неясно, на каком сервере, спроси или сначала посмотри list_servers.
+- Не выполняй действий, о которых пользователь не просил. Если неясно, на каком сервере, сначала посмотри list_servers.
+- Если в просьбе не хватает параметров, не задавай вопросов: возьми разумные значения по умолчанию и сразу предлагай действие. Пользователь увидит его целиком и подтвердит или отменит. Спрашивай, только если без ответа сделать нельзя.
+- Новый сервер по умолчанию: запускаемый панелью (managed), режим competitive, de_mirage, maxPlayers 12, LAN, VAC, autoRestart, без пароля. Порт - на 10 больше самого большого занятого (у серверов панели занят и порт GOTV tvPort), tvPort = порт + 5. Название - «Сервер #N».
+- Останавливать серверы нужно только для установки, обновления и удаления плагинов и для обновления CS2. Создавать и запускать новый сервер можно, пока другие работают.
 - Если пользователь отменил действие, не повторяй его.
+- Установка и обновление плагинов, установка CS2 и запуск сервера идут в фоне. После такого действия дождись результата: wait, затем проверь состояние (GET /api/plugins, GET /api/cs2-update, server_status), и так, пока не закончится. Только потом переходи к следующему шагу и в конце скажи, чем всё закончилось.
+- Когда просят сделать несколько вещей подряд, делай их по порядку до конца, не останавливайся после первого шага.
 
 Полезные команды RCON (CS2 и MatchZy):
 - say <текст> - сообщение всем в чат;
@@ -436,14 +453,23 @@ function unanswered(messages: AgentMessage[]) {
   return last.tool_calls.filter((c) => !answered.has(c.id));
 }
 
-async function callModel(messages: AgentMessage[]) {
+function contextNote(ctx: TurnContext) {
+  const server = ctx.selectedServerId ? servers.get(ctx.selectedServerId) : undefined;
+  return server
+    ? `
+
+Сейчас в панели выбран сервер #${server.id} «${server.name}». Если пользователь не называет сервер, речь о нём.`
+    : '';
+}
+
+async function callModel(messages: AgentMessage[], ctx: TurnContext) {
   const { baseUrl, apiKey, model } = connection();
   const res = await fetch(`${baseUrl}/chat/completions`, {
     method: 'POST',
     headers: headers(apiKey),
     body: JSON.stringify({
       model,
-      messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...messages],
+      messages: [{ role: 'system', content: SYSTEM_PROMPT + contextNote(ctx) }, ...messages],
       tools: TOOL_SPECS,
       tool_choice: 'auto',
     }),
@@ -500,7 +526,7 @@ export async function agentTurn(input: unknown, decisions: Record<string, unknow
   }
 
   for (let step = 0; step < MAX_STEPS; step++) {
-    const reply = await callModel(messages);
+    const reply = await callModel(messages, ctx);
     messages.push(reply);
     if (!reply.tool_calls?.length) return { messages, pending: [] as PendingAction[] };
 

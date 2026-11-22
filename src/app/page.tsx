@@ -269,7 +269,7 @@ export default function Home() {
             </div>
             <div className="flex items-center gap-3 shrink-0">
               {activeTab === 'dashboard' && <LanguageMenu />}
-              {needsServer && servers.length > 0 && (
+              {(needsServer || activeTab === 'agent') && servers.length > 0 && (
                 <ServerSwitcher className="flex-1 md:flex-none md:w-64 md:min-w-[200px]" servers={servers} activeServerId={activeServerId} onSelect={selectServer} />
               )}
               {needsServer && servers.length > 0 && (
@@ -294,7 +294,7 @@ export default function Home() {
           {activeTab === 'backups' && <BackupsView />}
           {activeTab === 'users' && <UsersView />}
           {activeTab === 'teams' && <TeamsView />}
-          {activeTab === 'agent' && !me.name && <AgentView />}
+          {activeTab === 'agent' && !me.name && <AgentView selectedServerId={activeServerId} />}
           {activeTab === 'servers' && createOpen && (
             <CreateServerWizard
               key={editingManaged?.id ?? 'new'}

@@ -27,6 +27,12 @@ const logs = (g.chatLogs ??= new Map<number, ChatMessage[]>());
 const dir = () => path.join(dataDir(), 'chat');
 const file = (serverId: number) => path.join(dir(), `${serverId}.jsonl`);
 
+// A deleted server's ID is given to the next new one: its chat must not carry over
+export function clearChat(serverId: number) {
+  logs.delete(serverId);
+  fs.rmSync(file(serverId), { force: true });
+}
+
 function load(serverId: number): ChatMessage[] {
   let list = logs.get(serverId);
   if (list) return list;

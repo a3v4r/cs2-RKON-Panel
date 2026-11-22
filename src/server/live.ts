@@ -105,6 +105,12 @@ const globalForLive = globalThis as unknown as { liveStates?: Map<number, LiveSt
 const states = (globalForLive.liveStates ??= new Map<number, LiveState>());
 const file = (serverId: number) => path.join(dataDir(), `live-${serverId}.json`);
 
+// A deleted server's ID is given to the next new one: its match must not carry over
+export function clearLive(serverId: number) {
+  states.delete(serverId);
+  fs.rmSync(file(serverId), { force: true });
+}
+
 export function getLive(serverId: number): LiveState | null {
   if (!states.has(serverId)) {
     try {

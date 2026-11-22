@@ -39,7 +39,7 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
   try {
     if (body.action === 'models') return NextResponse.json(await listModels());
-    return NextResponse.json(await agentTurn(body.messages, body.decisions, user, { cookie: req.headers.get('cookie') ?? undefined }));
+    return NextResponse.json(await agentTurn(body.messages, body.decisions, user, { cookie: req.headers.get('cookie') ?? undefined, selectedServerId: Number(body.selectedServerId) || undefined }));
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 502 });
   }

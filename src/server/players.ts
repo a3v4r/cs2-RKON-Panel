@@ -53,6 +53,13 @@ const seen = (g.seen ??= new Map<number, Map<number, { name: string; steamid: st
 const joinsFile = (serverId: number) => path.join(dataDir(), 'joins', `${serverId}.jsonl`);
 const bansFile = () => path.join(dataDir(), 'bans.json');
 
+// A deleted server's ID is given to the next new one: its join history must not carry over (bans are panel-wide)
+export function clearJoins(serverId: number) {
+  joins.delete(serverId);
+  seen.delete(serverId);
+  fs.rmSync(joinsFile(serverId), { force: true });
+}
+
 function loadJoins(serverId: number) {
   let list = joins.get(serverId);
   if (list) return list;
