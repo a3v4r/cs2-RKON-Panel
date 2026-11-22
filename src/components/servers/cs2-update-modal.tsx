@@ -91,7 +91,7 @@ export function Cs2UpdateModal({ open, onOpenChange }: { open: boolean; onOpenCh
                   <span className={cn('flex-1 min-w-0', info.firewall.app && info.firewall.cs2 !== false ? 'text-emerald-300' : 'text-amber-300')}>
                     {info.firewall.app && info.firewall.cs2 !== false
                       ? t('Панель, сайт скинов и серверы открыты для сети', 'The panel, skins site and servers are open to the network')
-                      : t('Нет правил: игроки и судьи с других ПК не подключатся', 'Rules missing: players and judges on other PCs cannot connect')}
+                      : t('Нет правил: с других ПК не подключиться ни к панели, ни к серверам', 'Rules missing: other PCs cannot reach the panel or the servers')}
                   </span>
                   {(!info.firewall.app || info.firewall.cs2 === false) && (
                     <button

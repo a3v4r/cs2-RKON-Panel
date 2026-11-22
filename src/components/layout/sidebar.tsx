@@ -21,7 +21,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { api, Role } from '@/lib/api';
+import { api } from '@/lib/api';
 import { Text, useT } from '@/lib/i18n';
 
 export type Section = 'dashboard' | 'servers' | 'live' | 'console' | 'chat' | 'maps' | 'players' | 'match' | 'teams' | 'settings' | 'users' | 'backups' | 'general-settings';
@@ -38,14 +38,9 @@ export const SECTIONS: Record<Section, { label: Text; title?: Text; hint: Text; 
   match: { label: { ru: 'Запуск матча', en: 'Match setup' }, hint: { ru: 'MatchZy или Vanilla: правила и запуск', en: 'MatchZy or Vanilla: rules and launch' }, icon: Trophy },
   teams: { label: { ru: 'Команды', en: 'Teams' }, title: { ru: 'Библиотека команд', en: 'Team Library' }, hint: { ru: 'Сохранённые команды и составы по SteamID для запуска матчей', en: 'Saved teams and SteamID rosters for match setup' }, icon: Shield },
   settings: { label: { ru: 'Настройки сервера', en: 'Server settings' }, title: { ru: 'Настройки сервера', en: 'Server Settings' }, hint: { ru: 'Параметры сервера Counter-Strike 2 и его безопасность', en: 'Manage your Counter-Strike 2 server parameters and security protocols.' }, icon: SlidersHorizontal },
-  users: { label: { ru: 'Пользователи', en: 'Users' }, title: { ru: 'Пользователи', en: 'User Management' }, hint: { ru: 'Личные аккаунты судей и трансляции', en: 'List and manage system users and their permissions.' }, icon: UserCog },
+  users: { label: { ru: 'Пользователи', en: 'Users' }, title: { ru: 'Пользователи', en: 'User Management' }, hint: { ru: 'Аккаунты для входа в панель', en: 'Accounts that can sign in to the panel' }, icon: UserCog },
   backups: { label: { ru: 'Бэкапы', en: 'Backups' }, title: { ru: 'Управление бэкапами', en: 'Backup Management' }, hint: { ru: 'Резервные копии данных панели и конфигов CS2 с восстановлением', en: 'Create and manage backups of the panel data and CS2 configurations.' }, icon: Archive },
   'general-settings': { label: { ru: 'Настройки', en: 'Settings' }, hint: { ru: 'Настройки панели, сервера CS2 и журнал действий', en: 'Configure your panel settings and security preferences' }, icon: Settings },
-};
-
-export const ROLE_TEXT: Record<Role, Text> = {
-  judge: { ru: 'Судья', en: 'Referee' },
-  broadcast: { ru: 'Трансляция', en: 'Broadcast' },
 };
 
 // Sections that work with one chosen server (the server is picked in their page header)
@@ -59,12 +54,11 @@ interface SidebarProps {
   activeSection: Section;
   onSelectSection: (section: Section) => void;
   onClose: () => void;
-  user: { role: Role; name?: string };
+  user: { name?: string };
 }
 
 export function Sidebar({ activeSection, onSelectSection, onClose, user }: SidebarProps) {
-  const { t, lang } = useT();
-  const role = ROLE_TEXT[user.role][lang];
+  const { t } = useT();
   // Panel name from the settings, as in Quatrix; refreshed when the settings page saves
   const [panelName, setPanelName] = React.useState('');
   React.useEffect(() => {
@@ -73,7 +67,7 @@ export function Sidebar({ activeSection, onSelectSection, onClose, user }: Sideb
     window.addEventListener('panel-settings-changed', load);
     return () => window.removeEventListener('panel-settings-changed', load);
   }, []);
-  const displayName = user.name ?? role;
+  const displayName = user.name ?? 'admin';
   const name = panelName || 'Matchdesk';
   return (
     <aside className="flex flex-col h-[100dvh] w-64 bg-sidebar text-gray-400 border-r border-gray-800 shrink-0">

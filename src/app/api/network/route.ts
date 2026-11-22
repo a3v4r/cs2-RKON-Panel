@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { ANY_ROLE, requireRole } from '@/server/auth';
+import { requireUser } from '@/server/auth';
 import { lanAddresses, primaryAddress } from '@/server/network';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const user = await requireRole(ANY_ROLE);
+  const user = await requireUser();
   if (user instanceof NextResponse) return user;
   return NextResponse.json({
     ip: await primaryAddress(),

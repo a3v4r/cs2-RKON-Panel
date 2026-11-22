@@ -1,17 +1,17 @@
 import { NextResponse } from 'next/server';
-import { JUDGE, requireRole } from '@/server/auth';
+import { requireUser } from '@/server/auth';
 import { templates } from '@/server/store';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const user = await requireRole(JUDGE);
+  const user = await requireUser();
   if (user instanceof NextResponse) return user;
   return NextResponse.json(templates.list());
 }
 
 export async function POST(req: Request) {
-  const user = await requireRole(JUDGE);
+  const user = await requireUser();
   if (user instanceof NextResponse) return user;
   const { name, message } = await req.json();
   const text = String(message ?? '').trim();

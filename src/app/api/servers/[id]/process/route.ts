@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { JUDGE, audit, requireRole } from '@/server/auth';
+import { audit, requireUser } from '@/server/auth';
 import { procState, restartServer, startServer, stopServer } from '@/server/instances';
 import { servers } from '@/server/store';
 
@@ -11,7 +11,7 @@ const ACTIONS = { start: startServer, stop: stopServer, restart: restartServer }
 
 // Start / stop / restart a server the panel runs on this PC
 export async function POST(req: Request, { params }: Params) {
-  const user = await requireRole(JUDGE);
+  const user = await requireUser();
   if (user instanceof NextResponse) return user;
   const id = Number((await params).id);
   const server = servers.get(id);

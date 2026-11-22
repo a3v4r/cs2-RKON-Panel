@@ -3,7 +3,7 @@
 
 export type ServerMode = 'matchzy' | 'vanilla';
 
-// Quick actions on the Overview and Console, and the broadcast pause requests
+// Quick actions on the Overview and Console
 export function controlCommands(mode: ServerMode | undefined) {
   return mode === 'vanilla'
     ? { start: 'mp_warmup_end', pause: 'mp_pause_match', unpause: 'mp_unpause_match' }

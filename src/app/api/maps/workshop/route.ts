@@ -1,17 +1,17 @@
 import { NextResponse } from 'next/server';
-import { JUDGE, audit, requireRole } from '@/server/auth';
+import { audit, requireUser } from '@/server/auth';
 import { addWorkshop, listWorkshop } from '@/server/maps';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const user = await requireRole(JUDGE);
+  const user = await requireUser();
   if (user instanceof NextResponse) return user;
   return NextResponse.json(listWorkshop());
 }
 
 export async function POST(req: Request) {
-  const user = await requireRole(JUDGE);
+  const user = await requireUser();
   if (user instanceof NextResponse) return user;
   const body = await req.json().catch(() => ({}));
   try {

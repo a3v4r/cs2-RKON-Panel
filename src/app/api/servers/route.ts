@@ -1,18 +1,18 @@
 import { NextResponse } from 'next/server';
-import { JUDGE, audit, requireRole } from '@/server/auth';
+import { audit, requireUser } from '@/server/auth';
 import { generatePassword, managedHost, parseManaged } from '@/server/managed';
 import { publicServer, servers } from '@/server/store';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const user = await requireRole(JUDGE);
+  const user = await requireUser();
   if (user instanceof NextResponse) return user;
   return NextResponse.json(servers.list().map(publicServer));
 }
 
 export async function POST(req: Request) {
-  const user = await requireRole(JUDGE);
+  const user = await requireUser();
   if (user instanceof NextResponse) return user;
   const body = await req.json();
 

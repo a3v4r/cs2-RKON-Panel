@@ -22,22 +22,5 @@ export async function api<T>(url: string, init?: { method?: string; body?: unkno
   return data as T;
 }
 
-export type Role = 'judge' | 'broadcast';
-
-export const ROLE_LABELS: Record<Role, string> = {
-  judge: 'Судья',
-  broadcast: 'Трансляция',
-};
-
-export const fetchMe = () => api<{ role: Role; name?: string }>('/api/me');
-
-export interface BroadcastRequest {
-  id: number;
-  serverId: number;
-  serverName: string;
-  type: 'pause' | 'unpause';
-  reason: string;
-  status: 'pending' | 'accepted' | 'rejected' | 'cancelled';
-  createdAt: string;
-  resolvedAt?: string;
-}
+// Logged-in user: name of a personal account, absent for the shared account admin
+export const fetchMe = () => api<{ name?: string }>('/api/me');

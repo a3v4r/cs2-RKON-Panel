@@ -1,19 +1,19 @@
 import { NextResponse } from 'next/server';
-import { JUDGE, audit, requireRole } from '@/server/auth';
+import { audit, requireUser } from '@/server/auth';
 import { readSettings, writeSettings } from '@/server/panel-settings';
 import { restartSkinsSite, skinsSiteView, syncSkinsSite } from '@/server/skins-site';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const user = await requireRole(JUDGE);
+  const user = await requireUser();
   if (user instanceof NextResponse) return user;
   return NextResponse.json(skinsSiteView());
 }
 
 // { enabled?, port? } | { action: 'restart' }
 export async function POST(req: Request) {
-  const user = await requireRole(JUDGE);
+  const user = await requireUser();
   if (user instanceof NextResponse) return user;
   const body = await req.json().catch(() => ({}));
   if (body.action === 'restart') {

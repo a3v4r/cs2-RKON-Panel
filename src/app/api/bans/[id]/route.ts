@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
-import { JUDGE, audit, requireRole } from '@/server/auth';
+import { audit, requireUser } from '@/server/auth';
 import { unban } from '@/server/players';
 
 type Params = { params: Promise<{ id: string }> };
 
 // Unban
 export async function DELETE(_req: Request, { params }: Params) {
-  const user = await requireRole(JUDGE);
+  const user = await requireUser();
   if (user instanceof NextResponse) return user;
   try {
     const ban = unban(Number((await params).id));

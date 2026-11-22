@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { JUDGE, audit, requireRole } from '@/server/auth';
+import { audit, requireUser } from '@/server/auth';
 import { setMatchConfig } from '@/server/matches';
 import { addressFor } from '@/server/network';
 import { eventToken } from '@/server/session';
@@ -7,7 +7,7 @@ import { servers } from '@/server/store';
 
 // Stores the config and returns the URL the game server downloads it from (/api/matches/config/<id>, public).
 export async function POST(req: Request) {
-  const user = await requireRole(JUDGE);
+  const user = await requireUser();
   if (user instanceof NextResponse) return user;
   const { config, serverId } = await req.json();
   let parsed: { matchid?: unknown };

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { JUDGE, audit, requireRole } from '@/server/auth';
+import { ADMIN_LOGIN } from '@/server/accounts';
+import { audit, requireUser } from '@/server/auth';
 import { addBan, kick } from '@/server/players';
 import { servers } from '@/server/store';
 
@@ -7,7 +8,7 @@ type Params = { params: Promise<{ id: string; userid: string }> };
 
 // { action: 'kick', reason } or { action: 'ban', reason, minutes, steamid, name }
 export async function POST(req: Request, { params }: Params) {
-  const user = await requireRole(JUDGE);
+  const user = await requireUser();
   if (user instanceof NextResponse) return user;
   const { id, userid } = await params;
   const server = servers.get(Number(id));
@@ -18,7 +19,7 @@ export async function POST(req: Request, { params }: Params) {
   try {
     if (body.action === 'ban') {
       const minutes = Math.max(0, Math.floor(Number(body.minutes) || 0));
-      const ban = addBan({ steamid: String(body.steamid ?? ''), name: String(body.name ?? ''), reason, minutes, by: user.name ?? (user.role === 'judge' ? 'judge' : 'broadcast') });
+      const ban = addBan({ steamid: String(body.steamid ?? ''), name: String(body.name ?? ''), reason, minutes, by: user.name ?? ADMIN_LOGIN });
       await kick(server, uid, `Banned: ${reason || 'by referee'}`).catch(() => {});
       audit(user, `ban #${server.id} ${ban.name} ${ban.steamid} ${minutes ? `${minutes} min` : 'permanent'}${reason ? `: ${reason}` : ''}`);
       return NextResponse.json(ban);

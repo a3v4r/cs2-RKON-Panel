@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { JUDGE, requireRole } from '@/server/auth';
+import { requireUser } from '@/server/auth';
 import { queryInfo } from '@/server/a2s';
 import { getLive, setMapName } from '@/server/live';
 import { rconCommand } from '@/server/rcon';
@@ -12,7 +12,7 @@ type Params = { params: Promise<{ id: string }> };
 // Live match view: the current state from the game server (get5_status, A2S) plus what MatchZy events told us
 // (player stats, rounds, kills). Events only arrive for matches started from the panel.
 export async function GET(_req: Request, { params }: Params) {
-  const user = await requireRole(JUDGE);
+  const user = await requireUser();
   if (user instanceof NextResponse) return user;
   const server = servers.get(Number((await params).id));
   if (!server) return NextResponse.json({ error: 'Сервер не найден' }, { status: 404 });

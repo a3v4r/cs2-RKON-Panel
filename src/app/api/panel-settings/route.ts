@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import { NextResponse } from 'next/server';
-import { JUDGE, audit, requireRole } from '@/server/auth';
+import { audit, requireUser } from '@/server/auth';
 import { cs2Dir, cs2Paths, readSettings, writeSettings } from '@/server/panel-settings';
 import { DEFAULT_CHAT_PREFIX, applyChatPrefix, cleanChatPrefix, matchzyChatPrefix } from '@/server/chat-prefix';
 import { allStates } from '@/server/instances';
@@ -24,14 +24,14 @@ function view() {
 }
 
 export async function GET() {
-  const user = await requireRole(JUDGE);
+  const user = await requireUser();
   if (user instanceof NextResponse) return user;
   return NextResponse.json(view());
 }
 
 // Any subset of: cs2Dir, steamcmd, panelName, defaultPort, chatPrefix
 export async function PUT(req: Request) {
-  const user = await requireRole(JUDGE);
+  const user = await requireUser();
   if (user instanceof NextResponse) return user;
   const body = await req.json().catch(() => ({}));
   const update: Record<string, unknown> = {};

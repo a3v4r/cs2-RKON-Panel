@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { JUDGE, audit, requireRole } from '@/server/auth';
+import { audit, requireUser } from '@/server/auth';
 import { createBackup, listBackups, saveUpload, Scope, SCOPES, startBackupScheduler } from '@/server/backups';
 
 export const dynamic = 'force-dynamic';
@@ -12,7 +12,7 @@ async function scopeOf(params: Params['params']) {
 }
 
 export async function GET(_req: Request, { params }: Params) {
-  const user = await requireRole(JUDGE);
+  const user = await requireUser();
   if (user instanceof NextResponse) return user;
   const scope = await scopeOf(params);
   if (!scope) return NextResponse.json({ error: 'Неизвестный тип бэкапа' }, { status: 404 });
@@ -22,7 +22,7 @@ export async function GET(_req: Request, { params }: Params) {
 
 // JSON body: create a backup now. multipart/form-data with "backup": upload an external zip.
 export async function POST(req: Request, { params }: Params) {
-  const user = await requireRole(JUDGE);
+  const user = await requireUser();
   if (user instanceof NextResponse) return user;
   const scope = await scopeOf(params);
   if (!scope) return NextResponse.json({ error: 'Неизвестный тип бэкапа' }, { status: 404 });

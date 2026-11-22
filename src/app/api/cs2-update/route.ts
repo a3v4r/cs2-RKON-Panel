@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import { NextResponse } from 'next/server';
-import { JUDGE, audit, requireRole } from '@/server/auth';
+import { audit, requireUser } from '@/server/auth';
 import { cancelUpdate, startUpdate, updateState } from '@/server/cs2-update';
 import { firewallView, openFirewall } from '@/server/firewall';
 import { cs2Paths } from '@/server/panel-settings';
@@ -13,14 +13,14 @@ async function info() {
 }
 
 export async function GET() {
-  const user = await requireRole(JUDGE);
+  const user = await requireUser();
   if (user instanceof NextResponse) return user;
   return NextResponse.json(await info());
 }
 
 // Start or cancel the CS2 install / update through steamcmd, or add the firewall rules (Matchdesk.exe only)
 export async function POST(req: Request) {
-  const user = await requireRole(JUDGE);
+  const user = await requireUser();
   if (user instanceof NextResponse) return user;
   const { action } = await req.json().catch(() => ({}));
   try {

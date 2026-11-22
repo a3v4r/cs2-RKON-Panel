@@ -121,10 +121,9 @@ const INI_TEMPLATE = [
   '# Порт панели в браузере',
   'PORT=3000',
   '',
-  '# Пароли двух общих аккаунтов: judge - судьи (полный доступ), broadcast - трансляция.',
-  '# Пусто - пароль сгенерируется при запуске и запишется сюда.',
+  '# Пароль аккаунта admin. Пусто - сгенерируется при запуске и запишется сюда.',
+  '# Остальные аккаунты добавляются в панели, в разделе «Пользователи».',
   'PANEL_PASSWORD=',
-  'BROADCAST_PASSWORD=',
   '',
 ];
 
@@ -244,7 +243,7 @@ async function offerFirewall() {
   const missing = firewallMissing();
   if (!missing.length) return;
   step('Брандмауэр Windows');
-  warn(`Нет правил: ${missing.join(', ')}. Без них судьи и игроки с других ПК не подключатся.`);
+  warn(`Нет правил: ${missing.join(', ')}. Без них панель, сайт скинов и серверы не будут доступны с других ПК.`);
   if (!yes(await ask('Добавить сейчас? [Д/н] (сам через 15 секунд)', 15, 'д'))) return;
   console.log('    Windows спросит разрешение администратора...');
   const code = runElevated(EXE, ['--firewall']);
@@ -266,11 +265,9 @@ async function main() {
   ensureApp();
 
   const ini = readIni();
-  for (const [key, what] of [['PANEL_PASSWORD', 'судей'], ['BROADCAST_PASSWORD', 'трансляции']]) {
-    if (!ini.values[key]) {
-      ini.set(key, password());
-      ok(`Пароль ${what} сгенерирован и записан в matchdesk.ini`);
-    }
+  if (!ini.values.PANEL_PASSWORD) {
+    ini.set('PANEL_PASSWORD', password());
+    ok('Пароль admin сгенерирован и записан в matchdesk.ini');
   }
   const port = ini.values.PORT || '3000';
 
@@ -280,9 +277,8 @@ async function main() {
   process.title = `Matchdesk - порт ${port}`;
   console.log(`\n${cyan('Matchdesk. Открыть в браузере (телефон должен быть в той же сети, что и этот ПК):')}`);
   for (const a of addresses(port)) console.log(green(`    ${a}`));
-  console.log(green(`    Судьи:      логин judge      пароль ${ini.values.PANEL_PASSWORD}`));
-  console.log(green(`    Трансляция: логин broadcast  пароль ${ini.values.BROADCAST_PASSWORD}`));
-  console.log('\nПервый запуск: «Серверы» -> «Установить CS2», затем «Настройки -> Плагины».');
+  console.log(green(`    Логин admin, пароль ${ini.values.PANEL_PASSWORD}`));
+  console.log('\nПервый запуск: «Серверы» -> «Установить CS2», затем «Настройки -> Плагины». Ещё аккаунты - в разделе «Пользователи».');
   console.log('Это окно не закрывайте: закрытие останавливает панель (серверы CS2 продолжат работать).\n');
 
   const env = {
@@ -291,7 +287,6 @@ async function main() {
     PORT: port,
     HOSTNAME: '0.0.0.0',
     PANEL_PASSWORD: ini.values.PANEL_PASSWORD,
-    BROADCAST_PASSWORD: ini.values.BROADCAST_PASSWORD,
     PANEL_DATA_DIR: DATA,
     MATCHDESK_EXE: '1',
   };

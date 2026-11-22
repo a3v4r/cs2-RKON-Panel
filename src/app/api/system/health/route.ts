@@ -1,18 +1,18 @@
 import { NextResponse } from 'next/server';
-import { JUDGE, audit, requireRole } from '@/server/auth';
+import { audit, requireUser } from '@/server/auth';
 import { downloadSteamcmd, repairSystem, systemHealth } from '@/server/system-health';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const user = await requireRole(JUDGE);
+  const user = await requireUser();
   if (user instanceof NextResponse) return user;
   return NextResponse.json(systemHealth());
 }
 
 // { action: 'repair' } puts Metamod back into gameinfo.gi; { action: 'steamcmd' } downloads SteamCMD
 export async function POST(req: Request) {
-  const user = await requireRole(JUDGE);
+  const user = await requireUser();
   if (user instanceof NextResponse) return user;
   const { action } = await req.json().catch(() => ({}));
   try {

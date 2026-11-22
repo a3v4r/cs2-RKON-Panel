@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import { ANY_ROLE, requireRole } from '@/server/auth';
+import { requireUser } from '@/server/auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const user = await requireRole(ANY_ROLE);
+  const user = await requireUser();
   return user instanceof NextResponse ? user : NextResponse.json(user);
 }

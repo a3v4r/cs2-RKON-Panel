@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { JUDGE, audit, requireRole } from '@/server/auth';
+import { audit, requireUser } from '@/server/auth';
 import { isRunning } from '@/server/instances';
 import { managedHost, parseManaged } from '@/server/managed';
 import { publicServer, servers } from '@/server/store';
@@ -7,7 +7,7 @@ import { publicServer, servers } from '@/server/store';
 type Params = { params: Promise<{ id: string }> };
 
 export async function PUT(req: Request, { params }: Params) {
-  const user = await requireRole(JUDGE);
+  const user = await requireUser();
   if (user instanceof NextResponse) return user;
   const id = Number((await params).id);
   const current = servers.get(id);
@@ -38,7 +38,7 @@ export async function PUT(req: Request, { params }: Params) {
 }
 
 export async function DELETE(_req: Request, { params }: Params) {
-  const user = await requireRole(JUDGE);
+  const user = await requireUser();
   if (user instanceof NextResponse) return user;
   const id = Number((await params).id);
   if (isRunning(id)) return NextResponse.json({ error: 'Сервер запущен: сначала остановите его' }, { status: 409 });

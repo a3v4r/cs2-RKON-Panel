@@ -23,10 +23,8 @@ import { sendRconCommand } from '@/lib/rcon';
 import { ServerModal } from '@/components/server/server-modal';
 import { MapSelector } from '@/components/server/map-selector';
 import { ServerSettings } from '@/components/server/server-settings';
-import { BroadcastView } from '@/components/broadcast/broadcast-view';
-import { RequestsBanner } from '@/components/server/requests-banner';
 import { LiveMatch } from '@/components/server/live-match';
-import { fetchMe, Role } from '@/lib/api';
+import { fetchMe } from '@/lib/api';
 import { useT } from '@/lib/i18n';
 import { LanguageMenu } from '@/components/layout/language-menu';
 
@@ -53,7 +51,7 @@ export default function Home() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editingManaged, setEditingManaged] = useState<ServerProfile | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [me, setMe] = useState<{ role: Role; name?: string } | null>(null);
+  const [me, setMe] = useState<{ name?: string } | null>(null);
   // Ping and player count of the selected server over the last minutes, for the overview charts
   const [history, setHistory] = useState<ServerSample[]>([]);
 
@@ -117,11 +115,10 @@ export default function Home() {
     return await sendRconCommand(server.id!, command);
   };
 
-  // Who is logged in decides what to show; the server list is only for judges
   React.useEffect(() => {
     fetchMe().then((user) => {
       setMe(user);
-      if (user.role !== 'broadcast') loadServers();
+      loadServers();
     }).catch(() => {});
   }, []);
 
@@ -223,10 +220,6 @@ export default function Home() {
   if (!me) {
     return <div className="h-[100dvh] bg-background" />;
   }
-  if (me.role === 'broadcast') {
-    return <BroadcastView />;
-  }
-  const isJudge = me.role === 'judge';
 
   const needsServer = SERVER_SECTIONS.includes(activeTab);
   const openAdd = () => { setEditingServer(null); setIsModalOpen(true); };
@@ -264,8 +257,6 @@ export default function Home() {
             <Menu size={24} />
           </button>
         </header>
-
-        <RequestsBanner />
 
         <div className="flex-1 flex flex-col overflow-auto">
           {/* Page header: title on the left; language, server and status on the right, as in Quatrix.
@@ -313,7 +304,7 @@ export default function Home() {
           {activeTab === 'servers' && !createOpen && (
             <ServersView
               servers={servers}
-              canManage={isJudge}
+              canManage
               onRefresh={loadServers}
               onCreate={() => { setEditingManaged(null); setCreateOpen(true); }}
               onConnect={openAdd}
@@ -338,7 +329,7 @@ export default function Home() {
                   key={activeServerId}
                   serverInfo={serverInfo}
                   history={history}
-                  canManage={isJudge}
+                  canManage
                   vanilla={vanilla}
                   onSendCommand={handleRconCommand}
                   onNavigate={setActiveTab}
@@ -346,7 +337,7 @@ export default function Home() {
                 />
               )}
               {activeTab === "live" && activeServerId && (
-                <LiveMatch key={activeServerId} serverId={activeServerId} onLaunch={isJudge ? () => setActiveTab("match") : undefined} />
+                <LiveMatch key={activeServerId} serverId={activeServerId} onLaunch={() => setActiveTab("match")} />
               )}
               {activeTab === "console" && (
                 <div className="flex-1 min-h-[420px] p-3 md:p-6">

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { JUDGE, requireRole } from '@/server/auth';
+import { requireUser } from '@/server/auth';
 import { livePlayers } from '@/server/players';
 import { servers } from '@/server/store';
 
@@ -9,7 +9,7 @@ type Params = { params: Promise<{ id: string }> };
 
 // Players on the server now (RCON "status", SteamIDs from the server log)
 export async function GET(_req: Request, { params }: Params) {
-  const user = await requireRole(JUDGE);
+  const user = await requireUser();
   if (user instanceof NextResponse) return user;
   const server = servers.get(Number((await params).id));
   if (!server) return NextResponse.json({ error: 'Сервер не найден' }, { status: 404 });

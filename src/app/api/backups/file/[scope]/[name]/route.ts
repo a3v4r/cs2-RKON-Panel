@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import { NextResponse } from 'next/server';
-import { JUDGE, audit, requireRole } from '@/server/auth';
+import { audit, requireUser } from '@/server/auth';
 import { backupPath, deleteBackup, restoreBackup } from '@/server/backups';
 
 export const dynamic = 'force-dynamic';
@@ -14,7 +14,7 @@ const idOf = async (params: Params['params']) => {
 
 // Download the archive
 export async function GET(_req: Request, { params }: Params) {
-  const user = await requireRole(JUDGE);
+  const user = await requireUser();
   if (user instanceof NextResponse) return user;
   try {
     const { file } = backupPath(await idOf(params));
@@ -32,7 +32,7 @@ export async function GET(_req: Request, { params }: Params) {
 
 // Restore from the archive
 export async function POST(_req: Request, { params }: Params) {
-  const user = await requireRole(JUDGE);
+  const user = await requireUser();
   if (user instanceof NextResponse) return user;
   const id = await idOf(params);
   try {
@@ -45,7 +45,7 @@ export async function POST(_req: Request, { params }: Params) {
 }
 
 export async function DELETE(_req: Request, { params }: Params) {
-  const user = await requireRole(JUDGE);
+  const user = await requireUser();
   if (user instanceof NextResponse) return user;
   const id = await idOf(params);
   try {

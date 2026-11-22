@@ -1,9 +1,9 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { Role, dataDir } from './accounts';
+import { ADMIN_LOGIN, dataDir } from './accounts';
 
-// Personal accounts (User Management, as in Quatrix), next to the two shared kit accounts judge / broadcast.
+// Personal accounts (User Management, as in Quatrix), next to the shared account admin. Everyone has full access.
 // Passwords are kept as scrypt hashes; a session carries a fingerprint of the hash, so changing the
 // password or deleting the user ends their sessions.
 
@@ -11,7 +11,6 @@ export interface StoredUser {
   id: number;
   username: string;
   hash: string; // "salt:key", hex
-  role: Role;
   created_at: string;
   last_login?: string;
 }
@@ -44,13 +43,12 @@ function verify(password: string, stored: string) {
   return crypto.timingSafeEqual(given, Buffer.from(key, 'hex'));
 }
 
-// The shared kit accounts keep their names
-const RESERVED = ['judge', 'broadcast'];
+// The shared account keeps its name
 
 function checkUsername(username: string) {
   const name = username.trim();
   if (!/^[\p{L}\p{N}_.-]{2,32}$/u.test(name)) throw new Error('Логин: 2-32 символа, буквы, цифры, _ . -');
-  if (RESERVED.includes(name.toLowerCase())) throw new Error('Логины judge и broadcast заняты общими аккаунтами');
+  if (name.toLowerCase() === ADMIN_LOGIN) throw new Error(`Логин ${ADMIN_LOGIN} занят общим аккаунтом`);
   return name;
 }
 
@@ -59,32 +57,24 @@ function checkPassword(password: string) {
   return password;
 }
 
-const isRole = (r: unknown): r is Role => r === 'judge' || r === 'broadcast';
-
-export function createUser(username: string, password: string, role: unknown) {
+export function createUser(username: string, password: string) {
   const name = checkUsername(username);
-  if (!isRole(role)) throw new Error('Неизвестная роль');
   const items = listUsers();
   if (items.some((u) => u.username.toLowerCase() === name.toLowerCase())) throw new Error('Такой логин уже есть');
   const user: StoredUser = {
     id: items.reduce((max, u) => Math.max(max, u.id), 0) + 1,
     username: name,
     hash: hashPassword(checkPassword(password)),
-    role,
     created_at: new Date().toISOString(),
   };
   save([...items, user]);
   return user;
 }
 
-export function updateUser(id: number, update: { role?: unknown; password?: string }) {
+export function updateUser(id: number, update: { password?: string }) {
   const items = listUsers();
   const user = items.find((u) => u.id === id);
   if (!user) throw new Error('Пользователь не найден');
-  if (update.role !== undefined) {
-    if (!isRole(update.role)) throw new Error('Неизвестная роль');
-    user.role = update.role;
-  }
   if (update.password) user.hash = hashPassword(checkPassword(update.password));
   save(items);
   return user;
@@ -104,4 +94,5 @@ export function checkLogin(username: string, password: string): StoredUser | nul
   return user;
 }
 
-export const publicUser = ({ hash, ...rest }: StoredUser) => rest;
+// role: left in users.json by versions with roles, not used any more
+export const publicUser = ({ hash, role, ...rest }: StoredUser & { role?: string }) => rest;

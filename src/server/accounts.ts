@@ -1,19 +1,8 @@
 import path from 'node:path';
 
-// Two shared accounts: the judges (organisers, full access) and the broadcast team.
-// Passwords come from the environment, so they are set in one place (matchdesk.ini next to Matchdesk.exe).
-export type Role = 'judge' | 'broadcast';
-
-export const ACCOUNTS: Record<Role, { login: string; passwordEnv: string }> = {
-  judge: { login: 'judge', passwordEnv: 'PANEL_PASSWORD' },
-  broadcast: { login: 'broadcast', passwordEnv: 'BROADCAST_PASSWORD' },
-};
-
-export const accountPassword = (role: Role) => process.env[ACCOUNTS[role].passwordEnv] ?? '';
-
-export function roleByLogin(login: string): Role | undefined {
-  const name = login.trim().toLowerCase();
-  return (Object.keys(ACCOUNTS) as Role[]).find((r) => ACCOUNTS[r].login === name);
-}
+// The shared account "admin": its password comes from the environment (matchdesk.ini next to Matchdesk.exe).
+// More people get personal accounts on the Users page; everyone has full access.
+export const ADMIN_LOGIN = 'admin';
+export const adminPassword = () => process.env.PANEL_PASSWORD ?? '';
 
 export const dataDir = () => process.env.PANEL_DATA_DIR || path.join(process.cwd(), 'data');

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { JUDGE, audit, requireRole } from '@/server/auth';
+import { audit, requireUser } from '@/server/auth';
 import { rconCommand } from '@/server/rcon';
 import { servers } from '@/server/store';
 
@@ -26,7 +26,7 @@ const cleanOutput = (out: string) =>
   out.split('\n').map((line) => line.replace(/[\x00-\x1f]/g, '').replace(/^\s*\[[^\]]*\]\s*/, '').trim()).filter(Boolean).join('\n');
 
 export async function GET(_req: Request, { params }: Params) {
-  const user = await requireRole(JUDGE);
+  const user = await requireUser();
   if (user instanceof NextResponse) return user;
   const server = servers.get(Number((await params).id));
   if (!server) return NextResponse.json({ error: 'Сервер не найден' }, { status: 404 });
@@ -48,7 +48,7 @@ export async function GET(_req: Request, { params }: Params) {
 }
 
 export async function POST(req: Request, { params }: Params) {
-  const user = await requireRole(JUDGE);
+  const user = await requireUser();
   if (user instanceof NextResponse) return user;
   const server = servers.get(Number((await params).id));
   if (!server) return NextResponse.json({ error: 'Сервер не найден' }, { status: 404 });

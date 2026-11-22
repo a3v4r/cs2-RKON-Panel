@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
-import { JUDGE, audit, requireRole } from '@/server/auth';
+import { audit, requireUser } from '@/server/auth';
 import { applyPlugins, autoCheck, checkUpdates, isPluginId, pluginsView, removePlugin, rollbackPlugin, updatePlugin } from '@/server/plugins';
 import { writeSettings } from '@/server/panel-settings';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const user = await requireRole(JUDGE);
+  const user = await requireUser();
   if (user instanceof NextResponse) return user;
   return NextResponse.json(pluginsView());
 }
@@ -14,7 +14,7 @@ export async function GET() {
 // { action: 'apply', enabled: { matchzy: true, ... } } | { action: 'check' } | { action: 'update' | 'rollback' | 'remove', id }
 // | { action: 'auto', enabled }
 export async function POST(req: Request) {
-  const user = await requireRole(JUDGE);
+  const user = await requireUser();
   if (user instanceof NextResponse) return user;
   const body = await req.json().catch(() => ({}));
   const { action, id } = body;
