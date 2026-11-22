@@ -157,7 +157,7 @@ export function UsersView() {
                       <td className="px-6 py-4 text-center"><RoleBadge role={u.role} label={roleLabel(u.role)} /></td>
                       <td className="px-6 py-4 text-xs text-gray-500" colSpan={2}>
                         {u.enabled
-                          ? t('Пароль задаётся в settings.ini турнирного комплекта', 'Password is set in settings.ini of the tournament kit')
+                          ? t('Пароль задаётся в matchdesk.ini рядом со start.bat', 'Password is set in matchdesk.ini next to start.bat')
                           : t('Выключен: в settings.ini нет пароля', 'Off: no password in settings.ini')}
                       </td>
                       <td className="px-6 py-4 text-right">
