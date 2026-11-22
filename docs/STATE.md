@@ -6,7 +6,7 @@
 
 | Папка | Ветка | Что там |
 |---|---|---|
-| `C:\dev\cs2\cs2-RKON-Panel` | `ui-redesign` (влита в `main` 2026-11-22, релиз `v0.11.1`) | основная копия панели Matchdesk; на GitHub `a3v4r/Matchdesk` (переименован из `cs2-RKON-Panel` 2026-11-22, старый адрес перенаправляется) |
+| `C:\dev\cs2\cs2-RKON-Panel` | `ui-redesign` (влита в `main` 2026-11-22, релиз `v0.12.0`) | основная копия панели Matchdesk; на GitHub `a3v4r/Matchdesk` (переименован из `cs2-RKON-Panel` 2026-11-22, старый адрес перенаправляется) |
 | `C:\dev\cs2\cs2-server-kit` | - | удалён 2026-11-22 (в корзину Windows): с `v0.8.0` всё делает панель, с `v0.9.0` - один `Matchdesk.exe` |
 | `C:\dev\cs2\MatchZy-Patched` | `main` = `sync-upstream-0.9.1` (`eb218c5`, релиз `0.9.2-patched`) | форк MatchZy, исправлен путь бэкапов раундов |
 | `C:\dev\cs2\cs2-WeaponPaints-sqlite` | `main` = `screen-menu` (`e9a6b4e`, релиз `3.3.3-patched`) | форк WeaponPaints на SQLite, экранное меню скинов |
@@ -81,7 +81,7 @@
 - Exe не подписан: при первом запуске SmartScreen, «Подробнее → Выполнить в любом случае». Иконка - стандартная от Node.
 - Проверено 2026-11-22 сборкой из worktree: распаковка, пароли, вопрос про брандмауэр (ответ «нет»), панель и сайт скинов через exe (вход и картинки), перезапуск панели после её завершения. Правила брандмауэра в тестах не добавлялись. Установка CS2 с нуля проверялась в `v0.8.0` (steamcmd скачался, CS2 начал качаться).
 
-## ИИ-агент (вкладка «Агент», с 2026-11-22, ещё не в релизе)
+## ИИ-агент (вкладка «Агент», с 2026-11-22, релиз `v0.12.0`)
 
 - `src/server/agent.ts`: OpenAI-совместимый `/chat/completions` через обычный `fetch`, без SDK и новых зависимостей. По умолчанию OpenRouter (`https://openrouter.ai/api/v1`), пресеты DeepSeek и Ollama. Настройки `agent { baseUrl, apiKey, model }` в `settings.json`; ключ в браузер не отдаётся, `-` в поле ключа стирает его.
 - Инструменты на чтение выполняются сразу: `list_servers`, `server_status` (A2S + процесс + матч из live), `list_players`, `recent_chat`, `read_log` (консоль сервера, log-all, WeaponPaints, MatchZy), `plugins_status`, `audit_log`. Действия `rcon` и `server_process` возвращаются как `pending` и выполняются только после «Выполнить» (`decisions` в следующем запросе); в журнал пишутся как `agent rcon #id: ...`. Новый вопрос вместо решения отменяет ожидающие действия.
