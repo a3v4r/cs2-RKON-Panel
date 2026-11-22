@@ -235,6 +235,12 @@ const TOOLS: Record<string, Tool> = {
     action: (args) => {
       const { method, path: p, body } = panelRequest(args);
       if (method === 'GET') return '';
+      const restore = /^\/api\/servers\/(\d+)\/restore$/.exec(p);
+      const round = Number((body as { round?: unknown } | undefined)?.round);
+      if (method === 'POST' && restore && Number.isInteger(round)) {
+        const server = servers.get(Number(restore[1]));
+        return `Откат на «${server?.name ?? `#${restore[1]}`}» к началу раунда ${round + 1} (бэкап ${round}). Всё, что было после, пропадёт; матч встанет на паузу.`;
+      }
       const json = body === undefined ? '' : ` ${JSON.stringify(body)}`;
       return `Панель: ${method} ${p}${json.length > 400 ? `${json.slice(0, 400)}...` : json}`;
     },
@@ -409,6 +415,12 @@ const SYSTEM_PROMPT = `Ты помощник судьи в Matchdesk - пане�
 - Если пользователь отменил действие, не повторяй его.
 - Установка и обновление плагинов, установка CS2 и запуск сервера идут в фоне. После такого действия дождись результата: wait, затем проверь состояние (GET /api/plugins, GET /api/cs2-update, server_status), и так, пока не закончится. Только потом переходи к следующему шагу и в конце скажи, чем всё закончилось.
 - Когда просят сделать несколько вещей подряд, делай их по порядку до конца, не останавливайся после первого шага.
+
+Откат раунда (бэкап раунда сохраняется в начале каждого раунда):
+- Сервер в режиме matchzy: GET /api/servers/{id}/restore даёт список backups [{round: NN, time, team1Score, team2Score}]. Бэкап NN - это начало раунда NN+1 со счётом на тот момент; бэкап с самым большим NN - начало текущего раунда. Откат: POST /api/servers/{id}/restore {round: NN}. Работает только в живой игре, не в разминке и не после конца карты. После отката матч стоит на паузе: снимай её (RCON css_forceunpause) только когда попросят.
+- «Переиграть текущий раунд» - последний бэкап. «Откати 1 раунд», «на раунд назад» - начало предыдущего раунда (предпоследний бэкап), «откати N раундов» - на N раундов раньше текущего. «Откати до раунда K» - бэкап NN = K-1.
+- Перед откатом всегда напиши текстом, к началу какого раунда и с каким счётом откатываешь, и только потом вызывай откат.
+- Сервер в режиме vanilla: RCON mp_backup_restore_list_files - файлы backup_roundNN.txt (начало раунда NN+1), откат - RCON mp_backup_restore_load_file <файл>.
 
 Полезные команды RCON (CS2 и MatchZy):
 - say <текст> - сообщение всем в чат;
