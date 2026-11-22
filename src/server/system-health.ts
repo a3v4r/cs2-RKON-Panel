@@ -2,7 +2,8 @@ import { execFile } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { ensureMetamod, ensureRussian } from './cs2-files';
+import { ensureRussian } from './cs2-files';
+import { isEnabled, syncMetamod } from './plugins';
 import { cs2Paths } from './panel-settings';
 
 // "System Health" of the Quatrix settings, for a Windows tournament PC: hardware, and whether the
@@ -48,13 +49,13 @@ export function systemHealth() {
     paths: { cs2: p.dir, steamcmd: p.steamcmd },
     checks,
     // What Repair can fix by itself (the rest needs the kit installer)
-    repairable: checks.cs2 && checks.metamod && !checks.metamodInGameinfo,
+    repairable: checks.cs2 && checks.metamod && isEnabled('metamod') && !checks.metamodInGameinfo,
   };
 }
 
 export function repairSystem() {
   const p = cs2Paths();
-  ensureMetamod(p.gameinfo);
+  syncMetamod();
   ensureRussian(p.csgo);
 }
 

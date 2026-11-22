@@ -6,13 +6,14 @@ import {
   Shield, AlertTriangle, Save, CheckCircle2, XCircle, ScrollText, Cpu,
 } from 'lucide-react'
 import { AuditLog } from '@/components/settings/audit-log'
+import { PluginsSettings } from '@/components/settings/plugins-settings'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { useT } from '@/lib/i18n'
 
 // Panel settings, laid out as the Quatrix Settings page: a card with tabs and a Save footer
 
-type Tab = 'general' | 'server_engine' | 'system_health' | 'log'
+type Tab = 'general' | 'server_engine' | 'plugins' | 'system_health' | 'log'
 
 interface PanelSettings {
   cs2Dir: string
@@ -105,6 +106,7 @@ export function GeneralSettings() {
   const tabs: { key: Tab; label: string }[] = [
     { key: 'general', label: t('Общие', 'General') },
     { key: 'server_engine', label: t('Сервер CS2', 'Server Engine') },
+    { key: 'plugins', label: t('Плагины', 'Plugins') },
     { key: 'system_health', label: t('Состояние системы', 'System Health') },
     { key: 'log', label: t('Журнал действий', 'Action Log') },
   ]
@@ -295,6 +297,8 @@ export function GeneralSettings() {
                 )}
               </div>
             )}
+
+            {tab === 'plugins' && <PluginsSettings />}
 
             {tab === 'log' && <AuditLog />}
           </div>
