@@ -7,7 +7,7 @@
 | Папка | Ветка | Что там |
 |---|---|---|
 | `C:\dev\cs2\cs2-RKON-Panel` | `ui-redesign` (запушена, в `main` не влита) | основная копия панели Matchdesk; на GitHub `a3v4r/Matchdesk` (переименован из `cs2-RKON-Panel` 2026-11-22, старый адрес перенаправляется) |
-| `C:\dev\cs2\cs2-RKON-Panel-plugins` | `plugins` (git worktree от `ui-redesign`, коммит `7713dc5`, не запушена) | вкладка «Настройки → Плагины» |
+| `C:\dev\cs2\cs2-RKON-Panel-plugins` | `plugins` (git worktree, влита в `ui-redesign` мерджем `23c26fe`, запушена) | вкладка «Настройки → Плагины», префикс в чате, автообновление |
 | `C:\dev\cs2\MatchZy-Patched` | `main` = `sync-upstream-0.9.1` (`eb218c5`, релиз `0.9.2-patched`) | форк MatchZy, исправлен путь бэкапов раундов |
 | `C:\dev\cs2\cs2-WeaponPaints-sqlite` | `main` = `screen-menu` (`81f281f`, релиз `3.3-patched`) | форк WeaponPaints на SQLite, экранное меню скинов |
 | `C:\cs2server\cs2` | — | установка CS2 для тестов (одна на все серверы панели) |
@@ -32,10 +32,10 @@
   - Откат раунда через `mp_backup_restore_load_file`.
 - **Обзор.** «Форс-старт» (`css_start`), переключатель ножевого раунда (`css_roundknife`, состояние берётся из ответа сервера), средний пинг по графику.
 
-## Плагины (ветка `plugins`)
+## Плагины (ветка `plugins`, влита в `ui-redesign`)
 
 - Форки `a3v4r/MatchZy-Patched` и `a3v4r/cs2-WeaponPaints-sqlite` открыты (публичные) 2026-11-22, всё влито в `main`; релизы `0.9.2-patched` и `3.3-patched` собраны, панель видит их без токена.
-- Закоммичено: `7713dc5` в ветке `plugins` (worktree `C:\dev\cs2\cs2-RKON-Panel-plugins`, от `ui-redesign` ffd913a). Не запушено и не влито в `ui-redesign`.
+- Влито в `ui-redesign` (`23c26fe`) и запушено 2026-11-22.
 - Набор плагинов один на всю установку CS2: Metamod, CounterStrikeSharp, MatchZy, WeaponPaints. Код в `src/server/plugins.ts`, `src/app/api/plugins/route.ts` и `src/components/settings/plugins-settings.tsx`.
 - **Зависимости.** MatchZy и WeaponPaints требуют CounterStrikeSharp, а он требует Metamod.
 - **Откуда качаются.**
@@ -47,12 +47,12 @@
   - `.vdf` CounterStrikeSharp уходит в `addons/metamod/disabled`.
   - Metamod убирается из `gameinfo.gi`.
   - Удаление с диска — отдельной кнопкой.
-- **Обновления:** по кнопке или сами (автообновление, ветка `plugins`, не закоммичено). Раз в 3 часа панель проверяет релизы и в фоне скачивает новое в `data/plugin-cache/<id>/<версия>_<время сборки>_<файл>`; ставит, только когда не работает ни один сервер из папки панели: сразу или в `startServer` перед запуском. Переключатель во вкладке «Плагины» (`pluginAutoUpdate` в `settings.json`, по умолчанию включено). Файлы в `cfg/` и `configs/` не перезаписываются, предыдущий архив хранится для отката. Проверено 2026-11-22 на тестовой установке: все четыре плагина из релизов встали перед запуском, сервер загрузил MatchZy 0.9.2-patched и WeaponPaints 3.3-patched.
+- **Обновления:** по кнопке или сами (автообновление, `469a3ab`). Раз в 3 часа панель проверяет релизы и в фоне скачивает новое в `data/plugin-cache/<id>/<версия>_<время сборки>_<файл>`; ставит, только когда не работает ни один сервер из папки панели: сразу или в `startServer` перед запуском. Переключатель во вкладке «Плагины» (`pluginAutoUpdate` в `settings.json`, по умолчанию включено). Файлы в `cfg/` и `configs/` не перезаписываются, предыдущий архив хранится для отката. Проверено 2026-11-22 на тестовой установке: все четыре плагина из релизов встали перед запуском, сервер загрузил MatchZy 0.9.2-patched и WeaponPaints 3.3-patched.
 - «Сервер запущен» панель теперь определяет по пути `cs2.exe` (папка сервера), а не по любому `cs2.exe`: открытый на этом ПК клиент CS2 не мешает ставить плагины.
 - Без MatchZy серверы панели переходят в режим Vanilla.
 - Пока идёт установка, серверы не запускаются.
 - **WeaponPaints и `FollowCS2ServerGuidelines`.** Скины применяются, только если в `configs/core.json` CounterStrikeSharp стоит `false`. Установщик панели этот флаг пока не меняет: на чистой установке скины молча не работают. На тестовой установке `C:\cs2server\cs2` флаг уже переключён вручную.
-- **Префикс в чате** (ветка `plugins`, `90e3d19`, не запушена): «Настройки → Общие → Префикс в чате», по умолчанию `Server`. Панель пишет его в `cfg/MatchZy/config.cfg` (`matchzy_chat_prefix`) и в `WeaponPaints.json` (`ChatPrefix`, новая настройка форка) при сохранении и перед каждым запуском сервера; MatchZy на запущенных серверах меняется сразу по RCON. Брендинг `Esports MIREA` убран из `cfg/MatchZy/config.cfg` форка MatchZy (префикс и `matchzy_hostname_format`), вошло в релиз `0.9.2-patched`.
+- **Префикс в чате** (`90e3d19`): «Настройки → Общие → Префикс в чате», по умолчанию `Server`. Панель пишет его в `cfg/MatchZy/config.cfg` (`matchzy_chat_prefix`) и в `WeaponPaints.json` (`ChatPrefix`, новая настройка форка) при сохранении и перед каждым запуском сервера; MatchZy на запущенных серверах меняется сразу по RCON. Брендинг `Esports MIREA` убран из `cfg/MatchZy/config.cfg` форка MatchZy (префикс и `matchzy_hostname_format`), вошло в релиз `0.9.2-patched`.
 - **Сайт для выбора скинов:** `C:\dev\cs2\cs2-skins-web` (порт 80, локальный git `457b986`, на GitHub нет). Отдельное приложение, не раздел Matchdesk: панель хранит RCON-пароли. Только локальная сеть, Node без зависимостей. Вход без ввода: сайт по RCON спрашивает `css_wp_who <ip браузера>`, сессия живёт, пока игрок на сервере за тем же компьютером (`css_wp_ip`). Пишет в sqlite плагина и шлёт `css_wp_reload <steamid>`. `!site` показывает адрес (`"Website": "auto"` — имя компьютера, для имён вида `DESKTOP-XXXXX` — LAN IP). Вход по IP проверен живым игроком 2026-11-22. Команды в `WebReload.cs` форка, вошли в релиз `3.3-patched`.
 - **Мелочи.**
   - Версии плагинов записываются в `data/plugins.json`, привязки к папке CS2 нет.
