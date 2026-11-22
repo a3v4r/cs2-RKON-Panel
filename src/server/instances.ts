@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { dataDir } from './accounts';
 import { chatCfgLines } from './chat-log';
+import { applyChatPrefix } from './chat-prefix';
 import { ensureRussian } from './cs2-files';
 import { isUpdating } from './cs2-update';
 import { pluginJobRunning, syncMetamod } from './plugins';
@@ -154,6 +155,11 @@ export async function startServer(id: number) {
   }
   syncMetamod();
   ensureRussian(paths.csgo);
+  try {
+    applyChatPrefix(paths.csgo);
+  } catch {
+    // A broken plugin config must not stop the server from starting
+  }
   await writeCfg(paths.csgo, server);
 
   const m = server.managed;
