@@ -9,5 +9,7 @@ export async function register() {
     startInstanceWatcher().catch(() => {});
     const { startBackupScheduler } = await import('./server/backups');
     startBackupScheduler();
+    const { startPluginAutoUpdate } = await import('./server/plugins');
+    startPluginAutoUpdate();
   }
 }

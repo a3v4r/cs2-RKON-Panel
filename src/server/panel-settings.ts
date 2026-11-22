@@ -8,6 +8,10 @@ export interface PanelSettings {
   steamcmd?: string;
   panelName?: string;
   defaultPort?: number;
+  // Name before the plugins' chat messages, see chat-prefix.ts
+  chatPrefix?: string;
+  // Plugins update by themselves (on unless set to false), see plugins.ts
+  pluginAutoUpdate?: boolean;
 }
 
 const file = () => path.join(dataDir(), 'settings.json');

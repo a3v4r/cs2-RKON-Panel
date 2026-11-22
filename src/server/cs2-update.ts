@@ -1,7 +1,7 @@
 import { ChildProcess, execFile, spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { ensureMetamod } from './cs2-files';
+import { pluginJobRunning, syncMetamod } from './plugins';
 import { cs2Paths } from './panel-settings';
 
 // Updates the CS2 dedicated server with steamcmd, as the kit's update.bat did, but from the panel and with progress.
@@ -28,7 +28,7 @@ const state = (): UpdateState => (g.cs2Update ??= { running: false, phase: '', p
 export const updateState = () => state();
 export const isUpdating = () => state().running;
 
-function anyCs2Running(): Promise<boolean> {
+export function anyCs2Running(): Promise<boolean> {
   return new Promise((resolve) => {
     execFile('tasklist', ['/FI', 'IMAGENAME eq cs2.exe', '/FO', 'CSV', '/NH'], { windowsHide: true }, (err, out) => {
       resolve(!err && /"cs2\.exe"/i.test(out));
@@ -89,6 +89,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export async function startUpdate() {
   if (isUpdating()) throw new Error('Обновление уже идёт');
+  if (pluginJobRunning()) throw new Error('Идёт установка плагинов: дождитесь её окончания');
   const paths = cs2Paths();
   if (!fs.existsSync(paths.steamcmd)) {
     throw new Error(`Не найден ${paths.steamcmd}. steamcmd ставит установщик турнирного комплекта (setup\\install.bat).`);
@@ -121,7 +122,7 @@ async function run(paths: ReturnType<typeof cs2Paths>) {
     if (g.cs2UpdateCancel) return finish(false, 'Обновление отменено. Запустите его снова, чтобы докачать файлы.');
     if (code === 0 && fs.existsSync(paths.exe)) {
       s.phase = 'Подключение Metamod';
-      ensureMetamod(paths.gameinfo);
+      syncMetamod();
       return finish(true, 'CS2 обновлён. Можно запускать серверы.');
     }
     onLine(`steamcmd завершился с кодом ${code}`);

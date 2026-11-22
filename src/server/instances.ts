@@ -3,8 +3,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { dataDir } from './accounts';
 import { chatCfgLines } from './chat-log';
-import { ensureMetamod, ensureRussian } from './cs2-files';
+import { applyChatPrefix } from './chat-prefix';
+import { ensureRussian } from './cs2-files';
 import { isUpdating } from './cs2-update';
+import { installPendingBeforeStart, pluginJobRunning, syncMetamod } from './plugins';
 import { cs2Paths } from './panel-settings';
 import { rconCommand } from './rcon';
 import { GameMode, Priority, StoredServer, servers } from './store';
@@ -145,13 +147,21 @@ export async function startServer(id: number) {
   if (current?.state === 'running' || current?.state === 'stopping') return;
   if (current?.restartTimer) clearTimeout(current.restartTimer);
   if (isUpdating()) throw new Error('Идёт обновление CS2: запустите сервер, когда оно закончится');
+  if (pluginJobRunning()) throw new Error('Идёт установка плагинов: запустите сервер, когда она закончится');
 
   const paths = cs2Paths();
   if (!fs.existsSync(paths.exe)) {
     throw new Error(`Не найден ${paths.exe}. Укажите папку сервера CS2 в настройках панели.`);
   }
-  ensureMetamod(paths.gameinfo);
+  // Plugin updates downloaded in the background go in now, while nothing holds their files
+  await installPendingBeforeStart();
+  syncMetamod();
   ensureRussian(paths.csgo);
+  try {
+    applyChatPrefix(paths.csgo);
+  } catch {
+    // A broken plugin config must not stop the server from starting
+  }
   await writeCfg(paths.csgo, server);
 
   const m = server.managed;

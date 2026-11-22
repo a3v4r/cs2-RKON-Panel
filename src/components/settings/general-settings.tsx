@@ -6,13 +6,14 @@ import {
   Shield, AlertTriangle, Save, CheckCircle2, XCircle, ScrollText, Cpu,
 } from 'lucide-react'
 import { AuditLog } from '@/components/settings/audit-log'
+import { PluginsSettings } from '@/components/settings/plugins-settings'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { useT } from '@/lib/i18n'
 
 // Panel settings, laid out as the Quatrix Settings page: a card with tabs and a Save footer
 
-type Tab = 'general' | 'server_engine' | 'system_health' | 'log'
+type Tab = 'general' | 'server_engine' | 'plugins' | 'system_health' | 'log'
 
 interface PanelSettings {
   cs2Dir: string
@@ -21,6 +22,7 @@ interface PanelSettings {
   steamcmdFound: boolean
   panelName: string
   defaultPort: number
+  chatPrefix: string
 }
 
 interface Health {
@@ -44,6 +46,7 @@ export function GeneralSettings() {
   const [healthLoading, setHealthLoading] = React.useState(false)
   const [panelName, setPanelName] = React.useState('')
   const [defaultPort, setDefaultPort] = React.useState('27015')
+  const [chatPrefix, setChatPrefix] = React.useState('')
   const [steamcmd, setSteamcmd] = React.useState('')
   const [cs2Dir, setCs2Dir] = React.useState('')
   const [saving, setSaving] = React.useState(false)
@@ -55,6 +58,7 @@ export function GeneralSettings() {
     setSettings(s)
     setPanelName(s.panelName)
     setDefaultPort(String(s.defaultPort))
+    setChatPrefix(s.chatPrefix)
     setSteamcmd(s.steamcmd)
     setCs2Dir(s.cs2Dir)
   }, [])
@@ -70,7 +74,7 @@ export function GeneralSettings() {
     setSaving(true)
     setMessage(null)
     try {
-      const body = tab === 'general' ? { panelName, defaultPort: Number(defaultPort) } : { steamcmd, cs2Dir }
+      const body = tab === 'general' ? { panelName, defaultPort: Number(defaultPort), chatPrefix } : { steamcmd, cs2Dir }
       const s = await api<PanelSettings>('/api/panel-settings', { method: 'PUT', body })
       setSettings(s)
       setMessage({ type: 'success', text: t('Настройки сохранены', 'Settings updated successfully!') })
@@ -105,6 +109,7 @@ export function GeneralSettings() {
   const tabs: { key: Tab; label: string }[] = [
     { key: 'general', label: t('Общие', 'General') },
     { key: 'server_engine', label: t('Сервер CS2', 'Server Engine') },
+    { key: 'plugins', label: t('Плагины', 'Plugins') },
     { key: 'system_health', label: t('Состояние системы', 'System Health') },
     { key: 'log', label: t('Журнал действий', 'Action Log') },
   ]
@@ -159,6 +164,11 @@ export function GeneralSettings() {
                       <label className="block text-sm font-medium text-gray-400 mb-2">{t('Порт сервера по умолчанию', 'Default Server Port')}</label>
                       <input className={field} type="number" value={defaultPort} onChange={(e) => setDefaultPort(e.target.value)} />
                       <p className="text-[10px] text-gray-500 mt-2 px-1">{t('С него начинается подбор свободных портов при создании сервера.', 'New servers get the first free port starting from this one.')}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-400 mb-2">{t('Префикс в чате', 'Chat Prefix')}</label>
+                      <input className={field} type="text" maxLength={32} value={chatPrefix} placeholder="Server" onChange={(e) => setChatPrefix(e.target.value)} />
+                      <p className="text-[10px] text-gray-500 mt-2 px-1">{t(`Стоит в скобках перед сообщениями плагинов в игре: [${chatPrefix.trim() || 'Server'}]. MatchZy меняет его сразу, WeaponPaints — после перезапуска сервера.`, `Shown in brackets before plugin chat messages: [${chatPrefix.trim() || 'Server'}]. MatchZy picks it up at once, WeaponPaints after a server restart.`)}</p>
                     </div>
                   </div>
                 </div>
@@ -295,6 +305,8 @@ export function GeneralSettings() {
                 )}
               </div>
             )}
+
+            {tab === 'plugins' && <PluginsSettings />}
 
             {tab === 'log' && <AuditLog />}
           </div>
