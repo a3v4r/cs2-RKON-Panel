@@ -6,7 +6,7 @@
 
 | Папка | Ветка | Что там |
 |---|---|---|
-| `C:\dev\cs2\cs2-RKON-Panel` | `ui-redesign` (влита в `main` 2026-11-22, релиз `v0.10.0`) | основная копия панели Matchdesk; на GitHub `a3v4r/Matchdesk` (переименован из `cs2-RKON-Panel` 2026-11-22, старый адрес перенаправляется) |
+| `C:\dev\cs2\cs2-RKON-Panel` | `ui-redesign` (влита в `main` 2026-11-22, релиз `v0.11.0`) | основная копия панели Matchdesk; на GitHub `a3v4r/Matchdesk` (переименован из `cs2-RKON-Panel` 2026-11-22, старый адрес перенаправляется) |
 | `C:\dev\cs2\cs2-RKON-Panel-plugins` | `plugins` (git worktree, влита в `ui-redesign` мерджем `23c26fe`, запушена) | вкладка «Настройки → Плагины», префикс в чате, автообновление |
 | `C:\dev\cs2\cs2-server-kit` | - | удалён 2026-11-22 (в корзину Windows): с `v0.8.0` всё делает панель, с `v0.9.0` - один `Matchdesk.exe` |
 | `C:\dev\cs2\MatchZy-Patched` | `main` = `sync-upstream-0.9.1` (`eb218c5`, релиз `0.9.2-patched`) | форк MatchZy, исправлен путь бэкапов раундов |
@@ -53,7 +53,7 @@
 - Без MatchZy серверы панели переходят в режим Vanilla.
 - Пока идёт установка, серверы не запускаются.
 - **WeaponPaints и `FollowCS2ServerGuidelines`.** Скины применяются, только если в `configs/core.json` CounterStrikeSharp стоит `false`. Панель выставляет `false` перед каждым запуском сервера, пока WeaponPaints включён (`syncWeaponPaintsGuidelines` в `plugins.ts`); при выключенном WeaponPaints флаг не трогает.
-- **Gamedata WeaponPaints.** Сигнатура `CAttributeList_SetOrAddAttributeValueByName` в форке устарела, в `server.dll` её не было: скины не применялись совсем, а ошибки плагин молча глотал. Сигнатуры взяты из оригинала (Nereziel, ноябрь 2026), плагин теперь пишет в лог первую такую ошибку за карту. После обновлений CS2 сверять `gamedata/weaponpaints.json` с оригиналом. Перчатки тоже не применялись: форк отмечал изменённым `m_EconGloves` целиком (CS2 так не принимает) и подменял модель, которой больше нет. Теперь как в оригинале: счётчик `m_nEconGlovesChanged` и bodygroup `first_or_third_person`. Всё это вошло в релиз `3.3.1-patched`, проверено в игре 2026-11-22.
+- **Gamedata WeaponPaints.** Сигнатура `CAttributeList_SetOrAddAttributeValueByName` в форке устарела, в `server.dll` её не было: скины не применялись совсем, а ошибки плагин молча глотал. Сигнатуры взяты из оригинала (Nereziel, ноябрь 2026), плагин теперь пишет в лог первую такую ошибку за карту. После обновлений CS2 сверять `gamedata/weaponpaints.json` с оригиналом. Панель сама показывает это во вкладке «Плагины» на карточке WeaponPaints (`src/server/plugin-health.ts`): ищет «Skins are not applied» в последних `logs/log-WeaponPaints*.txt` и учитывает только строки новее `gamedata/weaponpaints.json`, так что обновление плагина с новой gamedata убирает предупреждение. Так же показывается «Skins will not be applied» (FollowCS2ServerGuidelines), если строка новее `configs/core.json`. Перчатки тоже не применялись: форк отмечал изменённым `m_EconGloves` целиком (CS2 так не принимает) и подменял модель, которой больше нет. Теперь как в оригинале: счётчик `m_nEconGlovesChanged` и bodygroup `first_or_third_person`. Всё это вошло в релиз `3.3.1-patched`, проверено в игре 2026-11-22.
 - **Префикс в чате** (`90e3d19`): «Настройки → Общие → Префикс в чате», по умолчанию `Server`. Панель пишет его в `cfg/MatchZy/config.cfg` (`matchzy_chat_prefix`) и в `WeaponPaints.json` (`ChatPrefix`, новая настройка форка) при сохранении и перед каждым запуском сервера; MatchZy на запущенных серверах меняется сразу по RCON. Брендинг `Esports MIREA` убран из `cfg/MatchZy/config.cfg` форка MatchZy (префикс и `matchzy_hostname_format`), вошло в релиз `0.9.2-patched`.
 - **Сайт для выбора скинов** - папка `skins-site/` в репозитории панели (перенесён из отдельного локального репозитория `C:\dev\cs2\cs2-skins-web` 2026-11-22, тот больше не нужен). Node без зависимостей, только локальная сеть.
   - Запускает панель (`src/server/skins-site.ts`) отдельным процессом на порту 80, пока WeaponPaints установлен и включён; проверка раз в 15 с. Карточка «Сайт скинов» во вкладке «Настройки → Плагины»: вкл/выкл, порт, перезапуск, статус и лог при ошибке (`skinsSite` в `settings.json`).
@@ -107,6 +107,5 @@
 ## Дальше
 
 1. Проверить `Matchdesk.exe` на чистом ПК клуба целиком: SmartScreen, Visual C++, брандмауэр, установка CS2, плагины, сервер из панели, сайт скинов.
-2. Предупреждение в панели, когда gamedata WeaponPaints устарела (плагин пишет `Skins are not applied` в лог CounterStrikeSharp).
-3. Список скинов форка не обновляется вместе с оригиналом; агентов в данных нет.
-4. Не проверено в игре: `!site` при выключенном сайте, остановка сайта на время работы с плагинами.
+2. Список скинов форка не обновляется вместе с оригиналом; агентов в данных нет.
+3. Не проверено в игре: `!site` при выключенном сайте, остановка сайта на время работы с плагинами.

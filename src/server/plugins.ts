@@ -5,6 +5,7 @@ import path from 'node:path';
 import { dataDir } from './accounts';
 import { isUpdating } from './cs2-update';
 import { cs2Paths, readSettings } from './panel-settings';
+import { weaponPaintsProblem } from './plugin-health';
 import { servers } from './store';
 
 // Plugins of the CS2 install (one set for every server on this PC): Metamod, CounterStrikeSharp and the CounterStrikeSharp
@@ -404,6 +405,8 @@ export function pluginsView() {
         latest: latest && 'version' in latest ? latest.version : null,
         latestError: latest && 'error' in latest ? latest.error : null,
         updateAvailable: latest && 'version' in latest ? isInstalled(p.id) && isNewer(rec, latest) : false,
+        // What the plugin itself reported in its log (see plugin-health.ts)
+        problem: p.id === 'weaponpaints' && isInstalled(p.id) && isEnabled(p.id, records) ? weaponPaintsProblem() : null,
       };
     }),
     job: job(),

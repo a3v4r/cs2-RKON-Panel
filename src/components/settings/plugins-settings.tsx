@@ -25,6 +25,7 @@ interface PluginInfo {
   latest: string | null
   latestError: string | null
   updateAvailable: boolean
+  problem: { kind: 'gamedata' | 'guidelines'; at: string; detail: string } | null
 }
 
 interface Job { running: boolean; title: string; phase: string; ok?: boolean; message?: string; log: string[] }
@@ -217,6 +218,23 @@ export function PluginsSettings() {
                     </p>
                     {plugin.updateAvailable && <p className="text-[11px] text-primary">{t(`Есть новая версия: ${plugin.latest}`, `New version: ${plugin.latest}`)}</p>}
                     {plugin.latestError && <p className="text-[11px] text-orange-400">{plugin.latestError}</p>}
+                    {plugin.problem && (
+                      <p className="text-[11px] text-red-400 mt-1 flex items-start gap-1.5 whitespace-normal">
+                        <AlertTriangle size={12} className="shrink-0 mt-0.5" />
+                        <span className="min-w-0">
+                          {plugin.problem.kind === 'gamedata'
+                            ? t(
+                              `Скины не применяются (${new Date(plugin.problem.at).toLocaleString()}). Скорее всего, CS2 обновился и у плагина устарела gamedata. ${plugin.updateAvailable ? 'Обновите WeaponPaints: вышла новая версия.' : 'Нужна новая версия WeaponPaints, панель поставит её сама, когда она выйдет.'}`,
+                              `Skins are not applied (${new Date(plugin.problem.at).toLocaleString()}). Most likely CS2 was updated and the plugin's gamedata is out of date. ${plugin.updateAvailable ? 'Update WeaponPaints: a new version is out.' : 'A new WeaponPaints version is needed; the panel installs it once it is out.'}`,
+                            )
+                            : t(
+                              'Скины не применяются: в core.json CounterStrikeSharp включён FollowCS2ServerGuidelines. Панель выключает его перед запуском своих серверов; сервер, запущенный не из панели, нужно перезапустить из неё.',
+                              'Skins are not applied: FollowCS2ServerGuidelines is on in the CounterStrikeSharp core.json. The panel turns it off before starting its servers; restart a server started elsewhere from the panel.',
+                            )}
+                          <span className="block text-gray-500 truncate" title={plugin.problem.detail}>{plugin.problem.detail}</span>
+                        </span>
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
