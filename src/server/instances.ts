@@ -6,7 +6,7 @@ import { chatCfgLines } from './chat-log';
 import { applyChatPrefix } from './chat-prefix';
 import { ensureRussian } from './cs2-files';
 import { isUpdating } from './cs2-update';
-import { pluginJobRunning, syncMetamod } from './plugins';
+import { installPendingBeforeStart, pluginJobRunning, syncMetamod } from './plugins';
 import { cs2Paths } from './panel-settings';
 import { rconCommand } from './rcon';
 import { GameMode, Priority, StoredServer, servers } from './store';
@@ -153,6 +153,8 @@ export async function startServer(id: number) {
   if (!fs.existsSync(paths.exe)) {
     throw new Error(`Не найден ${paths.exe}. Укажите папку сервера CS2 в настройках панели.`);
   }
+  // Plugin updates downloaded in the background go in now, while nothing holds their files
+  await installPendingBeforeStart();
   syncMetamod();
   ensureRussian(paths.csgo);
   try {

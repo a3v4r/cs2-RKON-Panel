@@ -27,7 +27,8 @@ interface PluginInfo {
 }
 
 interface Job { running: boolean; title: string; phase: string; ok?: boolean; message?: string; log: string[] }
-interface View { plugins: PluginInfo[]; job: Job }
+interface AutoUpdate { enabled: boolean; checking: boolean; lastCheck: number | null; message: string | null; pending: string[] }
+interface View { plugins: PluginInfo[]; job: Job; auto: AutoUpdate }
 
 // Order on the page: what judges pick first, the dependencies after
 const ORDER: PluginId[] = ['matchzy', 'weaponpaints', 'counterstrikesharp', 'metamod']
@@ -57,6 +58,14 @@ export function PluginsSettings() {
     }, 1500)
     return () => clearInterval(timer)
   }, [running, load])
+
+  // An automatic check runs on its own: follow it until it is done
+  const autoChecking = view?.auto.checking ?? false
+  React.useEffect(() => {
+    if (!autoChecking) return
+    const timer = setInterval(load, 3000)
+    return () => clearInterval(timer)
+  }, [autoChecking, load])
 
   const byId = (id: PluginId) => view?.plugins.find((p) => p.id === id)
 
@@ -113,6 +122,37 @@ export function PluginsSettings() {
           {t('Проверить обновления', 'Check for updates')}
         </button>
       </div>
+
+      {view && (
+        <div className="mb-4 p-4 bg-[#0d1624] rounded-2xl border border-gray-800/50 flex items-start gap-3">
+          <Switch
+            checked={view.auto.enabled}
+            disabled={busy}
+            onCheckedChange={(v) => call({ action: 'auto', enabled: v })}
+          />
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-white">{t('Автообновление', 'Automatic updates')}</p>
+            <p className="text-[11px] text-gray-500 mt-0.5">
+              {t(
+                'Раз в 3 часа панель ищет новые версии и скачивает их в фоне. Ставит, только когда ни один сервер не работает: сразу или перед следующим запуском сервера. На день турнира можно выключить.',
+                'Every 3 hours the panel looks for new versions and downloads them in the background. They are installed only while no server runs: at once or right before the next server start. Turn it off for a tournament day.',
+              )}
+            </p>
+            {view.auto.enabled && (view.auto.pending.length > 0 || view.auto.message || view.auto.checking) && (
+              <p className="text-[11px] text-primary mt-1.5">
+                {view.auto.checking
+                  ? t('Проверяю обновления…', 'Checking for updates…')
+                  : view.auto.pending.length > 0
+                    ? t(`Скачано и ждёт установки: ${view.auto.pending.join(', ')}`, `Downloaded, waiting to be installed: ${view.auto.pending.join(', ')}`)
+                    : view.auto.message}
+                {view.auto.lastCheck && !view.auto.checking && (
+                  <span className="text-gray-500"> · {t('проверено', 'checked')} {new Date(view.auto.lastCheck).toLocaleString()}</span>
+                )}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {error && (
         <div className="mb-4 p-4 rounded-xl border text-sm flex items-center gap-2 bg-red-500/10 border-red-500/20 text-red-500">

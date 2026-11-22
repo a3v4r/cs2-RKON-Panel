@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { JUDGE, audit, requireRole } from '@/server/auth';
-import { applyPlugins, checkUpdates, isPluginId, pluginsView, removePlugin, rollbackPlugin, updatePlugin } from '@/server/plugins';
+import { applyPlugins, autoCheck, checkUpdates, isPluginId, pluginsView, removePlugin, rollbackPlugin, updatePlugin } from '@/server/plugins';
+import { writeSettings } from '@/server/panel-settings';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,6 +12,7 @@ export async function GET() {
 }
 
 // { action: 'apply', enabled: { matchzy: true, ... } } | { action: 'check' } | { action: 'update' | 'rollback' | 'remove', id }
+// | { action: 'auto', enabled }
 export async function POST(req: Request) {
   const user = await requireRole(JUDGE);
   if (user instanceof NextResponse) return user;
@@ -18,6 +20,10 @@ export async function POST(req: Request) {
   const { action, id } = body;
   try {
     if (action === 'check') await checkUpdates();
+    else if (action === 'auto') {
+      writeSettings({ pluginAutoUpdate: Boolean(body.enabled) });
+      if (body.enabled) autoCheck().catch(() => {});
+    }
     else if (action === 'apply') {
       const enabled = Object.fromEntries(Object.entries(body.enabled ?? {}).filter(([k]) => isPluginId(k)).map(([k, v]) => [k, Boolean(v)]));
       await applyPlugins(enabled);
@@ -28,6 +34,6 @@ export async function POST(req: Request) {
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 409 });
   }
-  if (action !== 'check') audit(user, `plugins ${action}${id ? ` ${id}` : ''}`);
+  if (action !== 'check') audit(user, `plugins ${action}${id ? ` ${id}` : ''}${action === 'auto' ? (body.enabled ? ' on' : ' off') : ''}`);
   return NextResponse.json(pluginsView());
 }

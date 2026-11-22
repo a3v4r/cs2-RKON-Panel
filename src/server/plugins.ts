@@ -3,13 +3,14 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { dataDir } from './accounts';
-import { anyCs2Running, isUpdating } from './cs2-update';
-import { cs2Paths } from './panel-settings';
+import { isUpdating } from './cs2-update';
+import { cs2Paths, readSettings } from './panel-settings';
 import { servers } from './store';
 
 // Plugins of the CS2 install (one set for every server on this PC): Metamod, CounterStrikeSharp and the CounterStrikeSharp
 // plugins. The panel downloads them (official builds, the forks from their GitHub releases), turns them on and off
-// and updates them on request only. Everything here changes files cs2.exe keeps open, so all servers must be stopped.
+// and updates them on request or by themselves (auto-update, see the end). Everything here changes files the server's
+// cs2.exe keeps open, so all servers must be stopped.
 
 export type PluginId = 'metamod' | 'counterstrikesharp' | 'matchzy' | 'weaponpaints';
 
@@ -145,8 +146,9 @@ const UA = { 'User-Agent': 'Matchdesk-panel', Accept: 'application/vnd.github+js
 async function get(url: string, init?: RequestInit) {
   try {
     return await fetch(url, { cache: 'no-store', ...init });
-  } catch {
-    throw new Error(`Нет связи с ${new URL(url).host}: проверьте интернет`);
+  } catch (e) {
+    const cause = (e as { cause?: { code?: string; message?: string } }).cause;
+    throw new Error(`Нет связи с ${new URL(url).host}: проверьте интернет (${cause?.code ?? cause?.message ?? (e as Error).message})`);
   }
 }
 
@@ -196,16 +198,31 @@ function log(text: string) {
   if (s.log.length > 200) s.log.splice(0, s.log.length - 200);
 }
 
+// cs2.exe started from the panel's CS2 folder: a server (also one started by a batch file). The game client
+// lives in Steam's folder and does not hold these files, so a judge may keep playing on this PC.
+export function serverCs2Running(): Promise<boolean> {
+  const exe = path.resolve(cs2Paths().exe).toLowerCase();
+  return new Promise((resolve) => {
+    execFile('powershell', ['-NoProfile', '-NonInteractive', '-Command',
+      "Get-CimInstance Win32_Process -Filter \"Name='cs2.exe'\" | ForEach-Object { if ($_.ExecutablePath) { $_.ExecutablePath } else { '?' } }"],
+    { windowsHide: true, timeout: 20_000 }, (err, out) => {
+      if (err) return resolve(true); // cannot tell: better not touch the files
+      // '?': a cs2.exe whose path we may not read (another user): could be a server
+      resolve(out.split(/\r?\n/).map((l) => l.trim()).filter(Boolean).some((l) => l === '?' || path.resolve(l).toLowerCase() === exe));
+    });
+  });
+}
+
 async function guard() {
   if (pluginJobRunning()) throw new Error('Уже идёт работа с плагинами');
   if (isUpdating()) throw new Error('Идёт обновление CS2: дождитесь его окончания');
-  if (await anyCs2Running()) throw new Error('На этом ПК работает cs2.exe. Остановите все серверы (и запущенные батниками тоже) и повторите.');
+  if (await serverCs2Running()) throw new Error('Работает сервер CS2 из папки панели. Остановите все серверы (и запущенные батниками тоже) и повторите.');
   if (!fs.existsSync(cs2Paths().exe)) throw new Error('Сервер CS2 не найден: укажите его папку в настройках («Сервер CS2»).');
 }
 
 function runJob(title: string, work: () => Promise<string>) {
   g.pluginJob = { running: true, title, phase: 'Начинаю', log: [] };
-  work()
+  return work()
     .then((message) => Object.assign(job(), { running: false, ok: true, message, finishedAt: Date.now() }))
     .catch((e) => {
       log(`Ошибка: ${(e as Error).message}`);
@@ -261,12 +278,20 @@ function archiveRoot(dir: string): string {
   throw new Error('В архиве нет папки addons');
 }
 
-async function download(id: PluginId, release: Release) {
+// The forks upload every build as the same WeaponPaints.zip: the cache name carries version and build time,
+// so a new build does not overwrite the installed zip (the one a rollback needs)
+const cacheName = (release: Release) =>
+  `${release.version}_${release.updatedAt}_${release.file}`.replace(/[^\w.-]+/g, '-');
+
+async function download(id: PluginId, release: Release, say: (text: string) => void = log) {
   const dir = cacheDir(id);
   fs.mkdirSync(dir, { recursive: true });
-  const target = path.join(dir, release.file);
-  log(`Скачиваю ${release.file}`);
-  const res = await get(release.url, { headers: { 'User-Agent': UA['User-Agent'] } });
+  const target = path.join(dir, cacheName(release));
+  if (fs.existsSync(target)) return target;
+  say(`Скачиваю ${release.file}`);
+  // GitHub's file hosts drop a connection now and then: one more try before giving up
+  const res = await get(release.url, { headers: { 'User-Agent': UA['User-Agent'] } })
+    .catch(() => get(release.url, { headers: { 'User-Agent': UA['User-Agent'] } }));
   if (!res.ok || !res.body) throw new Error(`Не удалось скачать ${release.file}: ${res.status}`);
   fs.writeFileSync(target + '.part', Buffer.from(await res.arrayBuffer()));
   fs.renameSync(target + '.part', target);
@@ -338,6 +363,7 @@ export function pluginsView() {
       };
     }),
     job: job(),
+    auto: autoUpdateView(),
   };
 }
 
@@ -421,3 +447,120 @@ export async function removePlugin(id: PluginId) {
 }
 
 export const isPluginId = (v: unknown): v is PluginId => PLUGINS.some((p) => p.id === v);
+
+// ---- Automatic updates
+// Every few hours the panel looks for new releases and downloads them in the background (servers keep running).
+// They are installed only while no server of this install runs: right away, or just before the next server start.
+// Off in the settings ("pluginAutoUpdate": false) for a tournament day, if nothing should change.
+
+const AUTO_FIRST_CHECK_MS = 2 * 60_000;
+const AUTO_CHECK_MS = 3 * 3600_000;
+
+interface Pending { release: Release; zip: string }
+interface AutoState {
+  checking: boolean;
+  lastCheck?: number;
+  message?: string; // what the last automatic check did, for the settings page
+  pending: Partial<Record<PluginId, Pending>>;
+}
+
+const ga = globalThis as unknown as { pluginAuto?: AutoState; pluginAutoTimer?: NodeJS.Timeout };
+const auto = (): AutoState => (ga.pluginAuto ??= { checking: false, pending: {} });
+
+export const autoUpdateOn = () => readSettings().pluginAutoUpdate !== false;
+
+// Downloaded updates that are still newer than what is installed
+function pendingUpdates() {
+  const records = readRecords();
+  const result: [PluginId, Pending][] = [];
+  for (const p of PLUGINS) {
+    const item = auto().pending[p.id];
+    if (item && isInstalled(p.id) && fs.existsSync(item.zip) && isNewer(records[p.id], item.release)) result.push([p.id, item]);
+    else delete auto().pending[p.id];
+  }
+  return result;
+}
+
+async function installPending() {
+  const done: string[] = [];
+  for (const [id, item] of pendingUpdates()) {
+    log(`${def(id).name}: ставлю ${item.release.version}`);
+    await installZip(id, item.zip);
+    remember(id, item.release, item.zip);
+    delete auto().pending[id];
+    done.push(`${def(id).name} ${item.release.version}`);
+  }
+  return done;
+}
+
+export async function autoCheck() {
+  const a = auto();
+  if (!autoUpdateOn() || a.checking || pluginJobRunning() || isUpdating()) return;
+  a.checking = true;
+  try {
+    await checkUpdates();
+    a.lastCheck = Date.now();
+    const records = readRecords();
+    const fresh = PLUGINS.filter((p) => {
+      const latest = g.pluginLatest?.[p.id];
+      return latest && 'version' in latest && isInstalled(p.id) && isNewer(records[p.id], latest);
+    });
+    if (!fresh.length) {
+      a.message = 'Обновлений нет';
+      return;
+    }
+    // Quietly, not as a job: a running download must not stop a judge from starting a server.
+    // One failed download does not hold back the others; it is tried again on the next check.
+    const failed: string[] = [];
+    for (const p of fresh) {
+      const release = g.pluginLatest![p.id] as Release;
+      try {
+        a.pending[p.id] = { release, zip: await download(p.id, release, () => {}) };
+      } catch (e) {
+        failed.push(`${p.name}: ${(e as Error).message}`);
+      }
+    }
+    const ready = fresh.filter((p) => a.pending[p.id]);
+    const failedText = failed.length ? ` Не скачалось: ${failed.join('; ')}.` : '';
+    if (!ready.length) {
+      a.message = `Не удалось скачать обновления.${failedText}`;
+      return;
+    }
+    const names = ready.map((p) => `${p.name} ${(g.pluginLatest![p.id] as Release).version}`).join(', ');
+    if (await serverCs2Running()) {
+      a.message = `Скачано: ${names}. Установится, когда ни один сервер не будет работать (перед следующим запуском).${failedText}`;
+      return;
+    }
+    await runJob('Автообновление плагинов', async () => `Обновлено: ${(await installPending()).join(', ')}`);
+    a.message = (job().ok ? `Обновлено: ${names}.` : `Не удалось обновить: ${job().message}.`) + failedText;
+  } catch (e) {
+    a.message = `Проверка не удалась: ${(e as Error).message}`;
+  } finally {
+    a.checking = false;
+  }
+}
+
+// Before a server starts: put in what was downloaded, if no other server of this install is running
+export async function installPendingBeforeStart() {
+  if (!autoUpdateOn() || pluginJobRunning() || isUpdating() || pendingUpdates().length === 0) return;
+  if (await serverCs2Running()) return;
+  await runJob('Автообновление плагинов', async () => `Обновлено перед запуском сервера: ${(await installPending()).join(', ')}`);
+  auto().message = job().ok ? job().message : `Не удалось обновить: ${job().message}`;
+}
+
+export function startPluginAutoUpdate() {
+  if (ga.pluginAutoTimer) return;
+  setTimeout(() => { autoCheck().catch(() => {}); }, AUTO_FIRST_CHECK_MS);
+  ga.pluginAutoTimer = setInterval(() => { autoCheck().catch(() => {}); }, AUTO_CHECK_MS);
+}
+
+export function autoUpdateView() {
+  const a = auto();
+  return {
+    enabled: autoUpdateOn(),
+    checking: a.checking,
+    lastCheck: a.lastCheck ?? null,
+    message: a.message ?? null,
+    pending: pendingUpdates().map(([id, item]) => `${def(id).name} ${item.release.version}`),
+  };
+}
