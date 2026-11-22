@@ -502,8 +502,19 @@ async function runTool(call: ToolCall, user: SessionUser, ctx: TurnContext): Pro
 }
 
 // One user turn: the model reads what it needs; actions wait for the user's decision (`decisions` by tool call id)
-export async function agentTurn(input: unknown, decisions: Record<string, unknown> | undefined, user: SessionUser, ctx: TurnContext = {}) {
+// onMessage: each message as it is added, so the chat can show the agent's steps while it works
+export async function agentTurn(
+  input: unknown,
+  decisions: Record<string, unknown> | undefined,
+  user: SessionUser,
+  ctx: TurnContext = {},
+  onMessage: (message: AgentMessage) => void = () => {},
+) {
   const messages = cleanMessages(input);
+  const add = (message: AgentMessage) => {
+    messages.push(message);
+    onMessage(message);
+  };
 
   // Answer the actions the user has just decided on. A new question instead of a decision skips them; the
   // answers must stand right after the assistant message that asked, before that question.
@@ -513,7 +524,7 @@ export async function agentTurn(input: unknown, decisions: Record<string, unknow
       const content = decisions[call.id] === 'run'
         ? await runTool(call, user, ctx)
         : 'Пользователь отменил это действие.';
-      messages.push({ role: 'tool', tool_call_id: call.id, content });
+      add({ role: 'tool', tool_call_id: call.id, content });
     }
   } else if (waiting.length) {
     let lastAssistant = -1;
@@ -527,7 +538,7 @@ export async function agentTurn(input: unknown, decisions: Record<string, unknow
 
   for (let step = 0; step < MAX_STEPS; step++) {
     const reply = await callModel(messages, ctx);
-    messages.push(reply);
+    add(reply);
     if (!reply.tool_calls?.length) return { messages, pending: [] as PendingAction[] };
 
     const pending: PendingAction[] = [];
@@ -541,14 +552,14 @@ export async function agentTurn(input: unknown, decisions: Record<string, unknow
             continue;
           }
         } catch (e) {
-          messages.push({ role: 'tool', tool_call_id: call.id, content: `Ошибка: ${(e as Error).message}` });
+          add({ role: 'tool', tool_call_id: call.id, content: `Ошибка: ${(e as Error).message}` });
           continue;
         }
       }
-      messages.push({ role: 'tool', tool_call_id: call.id, content: await runTool(call, user, ctx) });
+      add({ role: 'tool', tool_call_id: call.id, content: await runTool(call, user, ctx) });
     }
     if (pending.length) return { messages, pending };
   }
-  messages.push({ role: 'assistant', content: 'Остановился: слишком много шагов подряд. Уточните вопрос.' });
+  add({ role: 'assistant', content: 'Остановился: слишком много шагов подряд. Уточните вопрос.' });
   return { messages, pending: [] as PendingAction[] };
 }

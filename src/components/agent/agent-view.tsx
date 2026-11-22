@@ -61,9 +61,36 @@ export function AgentView({ selectedServerId }: { selectedServerId?: number | nu
     setDecisions({})
     setMessages(next)
     try {
-      const res = await api<{ messages: Message[]; pending: Pending[] }>('/api/agent', { body: { messages: next, decisions: decided, selectedServerId: selectedServerId ?? undefined } })
-      setMessages(res.messages)
-      setPending(res.pending)
+      const res = await fetch('/api/agent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: next, decisions: decided, selectedServerId: selectedServerId ?? undefined, stream: true }),
+        cache: 'no-store',
+      })
+      if (!res.ok || !res.body) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || `HTTP ${res.status}`)
+      }
+      // One JSON event per line: each new message as the agent works, then the whole conversation
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+      let done = false
+      while (!done) {
+        const chunk = await reader.read()
+        if (chunk.done) break
+        buffer += decoder.decode(chunk.value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() ?? ''
+        for (const line of lines) {
+          if (!line.trim()) continue
+          const event = JSON.parse(line)
+          if (event.type === 'message') setMessages((m) => [...m, event.message])
+          else if (event.type === 'done') { setMessages(event.messages); setPending(event.pending); done = true }
+          else if (event.type === 'error') throw new Error(event.error)
+        }
+      }
+      if (!done) throw new Error(t('Связь с панелью оборвалась посреди ответа', 'The connection to the panel dropped mid-answer'))
     } catch (e) {
       setError((e as Error).message)
       // Decisions not sent: offer them again
@@ -101,11 +128,17 @@ export function AgentView({ selectedServerId }: { selectedServerId?: number | nu
     return map
   }, [messages])
 
+  // Calls of the last assistant message still running (no result yet, not waiting for the user)
+  const pendingIds = new Set(pending.map((p) => p.id))
+  const running = busy && messages.some((m) => m.tool_calls?.some((c) => !results.has(c.id) && !pendingIds.has(c.id)))
+
   const toolLabel = (call: ToolCall) => {
     const a = parseArgs(call.function.arguments)
     const sid = a.server_id !== undefined ? ` #${a.server_id}` : ''
     switch (call.function.name) {
-      case 'wait': return t(`Подождал ${a.seconds ?? ''} с`, `Waited ${a.seconds ?? ''} s`)
+      case 'wait': return results.has(call.id)
+        ? t(`Подождал ${a.seconds ?? ''} с`, `Waited ${a.seconds ?? ''} s`)
+        : t(`Жду ${a.seconds ?? ''} с`, `Waiting ${a.seconds ?? ''} s`)
       case 'list_servers': return t('Посмотрел список серверов', 'Listed the servers')
       case 'server_status': return t(`Проверил состояние сервера${sid}`, `Checked server${sid}`)
       case 'list_players': return t(`Посмотрел игроков на сервере${sid}`, `Listed players on server${sid}`)
@@ -183,7 +216,13 @@ export function AgentView({ selectedServerId }: { selectedServerId?: number | nu
                       <summary className="flex items-center gap-1.5 cursor-pointer list-none hover:text-gray-300">
                         <ChevronRight size={12} className="transition-transform group-open:rotate-90" />
                         <span className="truncate">{toolLabel(call)}</span>
-                        {result === undefined && <span className="text-amber-400">{t('ждёт подтверждения', 'waiting for confirmation')}</span>}
+                        {result === undefined && pendingIds.has(call.id) && <span className="text-amber-400">{t('ждёт подтверждения', 'waiting for confirmation')}</span>}
+                        {result === undefined && !pendingIds.has(call.id) && busy && (
+                          <span className="flex items-center gap-1 text-primary">
+                            <Loader2 size={11} className="animate-spin" />
+                            {call.function.name === 'wait' ? t('жду...', 'waiting...') : t('выполняется...', 'running...')}
+                          </span>
+                        )}
                       </summary>
                       {result !== undefined && (
                         <pre className="mt-1 ml-4 max-h-48 overflow-auto rounded-lg bg-black/30 border border-white/5 p-2 text-[11px] text-gray-400 whitespace-pre-wrap break-all">{result}</pre>
@@ -221,7 +260,7 @@ export function AgentView({ selectedServerId }: { selectedServerId?: number | nu
           </div>
         )}
 
-        {busy && (
+        {busy && !running && (
           <div className="flex items-center gap-2 text-sm text-gray-500"><Loader2 size={14} className="animate-spin" />{t('Думает...', 'Thinking...')}</div>
         )}
         {error && (

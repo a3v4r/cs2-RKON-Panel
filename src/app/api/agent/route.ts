@@ -39,7 +39,24 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
   try {
     if (body.action === 'models') return NextResponse.json(await listModels());
-    return NextResponse.json(await agentTurn(body.messages, body.decisions, user, { cookie: req.headers.get('cookie') ?? undefined, selectedServerId: Number(body.selectedServerId) || undefined }));
+    const ctx = { cookie: req.headers.get('cookie') ?? undefined, selectedServerId: Number(body.selectedServerId) || undefined };
+    if (!body.stream) return NextResponse.json(await agentTurn(body.messages, body.decisions, user, ctx));
+
+    // The chat shows the steps as they happen: one JSON event per line, the whole conversation at the end
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      async start(controller) {
+        const send = (event: unknown) => controller.enqueue(encoder.encode(JSON.stringify(event) + '\n'));
+        try {
+          const result = await agentTurn(body.messages, body.decisions, user, ctx, (message) => send({ type: 'message', message }));
+          send({ type: 'done', ...result });
+        } catch (e) {
+          send({ type: 'error', error: (e as Error).message });
+        }
+        controller.close();
+      },
+    });
+    return new Response(stream, { headers: { 'content-type': 'application/x-ndjson; charset=utf-8', 'cache-control': 'no-store' } });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 502 });
   }
