@@ -8,7 +8,7 @@
 |---|---|---|
 | `C:\dev\cs2\cs2-RKON-Panel` | `ui-redesign` (влита в `main` 2026-11-22, релиз `v0.8.0`) | основная копия панели Matchdesk; на GitHub `a3v4r/Matchdesk` (переименован из `cs2-RKON-Panel` 2026-11-22, старый адрес перенаправляется) |
 | `C:\dev\cs2\cs2-RKON-Panel-plugins` | `plugins` (git worktree, влита в `ui-redesign` мерджем `23c26fe`, запушена) | вкладка «Настройки → Плагины», префикс в чате, автообновление |
-| `C:\dev\cs2\cs2-server-kit` | - (не git) | старый комплект для клубного ПК, с `v0.8.0` не нужен: всё делает архив релиза панели. Последнее обновление 2026-11-22: панель `0.7.0`, MatchZy `0.9.2-patched` |
+| `C:\dev\cs2\cs2-server-kit` | - | удалён 2026-11-22 (в корзину Windows): с `v0.8.0` всё делает архив релиза панели |
 | `C:\dev\cs2\MatchZy-Patched` | `main` = `sync-upstream-0.9.1` (`eb218c5`, релиз `0.9.2-patched`) | форк MatchZy, исправлен путь бэкапов раундов |
 | `C:\dev\cs2\cs2-WeaponPaints-sqlite` | `main` = `screen-menu` (`e9a6b4e`, релиз `3.3.3-patched`) | форк WeaponPaints на SQLite, экранное меню скинов |
 | `C:\cs2server\cs2` | - | установка CS2 для тестов (одна на все серверы панели) |
