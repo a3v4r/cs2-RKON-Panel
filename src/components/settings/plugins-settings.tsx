@@ -6,6 +6,7 @@ import { Switch } from '@/components/ui/switch'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { useT } from '@/lib/i18n'
+import { SkinsSiteSettings } from './skins-site-settings'
 
 // The plugin set of the CS2 install (one for every server on this PC): on / off, download, update, rollback, remove.
 
@@ -229,6 +230,8 @@ export function PluginsSettings() {
           })}
         </div>
       )}
+
+      <SkinsSiteSettings />
 
       <div className="mt-8 flex flex-wrap items-center justify-end gap-3 border-t border-gray-800/50 pt-6">
         {changed && <p className="text-xs text-gray-500">{t('Без MatchZy серверы панели работают в режиме Vanilla.', 'Without MatchZy the panel servers run in Vanilla mode.')}</p>}

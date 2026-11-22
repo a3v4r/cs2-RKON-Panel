@@ -48,3 +48,6 @@ next-env.d.ts
 
 # Panel data (servers.json, commands.json)
 /data
+
+# Panel data (PANEL_DATA_DIR default): servers, passwords, plugin cache
+/data/

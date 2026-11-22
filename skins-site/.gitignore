@@ -1,0 +1,5 @@
+config.json
+.secret
+node_modules/
+.claude/
+image-cache/

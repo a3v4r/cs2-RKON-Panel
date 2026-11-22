@@ -11,5 +11,7 @@ export async function register() {
     startBackupScheduler();
     const { startPluginAutoUpdate } = await import('./server/plugins');
     startPluginAutoUpdate();
+    const { startSkinsSite } = await import('./server/skins-site');
+    startSkinsSite();
   }
 }

@@ -12,6 +12,8 @@ export interface PanelSettings {
   chatPrefix?: string;
   // Plugins update by themselves (on unless set to false), see plugins.ts
   pluginAutoUpdate?: boolean;
+  // Skins website for players, run by the panel (on unless enabled is false), see skins-site.ts
+  skinsSite?: { enabled?: boolean; port?: number };
 }
 
 const file = () => path.join(dataDir(), 'settings.json');

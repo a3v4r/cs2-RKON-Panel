@@ -97,7 +97,7 @@ function locations(id: PluginId): { on: string; off: string } | null {
   return { on: path.join(cssPlugins(), folder), off: path.join(cssPlugins(), 'disabled', folder) };
 }
 
-function isInstalled(id: PluginId) {
+export function isInstalled(id: PluginId) {
   if (id === 'metamod') return fs.existsSync(path.join(addons(), 'metamod', 'bin'));
   if (id === 'counterstrikesharp' && !fs.existsSync(path.join(addons(), 'counterstrikesharp'))) return false;
   const loc = locations(id)!;
@@ -242,12 +242,16 @@ async function guard() {
 
 function runJob(title: string, work: () => Promise<string>) {
   g.pluginJob = { running: true, title, phase: 'Начинаю', log: [] };
-  return work()
+  // The skins site keeps the WeaponPaints database open, and Windows will not move or delete an open file
+  const site = import('./skins-site');
+  return site.then((m) => m.pauseSkinsSite())
+    .then(work)
     .then((message) => Object.assign(job(), { running: false, ok: true, message, finishedAt: Date.now() }))
     .catch((e) => {
       log(`Ошибка: ${(e as Error).message}`);
       Object.assign(job(), { running: false, ok: false, message: (e as Error).message, finishedAt: Date.now() });
-    });
+    })
+    .finally(() => site.then((m) => m.resumeSkinsSite()).catch(() => {}));
 }
 
 // ---- Install from a zip

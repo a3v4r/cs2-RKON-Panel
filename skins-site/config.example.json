@@ -1,0 +1,11 @@
+{
+  "port": 80,
+  "host": "0.0.0.0",
+  "publicUrl": "http://192.168.0.10",
+  "pluginDir": "C:/cs2server/cs2/game/csgo/addons/counterstrikesharp/plugins/WeaponPaints",
+  "language": "ru",
+  "servers": [
+    { "name": "Сервер #1", "host": "127.0.0.1", "port": 27015, "rconPassword": "" }
+  ],
+  "devLogin": false
+}

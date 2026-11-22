@@ -1,0 +1,13 @@
+{
+  "name": "cs2-skins-web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Skin picker website for the WeaponPaints CS2 plugin (SQLite)",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "engines": {
+    "node": ">=22.13"
+  }
+}
