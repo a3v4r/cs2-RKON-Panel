@@ -40,6 +40,8 @@ export function AgentView({ selectedServerId }: { selectedServerId?: number | nu
   const [busy, setBusy] = React.useState(false)
   const [error, setError] = React.useState('')
   const listRef = React.useRef<HTMLDivElement>(null)
+  // The saved conversation is read once; saving before that would overwrite it with the empty start state
+  const [loaded, setLoaded] = React.useState(false)
 
   React.useEffect(() => {
     api<Config>('/api/agent').then((c) => { setConfig(c); if (!c.configured) setShowSettings(true) }).catch((e) => setError((e as Error).message))
@@ -47,12 +49,15 @@ export function AgentView({ selectedServerId }: { selectedServerId?: number | nu
       const saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null')
       if (saved?.messages) { setMessages(saved.messages); setPending(saved.pending ?? []) }
     } catch {}
+    setLoaded(true)
   }, [])
 
   React.useEffect(() => {
-    try { localStorage.setItem(STORE_KEY, JSON.stringify({ messages, pending })) } catch {}
+    if (loaded) {
+      try { localStorage.setItem(STORE_KEY, JSON.stringify({ messages, pending })) } catch {}
+    }
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' })
-  }, [messages, pending, busy])
+  }, [messages, pending, busy, loaded])
 
   const turn = async (next: Message[], decided?: Record<string, 'run' | 'skip'>) => {
     setBusy(true)
