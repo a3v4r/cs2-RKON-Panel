@@ -32,7 +32,7 @@
 
 ## 🚀 Быстрый старт
 
-1. Скачайте `matchdesk-<версия>.zip` из [Releases](https://github.com/a3v4r/cs2-RKON-Panel/releases) и распакуйте.
+1. Скачайте `matchdesk-<версия>.zip` из [Releases](https://github.com/a3v4r/Matchdesk/releases) и распакуйте.
 2. Запустите (нужен Node.js 18.18+, подойдёт портативный `node.exe`):
 
    ```bat
