@@ -26,12 +26,17 @@ jobs:
       - name: Build standalone panel
         run: npm run package
 
+      # Ready to run on a clean Windows PC: node.exe of this build, the panel in app\, start.bat and firewall.bat
       - name: Zip
         shell: pwsh
         run: |
           $version = node -p "require('./package.json').version"
           "VERSION=$version" >> $env:GITHUB_ENV
-          Compress-Archive -Path .next/standalone/* -DestinationPath "matchdesk-$version.zip"
+          New-Item -ItemType Directory dist | Out-Null
+          Copy-Item .next/standalone dist/app -Recurse
+          Copy-Item launcher/* dist -Recurse
+          Copy-Item (Get-Command node).Source dist/node.exe
+          Compress-Archive -Path dist/* -DestinationPath "matchdesk-$version.zip"
 
       - name: Release
         uses: softprops/action-gh-release@v2

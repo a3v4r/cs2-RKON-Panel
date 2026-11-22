@@ -1,10 +1,11 @@
 import { ChildProcess, execFile, spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { pluginJobRunning, syncMetamod } from './plugins';
+import { pluginJobRunning, serverCs2Running, syncMetamod, unzip } from './plugins';
 import { cs2Paths } from './panel-settings';
 
-// Updates the CS2 dedicated server with steamcmd, as the kit's update.bat did, but from the panel and with progress.
+// Installs or updates the CS2 dedicated server with steamcmd, from the panel and with progress. steamcmd itself is
+// downloaded from Valve when it is missing, so a clean PC needs nothing but the panel.
 // All CS2 servers on this PC must be stopped: steamcmd replaces files they keep open.
 
 export interface UpdateState {
@@ -20,6 +21,8 @@ export interface UpdateState {
 }
 
 const ATTEMPTS = 5; // steamcmd often fails the first time right after updating itself
+const STEAMCMD_URL = 'https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip';
+const FREE_GB_FOR_INSTALL = 85; // the server takes ~60 GB, steamcmd needs room for the download on top
 const LOG_LINES = 300;
 
 const g = globalThis as unknown as { cs2Update?: UpdateState; cs2UpdateChild?: ChildProcess | null; cs2UpdateCancel?: boolean };
@@ -28,12 +31,30 @@ const state = (): UpdateState => (g.cs2Update ??= { running: false, phase: '', p
 export const updateState = () => state();
 export const isUpdating = () => state().running;
 
-export function anyCs2Running(): Promise<boolean> {
-  return new Promise((resolve) => {
-    execFile('tasklist', ['/FI', 'IMAGENAME eq cs2.exe', '/FO', 'CSV', '/NH'], { windowsHide: true }, (err, out) => {
-      resolve(!err && /"cs2\.exe"/i.test(out));
-    });
-  });
+// Free space on the drive of `dir` (or of its nearest existing parent), in GB
+function freeGb(dir: string) {
+  let probe = path.resolve(dir);
+  while (!fs.existsSync(probe) && path.dirname(probe) !== probe) probe = path.dirname(probe);
+  try {
+    const st = fs.statfsSync(probe);
+    return (st.bavail * st.bsize) / 1024 ** 3;
+  } catch {
+    return null;
+  }
+}
+
+async function downloadSteamcmd(steamcmd: string) {
+  const dir = path.dirname(steamcmd);
+  fs.mkdirSync(dir, { recursive: true });
+  const zip = path.join(dir, 'steamcmd.zip');
+  onLine(`Скачиваю steamcmd: ${STEAMCMD_URL}`);
+  const res = await fetch(STEAMCMD_URL, { signal: AbortSignal.timeout(120_000) });
+  if (!res.ok) throw new Error(`Не удалось скачать steamcmd: сервер Valve ответил ${res.status}`);
+  fs.writeFileSync(zip, Buffer.from(await res.arrayBuffer()));
+  await unzip(zip, dir);
+  fs.rmSync(zip, { force: true });
+  if (!fs.existsSync(steamcmd)) throw new Error(`В архиве steamcmd нет ${path.basename(steamcmd)}`);
+  onLine(`steamcmd распакован в ${dir}`);
 }
 
 const PHASES: Record<string, string> = {
@@ -91,11 +112,15 @@ export async function startUpdate() {
   if (isUpdating()) throw new Error('Обновление уже идёт');
   if (pluginJobRunning()) throw new Error('Идёт установка плагинов: дождитесь её окончания');
   const paths = cs2Paths();
-  if (!fs.existsSync(paths.steamcmd)) {
-    throw new Error(`Не найден ${paths.steamcmd}. steamcmd ставит установщик турнирного комплекта (setup\\install.bat).`);
+  if (!fs.existsSync(paths.exe)) {
+    const free = freeGb(paths.dir);
+    if (free !== null && free < FREE_GB_FOR_INSTALL) {
+      throw new Error(`Для установки CS2 нужно минимум ${FREE_GB_FOR_INSTALL} ГБ, на диске с папкой ${paths.dir} свободно ${Math.floor(free)} ГБ. Освободите место или выберите другую папку в настройках («Сервер CS2»).`);
+    }
   }
-  if (await anyCs2Running()) {
-    throw new Error('На этом ПК работает cs2.exe. Остановите все серверы (и запущенные батниками тоже) и нажмите ещё раз.');
+  // Only servers from the panel's CS2 folder: a game client open on this PC does not hold these files
+  if (await serverCs2Running()) {
+    throw new Error('Работает сервер CS2 из папки панели. Остановите все серверы (и запущенные батниками тоже) и нажмите ещё раз.');
   }
   g.cs2Update = { running: true, phase: 'Запуск steamcmd', progress: null, attempt: 0, startedAt: Date.now(), log: [] };
   g.cs2UpdateCancel = false;
@@ -113,6 +138,11 @@ function finish(ok: boolean, message: string) {
 
 async function run(paths: ReturnType<typeof cs2Paths>) {
   const s = state();
+  const fresh = !fs.existsSync(paths.exe);
+  if (!fs.existsSync(paths.steamcmd)) {
+    s.phase = 'Скачиваю steamcmd';
+    await downloadSteamcmd(paths.steamcmd);
+  }
   for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
     s.attempt = attempt;
     s.phase = attempt === 1 ? 'Запуск steamcmd' : `Попытка ${attempt} из ${ATTEMPTS}`;
@@ -123,12 +153,14 @@ async function run(paths: ReturnType<typeof cs2Paths>) {
     if (code === 0 && fs.existsSync(paths.exe)) {
       s.phase = 'Подключение Metamod';
       syncMetamod();
-      return finish(true, 'CS2 обновлён. Можно запускать серверы.');
+      return finish(true, fresh
+        ? 'CS2 установлен. Дальше: включите плагины («Настройки → Плагины») и один раз запустите firewall.bat от администратора, чтобы игроки могли подключиться.'
+        : 'CS2 обновлён. Можно запускать серверы.');
     }
     onLine(`steamcmd завершился с кодом ${code}`);
     if (attempt < ATTEMPTS) await sleep(5000);
   }
-  finish(false, 'steamcmd так и не смог обновить сервер CS2. Проверьте интернет и место на диске и запустите обновление ещё раз.');
+  finish(false, `steamcmd так и не смог ${fresh ? 'установить' : 'обновить'} сервер CS2. Проверьте интернет и место на диске и запустите ещё раз: скачанное сохранится.`);
 }
 
 export function cancelUpdate() {

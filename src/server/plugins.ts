@@ -265,7 +265,7 @@ function run(file: string, args: string[]): Promise<void> {
   });
 }
 
-async function unzip(zip: string, dir: string) {
+export async function unzip(zip: string, dir: string) {
   // tar of Windows 10+ unpacks zip much faster than Expand-Archive (CounterStrikeSharp has thousands of files)
   const tar = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'tar.exe');
   if (fs.existsSync(tar)) return run(tar, ['-xf', zip, '-C', dir]);
@@ -365,6 +365,26 @@ async function installLatest(id: PluginId) {
 
 // ---- What the settings page calls
 
+// Metamod and CounterStrikeSharp need the Visual C++ runtime (x64). Installing it takes an administrator,
+// so the panel only checks for it and says where to get it; start.bat offers to install it.
+export const VC_REDIST_URL = 'https://aka.ms/vs/17/release/vc_redist.x64.exe';
+const gv = globalThis as unknown as { vcRedist?: { ok: boolean | null; at: number; checking?: boolean } };
+
+function refreshVcRedist() {
+  const v = (gv.vcRedist ??= { ok: null, at: 0 });
+  if (v.checking || Date.now() - v.at < 60_000) return;
+  v.checking = true;
+  execFile('reg', ['query', String.raw`HKLM\SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64`, '/v', 'Installed'],
+    { windowsHide: true, timeout: 10_000 }, (err, out) => {
+      Object.assign(v, { ok: !err && /Installed\s+REG_DWORD\s+0x1\b/i.test(out), at: Date.now(), checking: false });
+    });
+}
+
+export function vcRedistInstalled() {
+  refreshVcRedist();
+  return gv.vcRedist?.ok ?? null;
+}
+
 export function pluginsView() {
   const records = readRecords();
   return {
@@ -388,6 +408,8 @@ export function pluginsView() {
     }),
     job: job(),
     auto: autoUpdateView(),
+    vcRedist: vcRedistInstalled(),
+    vcRedistUrl: VC_REDIST_URL,
   };
 }
 

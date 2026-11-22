@@ -142,7 +142,6 @@ export function ServersView({ servers, canManage, onRefresh, onCreate, onConnect
     const map = info?.state === 'online' ? info.info.map : '';
     return !q || `${s.name} ${s.host}:${s.port} ${map} ${s.id}`.toLowerCase().includes(q);
   });
-  const hasManaged = servers.some((s) => s.managed);
 
   const itemProps = (s: ServerProfile): ItemProps => {
     const l = live[s.id!] ?? { state: 'loading' };
@@ -217,14 +216,17 @@ export function ServersView({ servers, canManage, onRefresh, onCreate, onConnect
           </div>
         </header>
 
-        {canManage && inst && !inst.cs2Found && hasManaged && (
+        {canManage && inst && !inst.cs2Found && (
           <div className="mb-6 flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-xl border border-amber-500/20 bg-amber-500/10">
             <AlertTriangle size={20} className="text-amber-400 shrink-0" />
             <div className="flex-1 text-sm">
               <div className="font-semibold text-amber-300">{t('Сервер CS2 не найден на этом ПК', 'CS2 server not found on this PC')}</div>
               <div className="text-amber-200/70 break-all">{t('Панель ищет cs2.exe в папке', 'The panel looks for cs2.exe in')} {inst.cs2Dir}</div>
             </div>
-            <button onClick={onOpenSettings} className="px-4 py-2 rounded-xl bg-amber-500 text-black text-sm font-semibold hover:bg-amber-400 shrink-0">
+            <button onClick={() => setUpdateOpen(true)} className="px-4 py-2 rounded-xl bg-amber-500 text-black text-sm font-semibold hover:bg-amber-400 shrink-0">
+              {t('Установить CS2', 'Install CS2')}
+            </button>
+            <button onClick={onOpenSettings} className="px-4 py-2 rounded-xl border border-amber-500/40 text-amber-200 text-sm font-semibold hover:bg-amber-500/10 shrink-0">
               {t('Указать папку', 'Set folder')}
             </button>
           </div>

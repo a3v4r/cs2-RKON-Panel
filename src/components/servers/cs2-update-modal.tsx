@@ -18,11 +18,12 @@ interface UpdateInfo {
   message?: string;
   log: string[];
   cs2Dir: string;
+  installed: boolean;
   steamcmd: string;
   steamcmdFound: boolean;
 }
 
-// "Update CS2": steamcmd app_update 730 validate into the server folder, as the kit's update.bat
+// "Install / update CS2": steamcmd app_update 730 validate into the server folder (steamcmd is downloaded when missing)
 export function Cs2UpdateModal({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const [info, setInfo] = React.useState<UpdateInfo | null>(null);
   const [error, setError] = React.useState('');
@@ -59,6 +60,8 @@ export function Cs2UpdateModal({ open, onOpenChange }: { open: boolean; onOpenCh
 
   const running = info?.running ?? false;
   const finished = !running && info?.finishedAt;
+  // No cs2.exe yet: the same steamcmd run installs it from scratch
+  const install = info ? !info.installed : false;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -66,10 +69,12 @@ export function Cs2UpdateModal({ open, onOpenChange }: { open: boolean; onOpenCh
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <span className="p-1.5 rounded-lg bg-primary/15 text-primary"><Download size={16} /></span>
-            {t('Обновление CS2', 'CS2 update')}
+            {install ? t('Установка CS2', 'CS2 install') : t('Обновление CS2', 'CS2 update')}
           </DialogTitle>
           <p className="text-sm text-muted-foreground">
-            {t('steamcmd скачает свежую версию выделенного сервера в папку серверов и проверит файлы. Metamod панель подключит сама.', 'steamcmd downloads the latest dedicated server build into the servers folder and validates the files. The panel hooks up Metamod itself.')}
+            {install
+              ? t('Сервера CS2 на этом ПК ещё нет. steamcmd скачает выделенный сервер в папку ниже (около 60 ГБ, это надолго). steamcmd панель скачает сама, если его нет.', 'There is no CS2 server on this PC yet. steamcmd downloads the dedicated server into the folder below (about 60 GB, this takes a while). The panel downloads steamcmd itself if it is missing.')
+              : t('steamcmd скачает свежую версию выделенного сервера в папку серверов и проверит файлы. Metamod панель подключит сама.', 'steamcmd downloads the latest dedicated server build into the servers folder and validates the files. The panel hooks up Metamod itself.')}
           </p>
         </DialogHeader>
 
@@ -77,14 +82,16 @@ export function Cs2UpdateModal({ open, onOpenChange }: { open: boolean; onOpenCh
           {info && (
             <div className="grid gap-2 text-xs">
               <PathRow label={t('Сервер CS2', 'CS2 server')} value={info.cs2Dir} />
-              <PathRow label="steamcmd" value={info.steamcmd} bad={!info.steamcmdFound} />
+              <PathRow label="steamcmd" value={info.steamcmd} note={info.steamcmdFound ? undefined : t('скачается', 'will be downloaded')} />
             </div>
           )}
 
           {!running && !finished && (
             <div className="flex gap-3 p-3 rounded-xl border border-amber-500/20 bg-amber-500/10 text-sm text-amber-200">
               <AlertTriangle size={18} className="shrink-0 text-amber-400" />
-              <span>{t('Перед обновлением остановите все серверы CS2 на этом ПК. Первое скачивание занимает ~75 ГБ, обычное обновление быстрее.', 'Stop all CS2 servers on this PC before updating. The first download is ~75 GB, regular updates are faster.')}</span>
+              <span>{install
+                ? t('Нужно минимум 85 ГБ свободного места на диске с папкой сервера. Другую папку можно выбрать в настройках («Сервер CS2»).', 'At least 85 GB of free space is needed on the server folder drive. Pick another folder in the settings ("CS2 server").')
+                : t('Перед обновлением остановите все серверы CS2 на этом ПК. Первое скачивание занимает ~75 ГБ, обычное обновление быстрее.', 'Stop all CS2 servers on this PC before updating. The first download is ~75 GB, regular updates are faster.')}</span>
             </div>
           )}
 
@@ -139,11 +146,11 @@ export function Cs2UpdateModal({ open, onOpenChange }: { open: boolean; onOpenCh
                 </button>
                 <button
                   onClick={() => send('start')}
-                  disabled={sending || !info?.steamcmdFound}
+                  disabled={sending || !info}
                   className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-white text-sm font-semibold shadow-lg shadow-primary/20 hover:bg-primary/90 active:scale-[0.98] transition-all disabled:opacity-50"
                 >
                   <Download size={16} />
-                  {finished ? t('Обновить ещё раз', 'Update again') : t('Обновить', 'Update')}
+                  {install ? t('Установить', 'Install') : finished ? t('Обновить ещё раз', 'Update again') : t('Обновить', 'Update')}
                 </button>
               </>
             )}
@@ -155,13 +162,12 @@ export function Cs2UpdateModal({ open, onOpenChange }: { open: boolean; onOpenCh
   );
 }
 
-function PathRow({ label, value, bad }: { label: string; value: string; bad?: boolean }) {
-  const { t } = useT();
+function PathRow({ label, value, note }: { label: string; value: string; note?: string }) {
   return (
     <div className="flex items-start gap-3 p-2.5 rounded-lg bg-white/[0.03] border border-white/5 min-w-0">
       <span className="w-24 shrink-0 text-muted-foreground">{label}</span>
-      <span className={cn('flex-1 min-w-0 font-mono break-all', bad ? 'text-red-400' : 'text-white')}>{value}</span>
-      {bad && <span className="shrink-0 text-red-400 font-semibold">{t('не найден', 'not found')}</span>}
+      <span className="flex-1 min-w-0 font-mono break-all text-white">{value}</span>
+      {note && <span className="shrink-0 text-amber-300 font-semibold">{note}</span>}
     </div>
   );
 }

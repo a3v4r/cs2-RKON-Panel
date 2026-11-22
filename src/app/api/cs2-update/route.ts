@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 function info() {
   const paths = cs2Paths();
-  return { ...updateState(), cs2Dir: paths.dir, steamcmd: paths.steamcmd, steamcmdFound: fs.existsSync(paths.steamcmd) };
+  return { ...updateState(), cs2Dir: paths.dir, installed: fs.existsSync(paths.exe), steamcmd: paths.steamcmd, steamcmdFound: fs.existsSync(paths.steamcmd) };
 }
 
 export async function GET() {

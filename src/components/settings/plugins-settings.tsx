@@ -29,7 +29,7 @@ interface PluginInfo {
 
 interface Job { running: boolean; title: string; phase: string; ok?: boolean; message?: string; log: string[] }
 interface AutoUpdate { enabled: boolean; checking: boolean; lastCheck: number | null; message: string | null; pending: string[] }
-interface View { plugins: PluginInfo[]; job: Job; auto: AutoUpdate }
+interface View { plugins: PluginInfo[]; job: Job; auto: AutoUpdate; vcRedist: boolean | null; vcRedistUrl: string }
 
 // Order on the page: what judges pick first, the dependencies after
 const ORDER: PluginId[] = ['matchzy', 'weaponpaints', 'counterstrikesharp', 'metamod']
@@ -152,6 +152,17 @@ export function PluginsSettings() {
               </p>
             )}
           </div>
+        </div>
+      )}
+
+      {view?.vcRedist === false && (
+        <div className="mb-4 p-4 rounded-xl border text-sm flex items-start gap-2 bg-amber-500/10 border-amber-500/20 text-amber-200">
+          <AlertTriangle size={16} className="shrink-0 mt-0.5 text-amber-400" />
+          <span>
+            {t('На этом ПК нет Microsoft Visual C++ Redistributable (x64): без него Metamod и CounterStrikeSharp не загрузятся. Установите его от администратора ', 'Microsoft Visual C++ Redistributable (x64) is missing on this PC: Metamod and CounterStrikeSharp will not load without it. Install it as an administrator ')}
+            (<a href={view.vcRedistUrl} target="_blank" rel="noreferrer" className="underline hover:text-white">vc_redist.x64.exe</a>)
+            {t(' или перезапустите панель через start.bat: он предложит установить сам.', ' or restart the panel with start.bat: it offers to install it.')}
+          </span>
         </div>
       )}
 
