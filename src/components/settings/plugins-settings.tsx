@@ -161,7 +161,7 @@ export function PluginsSettings() {
           <span>
             {t('На этом ПК нет Microsoft Visual C++ Redistributable (x64): без него Metamod и CounterStrikeSharp не загрузятся. Установите его от администратора ', 'Microsoft Visual C++ Redistributable (x64) is missing on this PC: Metamod and CounterStrikeSharp will not load without it. Install it as an administrator ')}
             (<a href={view.vcRedistUrl} target="_blank" rel="noreferrer" className="underline hover:text-white">vc_redist.x64.exe</a>)
-            {t(' или перезапустите панель через start.bat: он предложит установить сам.', ' or restart the panel with start.bat: it offers to install it.')}
+            {t(' или перезапустите Matchdesk.exe: он предложит установить сам.', ' or restart Matchdesk.exe: it offers to install it.')}
           </span>
         </div>
       )}

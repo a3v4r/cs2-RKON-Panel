@@ -1,7 +1,7 @@
 import path from 'node:path';
 
 // Two shared accounts: the judges (organisers, full access) and the broadcast team.
-// Passwords come from the environment, so they are set in one place (matchdesk.ini, read by start.bat).
+// Passwords come from the environment, so they are set in one place (matchdesk.ini next to Matchdesk.exe).
 export type Role = 'judge' | 'broadcast';
 
 export const ACCOUNTS: Record<Role, { login: string; passwordEnv: string }> = {

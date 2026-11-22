@@ -366,7 +366,7 @@ async function installLatest(id: PluginId) {
 // ---- What the settings page calls
 
 // Metamod and CounterStrikeSharp need the Visual C++ runtime (x64). Installing it takes an administrator,
-// so the panel only checks for it and says where to get it; start.bat offers to install it.
+// so the panel only checks for it and says where to get it; Matchdesk.exe offers to install it on start.
 export const VC_REDIST_URL = 'https://aka.ms/vs/17/release/vc_redist.x64.exe';
 const gv = globalThis as unknown as { vcRedist?: { ok: boolean | null; at: number; checking?: boolean } };
 

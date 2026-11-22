@@ -160,13 +160,15 @@ function start(port: number) {
   syncPluginWebsite(port);
 
   // Only what the site needs: not the panel's passwords
-  const env: Record<string, string> = { SKINS_CONFIG: configFile(), NODE_ENV: 'production' };
+  const env: Record<string, string> = { SKINS_CONFIG: configFile(), NODE_ENV: 'production', ...(process.env.MATCHDESK_EXE ? { MATCHDESK_EXE: '1' } : {}) };
   for (const key of ['SystemRoot', 'PATH', 'Path', 'TEMP', 'TMP', 'USERPROFILE', 'APPDATA', 'LOCALAPPDATA', 'COMPUTERNAME']) {
     const value = process.env[key];
     if (value) env[key] = value;
   }
 
-  const child = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', script], {
+  // Matchdesk.exe runs the panel's scripts itself (launcher/main.cjs); plain node takes the file
+  const args = process.env.MATCHDESK_EXE === '1' ? ['--run-script', script] : ['--disable-warning=ExperimentalWarning', script];
+  const child = spawn(process.execPath, args, {
     cwd: siteDir(), env: env as unknown as NodeJS.ProcessEnv, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'],
   });
   Object.assign(s, { state: 'starting', message: undefined, child, port, startedAt: Date.now(), log: [], stopping: false });

@@ -2,22 +2,23 @@ import fs from 'node:fs';
 import { NextResponse } from 'next/server';
 import { JUDGE, audit, requireRole } from '@/server/auth';
 import { cancelUpdate, startUpdate, updateState } from '@/server/cs2-update';
+import { firewallView, openFirewall } from '@/server/firewall';
 import { cs2Paths } from '@/server/panel-settings';
 
 export const dynamic = 'force-dynamic';
 
-function info() {
+async function info() {
   const paths = cs2Paths();
-  return { ...updateState(), cs2Dir: paths.dir, installed: fs.existsSync(paths.exe), steamcmd: paths.steamcmd, steamcmdFound: fs.existsSync(paths.steamcmd) };
+  return { ...updateState(), cs2Dir: paths.dir, installed: fs.existsSync(paths.exe), steamcmd: paths.steamcmd, steamcmdFound: fs.existsSync(paths.steamcmd), firewall: await firewallView() };
 }
 
 export async function GET() {
   const user = await requireRole(JUDGE);
   if (user instanceof NextResponse) return user;
-  return NextResponse.json(info());
+  return NextResponse.json(await info());
 }
 
-// Start or cancel the CS2 update through steamcmd
+// Start or cancel the CS2 install / update through steamcmd, or add the firewall rules (Matchdesk.exe only)
 export async function POST(req: Request) {
   const user = await requireRole(JUDGE);
   if (user instanceof NextResponse) return user;
@@ -25,10 +26,11 @@ export async function POST(req: Request) {
   try {
     if (action === 'start') await startUpdate();
     else if (action === 'cancel') cancelUpdate();
+    else if (action === 'firewall') await openFirewall();
     else return NextResponse.json({ error: 'Неизвестное действие' }, { status: 400 });
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 409 });
   }
   audit(user, `cs2 update ${action}`);
-  return NextResponse.json(info());
+  return NextResponse.json(await info());
 }

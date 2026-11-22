@@ -51,3 +51,6 @@ next-env.d.ts
 
 # Panel data (PANEL_DATA_DIR default): servers, passwords, plugin cache
 /data/
+
+# Matchdesk.exe build output (scripts/build-exe.mjs)
+/dist/

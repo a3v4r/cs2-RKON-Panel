@@ -17,30 +17,27 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 26
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Build standalone panel
-        run: npm run package
+      # Matchdesk.exe: Node.js + launcher/main.cjs + the panel inside (scripts/build-exe.mjs, needs Node 25.5+)
+      - name: Build Matchdesk.exe
+        run: npm run exe
 
-      # Ready to run on a clean Windows PC: node.exe of this build, the panel in app\, start.bat and firewall.bat
-      - name: Zip
+      - name: Version
         shell: pwsh
         run: |
           $version = node -p "require('./package.json').version"
           "VERSION=$version" >> $env:GITHUB_ENV
-          New-Item -ItemType Directory dist | Out-Null
-          Copy-Item .next/standalone dist/app -Recurse
-          Copy-Item launcher/* dist -Recurse
-          Copy-Item (Get-Command node).Source dist/node.exe
-          Compress-Archive -Path dist/* -DestinationPath "matchdesk-$version.zip"
 
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ env.VERSION }}
           name: Release v${{ env.VERSION }}
-          files: matchdesk-*.zip
+          files: |
+            dist/Matchdesk.exe
+            dist/matchdesk-*-app.zip

@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Download, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
+import { Download, CheckCircle2, XCircle, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -21,6 +21,8 @@ interface UpdateInfo {
   installed: boolean;
   steamcmd: string;
   steamcmdFound: boolean;
+  // Only when the panel runs as Matchdesk.exe: Windows firewall rules for it and for cs2.exe
+  firewall: { app: boolean; cs2: boolean | null } | null;
 }
 
 // "Install / update CS2": steamcmd app_update 730 validate into the server folder (steamcmd is downloaded when missing)
@@ -45,7 +47,7 @@ export function Cs2UpdateModal({ open, onOpenChange }: { open: boolean; onOpenCh
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight });
   }, [info?.log.length]);
 
-  const send = async (action: 'start' | 'cancel') => {
+  const send = async (action: 'start' | 'cancel' | 'firewall') => {
     if (action === 'cancel' && !confirm(t('Отменить обновление? Скачанное сохранится, следующее обновление докачает остальное.', 'Cancel the update? Downloaded files are kept, the next update fetches the rest.'))) return;
     setSending(true);
     setError('');
@@ -83,6 +85,26 @@ export function Cs2UpdateModal({ open, onOpenChange }: { open: boolean; onOpenCh
             <div className="grid gap-2 text-xs">
               <PathRow label={t('Сервер CS2', 'CS2 server')} value={info.cs2Dir} />
               <PathRow label="steamcmd" value={info.steamcmd} note={info.steamcmdFound ? undefined : t('скачается', 'will be downloaded')} />
+              {info.firewall && (
+                <div className="flex flex-wrap items-center gap-3 p-2.5 rounded-lg bg-white/[0.03] border border-white/5">
+                  <span className="w-24 shrink-0 text-muted-foreground">{t('Брандмауэр', 'Firewall')}</span>
+                  <span className={cn('flex-1 min-w-0', info.firewall.app && info.firewall.cs2 !== false ? 'text-emerald-300' : 'text-amber-300')}>
+                    {info.firewall.app && info.firewall.cs2 !== false
+                      ? t('Панель, сайт скинов и серверы открыты для сети', 'The panel, skins site and servers are open to the network')
+                      : t('Нет правил: игроки и судьи с других ПК не подключатся', 'Rules missing: players and judges on other PCs cannot connect')}
+                  </span>
+                  {(!info.firewall.app || info.firewall.cs2 === false) && (
+                    <button
+                      onClick={() => send('firewall')}
+                      disabled={sending}
+                      title={t('Windows спросит разрешение администратора на этом ПК', 'Windows asks for administrator permission on this PC')}
+                      className="flex items-center gap-1.5 shrink-0 px-3 py-1.5 rounded-lg border border-amber-500/40 text-amber-200 font-semibold hover:bg-amber-500/10 disabled:opacity-50"
+                    >
+                      <ShieldCheck size={14} />{t('Разрешить', 'Allow')}
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
