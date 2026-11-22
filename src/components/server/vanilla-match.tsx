@@ -172,7 +172,8 @@ function RoundRollback({ onSendCommand }: { onSendCommand: (command: string) => 
     setBusy(true);
     setStatus(null);
     try {
-      const output = (await onSendCommand(`mp_backup_restore_load_file ${file}`)).trim();
+      // The server log is echoed into the reply (sv_logecho): keep the server's own answer, "Loaded server checkpoint ..."
+      const output = (await onSendCommand(`mp_backup_restore_load_file ${file}`)).split('\n').map((l) => l.trim()).filter((l) => l && !/^L \d\d\//.test(l)).join(' ');
       setStatus({ ok: true, text: output ? `${t('Команда отправлена', 'Command sent')}: ${output}` : t('Команда отправлена', 'Command sent') });
     } catch (e) {
       setStatus({ ok: false, text: (e as Error).message });
@@ -204,7 +205,12 @@ function RoundRollback({ onSendCommand }: { onSendCommand: (command: string) => 
       )}
       {files && files.length === 0 && (
         <div className="text-xs text-gray-500 space-y-2">
-          <p>{t('Сервер не прислал файлов бэкапа. Ответ сервера:', 'The server listed no backup files. Server reply:')}</p>
+          {raw.includes('allow_round_backup_files') ? (
+            <p className="text-amber-400">{t('Бэкапы раундов на сервере выключены: CS2 пишет их только с параметром запуска -allow_round_backup_files. Серверам, созданным в панели, он добавляется сам (нужен перезапуск сервера); чужому серверу добавьте его в строку запуска.',
+              'Round backups are off on the server: CS2 writes them only with the -allow_round_backup_files launch option. Servers created in the panel get it automatically (restart the server); for another server add it to its launch line.')}</p>
+          ) : (
+            <p>{t('Сервер не прислал файлов бэкапа. Ответ сервера:', 'The server listed no backup files. Server reply:')}</p>
+          )}
           <pre className="whitespace-pre-wrap break-all font-mono text-[11px] text-gray-400 bg-background/50 border border-gray-800 rounded-xl p-3 max-h-40 overflow-auto">{raw || '—'}</pre>
         </div>
       )}
@@ -229,8 +235,8 @@ function RoundRollback({ onSendCommand }: { onSendCommand: (command: string) => 
         </div>
       )}
       <p className="text-xs text-gray-500 leading-relaxed">
-        {t('Игра сохраняет состояние в начале каждого раунда (mp_backup_round_auto, включается правилами выше). Файл backup_round05.txt — начало 6-го раунда.',
-          'The game saves its state at the start of every round (mp_backup_round_auto, turned on by the rules above). backup_round05.txt is the start of round 6.')}
+        {t('Игра сохраняет состояние в начале каждого раунда (mp_backup_round_auto, включается правилами выше), если сервер запущен с -allow_round_backup_files. Файл backup_round05.txt — начало 6-го раунда.',
+          'The game saves its state at the start of every round (mp_backup_round_auto, turned on by the rules above) when the server runs with -allow_round_backup_files. backup_round05.txt is the start of round 6.')}
       </p>
     </section>
   );

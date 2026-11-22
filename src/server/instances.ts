@@ -158,6 +158,8 @@ export async function startServer(id: number) {
   const hidden = m.hideConsole !== false;
   const args = [
     '-dedicated', '-console', '-usercon',
+    // Round backups on disk for rollbacks (mp_backup_restore_load_file); CS2 writes none without it
+    '-allow_round_backup_files',
     // Without a window the console text goes to a file, to see why a server fell.
     // The suffix gives each server its own game\csgo\console_server<id>.log instead of one shared console.log.
     ...(hidden ? ['-condebug', '+con_logfile_suffix', `_server${id}`] : []),
