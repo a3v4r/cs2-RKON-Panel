@@ -9,7 +9,7 @@
 | `C:\dev\cs2\cs2-RKON-Panel` | `ui-redesign` (запушена, в `main` не влита) | основная копия панели Matchdesk |
 | `C:\dev\cs2\cs2-RKON-Panel-plugins` | `plugins` (git worktree от `ui-redesign`, коммит `7713dc5`, не запушена) | вкладка «Настройки → Плагины» |
 | `C:\dev\cs2\MatchZy-Patched` | `sync-upstream-0.9.1` (коммит `f24e27d`, в `main` форка не влит) | форк MatchZy, исправлен путь бэкапов раундов |
-| `C:\dev\cs2\cs2-WeaponPaints-sqlite` | — | форк WeaponPaints на SQLite |
+| `C:\dev\cs2\cs2-WeaponPaints-sqlite` | `screen-menu` (коммит `435320b`, в `main` форка не влит) | форк WeaponPaints на SQLite, экранное меню скинов |
 | `C:\cs2server\cs2` | — | установка CS2 для тестов (одна на все серверы панели) |
 
 Правило для параллельной работы: в основных папках репозиториев ветки не переключать. Под новую задачу делать отдельный `git worktree` с новой веткой.
@@ -52,7 +52,10 @@
 - **Что нужно от владельца.**
   - Сделать публичными `a3v4r/MatchZy-Patched` и `a3v4r/cs2-WeaponPaints-sqlite`. Сейчас GitHub отвечает 404, и панель не может скачать форки.
   - Влить `f24e27d` в `main` форка MatchZy: workflow соберёт релиз.
-  - Решить вопрос с меню WeaponPaints: форку нужен MenuManagerCS2 (`menu:nfcore`), без него меню скинов не появится.
+  - Влить ветку `screen-menu` форка WeaponPaints (`435320b`) в `main`: там своё экранное меню скинов (A/D листать, E выбрать, R выход), MenuManagerCS2 больше не нужен. В игре ещё не проверено.
+- **WeaponPaints и `FollowCS2ServerGuidelines`.** Скины применяются, только если в `configs/core.json` CounterStrikeSharp стоит `false`. Установщик панели этот флаг пока не меняет: на чистой установке скины молча не работают. На тестовой установке `C:\cs2server\cs2` флаг уже переключён вручную.
+- **Префикс в чате** (ветка `plugins`, не закоммичено): «Настройки → Общие → Префикс в чате», по умолчанию `Server`. Панель пишет его в `cfg/MatchZy/config.cfg` (`matchzy_chat_prefix`) и в `WeaponPaints.json` (`ChatPrefix`, новая настройка форка) при сохранении и перед каждым запуском сервера; MatchZy на запущенных серверах меняется сразу по RCON. Брендинг `Esports MIREA` убран из `cfg/MatchZy/config.cfg` форка MatchZy (префикс и `matchzy_hostname_format`), не закоммичено.
+- **Сайт для выбора скинов:** `C:\dev\cs2\cs2-skins-web` (порт 80, git init, без коммитов). Отдельное приложение, не раздел Matchdesk: панель хранит RCON-пароли. Только локальная сеть, Node без зависимостей. Вход без ввода: сайт по RCON спрашивает `css_wp_who <ip браузера>`, сессия живёт, пока игрок на сервере за тем же компьютером (`css_wp_ip`). Пишет в sqlite плагина и шлёт `css_wp_reload <steamid>`. `!site` показывает адрес (`"Website": "auto"` — имя компьютера, для имён вида `DESKTOP-XXXXX` — LAN IP). Вход по IP проверен живым игроком 2026-11-22. Команды в `WebReload.cs` форка, не закоммичено, на тестовый сервер выложено.
 - **Мелочи.**
   - Версии плагинов записываются в `data/plugins.json`, привязки к папке CS2 нет.
   - Тестовая панель плагинов работала на порту 3011, потому что порт 3001 занят Grafana.
