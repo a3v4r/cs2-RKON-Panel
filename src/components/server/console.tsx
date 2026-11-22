@@ -211,7 +211,7 @@ export function RCONConsole({ onSendCommand, vanilla }: RCONConsoleProps) {
   };
 
   const quickActions = [
-    { command: control.start, label: t('Старт матча', 'Start match'), icon: <Play size={18} />, className: 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-900/30 border-transparent' },
+    { command: control.start, label: vanilla ? t('Старт матча', 'Start match') : t('Форс-старт', 'Force start'), icon: <Play size={18} />, className: 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-900/30 border-transparent' },
     { command: 'mp_restartgame 1', label: t('Рестарт', 'Restart'), icon: <RotateCcw size={18} className={busy ? 'animate-spin' : ''} />, className: 'bg-white/5 hover:bg-white/10 border-gray-800' },
     { command: control.pause, label: t('Пауза', 'Pause'), icon: <Pause size={18} />, className: 'bg-amber-500 hover:bg-amber-400 !text-black shadow-amber-900/30 border-transparent' },
     { command: control.unpause, label: t('Снять паузу', 'Unpause'), icon: <PlayCircle size={18} />, className: 'bg-primary hover:bg-primary/90 shadow-primary/20 border-transparent' },

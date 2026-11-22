@@ -335,6 +335,7 @@ export default function Home() {
             <>
               {activeTab === "dashboard" && (
                 <ServerDashboard
+                  key={activeServerId}
                   serverInfo={serverInfo}
                   history={history}
                   canManage={isJudge}

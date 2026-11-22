@@ -1,14 +1,14 @@
 "use client";
 
 import React from 'react';
-import { Activity, Users, Map as MapIcon, Wifi, Plus, Trash2, Play, Pause, RotateCcw, Radio, Cpu, MemoryStick, Terminal, Trophy, ClipboardList, ChevronRight, Layers, Bell, Clock } from 'lucide-react';
+import { Activity, Users, Map as MapIcon, Wifi, Plus, Trash2, Play, Pause, RotateCcw, Radio, Cpu, MemoryStick, Terminal, Trophy, ClipboardList, ChevronRight, Layers, Bell, Clock, Swords } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { db_helper } from '@/lib/db';
 import { api } from '@/lib/api';
 import { auditWho, useT } from '@/lib/i18n';
 import type { Section } from '@/components/layout/sidebar';
 import { TeamNamesCard } from '@/components/teams/team-names-card';
-import { controlCommands } from '@/lib/vanilla';
+import { controlCommands, parseKnifeReply } from '@/lib/vanilla';
 
 export interface ServerSample {
   t: number;
@@ -56,6 +56,18 @@ interface ServerDashboardProps {
 export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate, onAddServer, canManage, vanilla }: ServerDashboardProps) {
   const { t, locale, lang } = useT();
   const control = controlCommands(vanilla ? 'vanilla' : 'matchzy');
+  // MatchZy knife round toggle: the state is known only from the server's answer to the last toggle
+  const [knife, setKnife] = React.useState<boolean | null>(null);
+  const toggleKnife = async () => {
+    try {
+      setKnife(parseKnifeReply(await onSendCommand('css_roundknife')));
+    } catch {
+      setKnife(null);
+    }
+  };
+  // Average of the ping chart (the samples while the server answered)
+  const pings = history.filter((s) => s.ping > 0).map((s) => s.ping);
+  const avgPing = pings.length ? Math.round(pings.reduce((a, b) => a + b, 0) / pings.length) : null;
   const [system, setSystem] = React.useState<SystemInfo | null>(null);
   const [audit, setAudit] = React.useState<AuditEntry[] | null>(null);
 
@@ -132,7 +144,7 @@ export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate
           color="text-purple-500"
           description={t(`ботов: ${serverInfo.players.bots}`, `bots: ${serverInfo.players.bots}`)}
         />
-        <StatCard title={t('Пинг', 'Ping')} value={t(`${serverInfo.ping} мс`, `${serverInfo.ping} ms`)} icon={<Wifi size={18} />} color="text-blue-500" description={t('Задержка до сервера', 'Latency to the server')} />
+        <StatCard title={t('Пинг', 'Ping')} value={t(`${serverInfo.ping} мс`, `${serverInfo.ping} ms`)} icon={<Wifi size={18} />} color="text-blue-500" description={avgPing === null ? t('Задержка до сервера', 'Latency to the server') : t(`в среднем ${avgPing} мс (по графику)`, `${avgPing} ms on average (chart)`)} />
       </div>
 
       {/* Real-time monitoring cards, as the Quatrix CPU / RAM / Network / Disk cards */}
@@ -198,10 +210,18 @@ export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 flex-1">
-          <ActionButton label={t('Старт матча', 'Start match')} icon={<Play size={16} />} tone="emerald" onClick={() => onSendCommand(control.start)} />
+          <ActionButton label={vanilla ? t('Старт матча', 'Start match') : t('Форс-старт', 'Force start')} icon={<Play size={16} />} tone="emerald" onClick={() => onSendCommand(control.start)} />
           <ActionButton label={t('Рестарт матча', 'Restart match')} icon={<RotateCcw size={16} />} tone="slate" onClick={() => onSendCommand('mp_restartgame 1')} />
           <ActionButton label={t('Пауза', 'Pause')} icon={<Pause size={16} />} tone="amber" onClick={() => onSendCommand(control.pause)} />
           <ActionButton label={t('Снять паузу', 'Unpause')} icon={<Play size={16} />} tone="blue" onClick={() => onSendCommand(control.unpause)} />
+          {!vanilla && (
+            <ActionButton
+              label={knife === null ? t('Нож вкл/выкл', 'Knife on/off') : knife ? t('Нож: вкл', 'Knife: on') : t('Нож: выкл', 'Knife: off')}
+              icon={<Swords size={16} />}
+              tone="slate"
+              onClick={toggleKnife}
+            />
+          )}
 
           {customCommands.map(cmd => (
             <div key={cmd.id} className="relative group/btn">

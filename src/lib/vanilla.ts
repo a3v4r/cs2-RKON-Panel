@@ -121,3 +121,12 @@ export function parseBackupFiles(output: string): { file: string; round: number 
 }
 
 export const backupFileName = (playedRounds: number) => `backup_round${String(playedRounds).padStart(2, '0')}.txt`;
+
+// MatchZy css_roundknife answers the console with the new state: "Ножевой раунд теперь Включен!" / "Knife round is now Enabled!"
+// (with chat colour codes). There is no way to read the state without toggling it.
+export function parseKnifeReply(output: string): boolean | null {
+  const text = output.replace(/[\x00-\x1f]/g, ' ');
+  if (/выключен|disabled/i.test(text)) return false;
+  if (/включен|enabled/i.test(text)) return true;
+  return null;
+}
