@@ -6,8 +6,9 @@
 
 | Папка | Ветка | Что там |
 |---|---|---|
-| `C:\dev\cs2\cs2-RKON-Panel` | `ui-redesign` (запушена, в `main` не влита) | основная копия панели Matchdesk; на GitHub `a3v4r/Matchdesk` (переименован из `cs2-RKON-Panel` 2026-11-22, старый адрес перенаправляется) |
+| `C:\dev\cs2\cs2-RKON-Panel` | `ui-redesign` (влита в `main` 2026-11-22, релиз `v0.7.0`) | основная копия панели Matchdesk; на GitHub `a3v4r/Matchdesk` (переименован из `cs2-RKON-Panel` 2026-11-22, старый адрес перенаправляется) |
 | `C:\dev\cs2\cs2-RKON-Panel-plugins` | `plugins` (git worktree, влита в `ui-redesign` мерджем `23c26fe`, запушена) | вкладка «Настройки → Плагины», префикс в чате, автообновление |
+| `C:\dev\cs2\cs2-server-kit` | - (не git) | комплект для клубного ПК: `web-panelpp` = сборка панели `0.7.0` с сайтом скинов, `setupiles` = MatchZy `0.9.2-patched` (обновлено 2026-11-22) |
 | `C:\dev\cs2\MatchZy-Patched` | `main` = `sync-upstream-0.9.1` (`eb218c5`, релиз `0.9.2-patched`) | форк MatchZy, исправлен путь бэкапов раундов |
 | `C:\dev\cs2\cs2-WeaponPaints-sqlite` | `main` = `screen-menu` (`e9a6b4e`, релиз `3.3.3-patched`) | форк WeaponPaints на SQLite, экранное меню скинов |
 | `C:\cs2server\cs2` | - | установка CS2 для тестов (одна на все серверы панели) |
@@ -87,5 +88,7 @@
 
 ## Дальше
 
-1. Влить `plugins` в `ui-redesign`, затем `ui-redesign` в `main` и выпустить релиз.
-2. Положить исправленный MatchZy в комплект сервера (`cs2-server-kit`).
+1. В комплекте серверы всё ещё запускают батники (`1_server1.bat`, `2_server2.bat`), а WeaponPaints ставится из панели («Настройки → Плагины»). Решить, переводить ли комплект на серверы из панели.
+2. Предупреждение в панели, когда gamedata WeaponPaints устарела (плагин пишет `Skins are not applied` в лог CounterStrikeSharp).
+3. Список скинов форка не обновляется вместе с оригиналом; агентов в данных нет.
+4. Не проверено в игре: `!site` при выключенном сайте, остановка сайта на время работы с плагинами.
