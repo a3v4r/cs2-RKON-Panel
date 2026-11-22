@@ -7,6 +7,7 @@ import { db_helper } from '@/lib/db';
 import { api } from '@/lib/api';
 import { auditWho, useT } from '@/lib/i18n';
 import type { Section } from '@/components/layout/sidebar';
+import { TeamNamesCard } from '@/components/teams/team-names-card';
 
 export interface ServerSample {
   t: number;
@@ -245,6 +246,13 @@ export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate
           </div>
         )}
       </div>
+
+      {/* Team names before the start, from the team library */}
+      {canManage && (
+        <div className="order-2 md:order-3">
+          <TeamNamesCard onSendCommand={onSendCommand} onOpenLibrary={() => onNavigate('teams')} />
+        </div>
+      )}
 
       {/* Shortcuts, as the Quatrix Quick Actions bar */}
       <div className="order-4">

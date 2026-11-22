@@ -1,12 +1,13 @@
 "use client"
 
 import React, { useState } from 'react'
-import { Users, Zap, Copy, Download, Map as MapIcon, ShieldOff, Trophy, Settings2, Braces, Check, CheckCircle2, AlertCircle, ListChecks, Swords } from 'lucide-react'
+import { Users, Zap, Copy, Download, Map as MapIcon, ShieldOff, Trophy, Settings2, Braces, Check, CheckCircle2, AlertCircle, ListChecks, Swords, Shield } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { api } from '@/lib/api'
 import { useT } from '@/lib/i18n'
 import { STOCK_MAPS, mapImage, stockMap } from '@/lib/maps'
 import { CustomSelect } from '@/components/ui/custom-select'
+import { Team, TeamPlayer, teamsApi } from '@/lib/teams'
 
 interface MatchGeneratorProps {
   serverId: number;
@@ -22,14 +23,16 @@ const DEFAULT_VETO_POOL = ['de_inferno', 'de_mirage', 'de_nuke', 'de_cache', 'de
 
 const defaultMatchConfig = () => ({
   matchid: Math.floor(Date.now() / 1000) % 10000,
-  team1: { name: "Команда 1", tag: "T1" },
-  team2: { name: "Команда 2", tag: "T2" },
+  team1: { name: "Команда 1", tag: "T1", flag: "", players: [] as TeamPlayer[], libraryId: 0 },
+  team2: { name: "Команда 2", tag: "T2", flag: "", players: [] as TeamPlayer[], libraryId: 0 },
   maplist: ["de_mirage", "de_inferno", "de_dust2"],
   map_sides: ["team1_ct", "team2_ct", "knife"],
   num_maps: 1,
   players_per_team: 5,
   skip_veto: true,
   veto_pool: DEFAULT_VETO_POOL,
+  // Players from the library rosters go to MatchZy, which then keeps them on their teams
+  lock_players: true,
 })
 
 type MatchFormConfig = ReturnType<typeof defaultMatchConfig>
@@ -41,7 +44,11 @@ function loadMatchConfig(serverId: number): MatchFormConfig {
   try {
     const saved = localStorage.getItem(storageKey(serverId))
     if (saved) {
-      const config: MatchFormConfig = { ...defaultMatchConfig(), ...JSON.parse(saved) }
+      const defaults = defaultMatchConfig()
+      const config: MatchFormConfig = { ...defaults, ...JSON.parse(saved) }
+      // Forms saved before the team library have no flag/roster
+      config.team1 = { ...defaults.team1, ...config.team1 }
+      config.team2 = { ...defaults.team2, ...config.team2 }
       // "standard" was offered by older versions but MatchZy rejects it in map_sides
       config.map_sides = config.map_sides.map((side) => (side === 'standard' ? 'knife' : side))
       return config
@@ -52,12 +59,27 @@ function loadMatchConfig(serverId: number): MatchFormConfig {
   return defaultMatchConfig()
 }
 
+// Team block of the MatchZy config; the roster only when players are locked to their teams
+function teamJson(team: MatchFormConfig['team1'], lockPlayers: boolean) {
+  return {
+    name: team.name,
+    tag: team.tag,
+    ...(team.flag ? { flag: team.flag } : {}),
+    players: lockPlayers ? Object.fromEntries(team.players.map((p) => [p.steamid, p.name || p.steamid])) : {},
+  }
+}
+
 const FILL_MAPS = ['de_mirage', 'de_inferno', 'de_dust2', 'de_nuke', 'de_cache']
 const FILL_SIDES = ['team1_ct', 'team2_ct', 'knife', 'knife', 'knife']
 
 export function MatchGenerator({ serverId, onLaunchMatch, onStopMatch }: MatchGeneratorProps) {
   const { t, lang } = useT()
   const [matchConfig, setMatchConfig] = useState<MatchFormConfig>(() => loadMatchConfig(serverId))
+  const [library, setLibrary] = useState<Team[]>([])
+
+  React.useEffect(() => {
+    teamsApi.list().then(setLibrary).catch(() => {})
+  }, [])
 
   React.useEffect(() => {
     try {
@@ -97,16 +119,8 @@ export function MatchGenerator({ serverId, onLaunchMatch, onStopMatch }: MatchGe
   const generateJson = (matchid = matchConfig.matchid) => {
     const config = {
       matchid,
-      team1: {
-        name: matchConfig.team1.name,
-        tag: matchConfig.team1.tag,
-        players: {}
-      },
-      team2: {
-        name: matchConfig.team2.name,
-        tag: matchConfig.team2.tag,
-        players: {}
-      },
+      team1: teamJson(matchConfig.team1, matchConfig.lock_players),
+      team2: teamJson(matchConfig.team2, matchConfig.lock_players),
       num_maps: matchConfig.num_maps,
       // Veto: the whole pool goes to MatchZy and the captains ban/pick in game (sides too)
       ...(matchConfig.skip_veto
@@ -203,6 +217,22 @@ export function MatchGenerator({ serverId, onLaunchMatch, onStopMatch }: MatchGe
   const setTeam = (team: 'team1' | 'team2', key: 'name' | 'tag', value: string) =>
     setMatchConfig((prev) => ({ ...prev, [team]: { ...prev[team], [key]: value } }))
 
+  // A team from the library fills the name, tag, flag and roster; "by hand" clears the roster
+  const pickTeam = (team: 'team1' | 'team2', id: number) => {
+    const picked = library.find((tm) => tm.id === id)
+    setMatchConfig((prev) => ({
+      ...prev,
+      [team]: picked
+        ? { name: picked.name, tag: picked.tag, flag: picked.flag, players: picked.players, libraryId: picked.id }
+        : { ...prev[team], flag: '', players: [], libraryId: 0 },
+    }))
+  }
+  const libraryOptions = [
+    { value: 0, label: t('Вручную', 'By hand') },
+    ...library.map((tm) => ({ value: tm.id, label: tm.tag ? `${tm.name} [${tm.tag}]` : tm.name })),
+  ]
+  const hasRosters = matchConfig.team1.players.length > 0 || matchConfig.team2.players.length > 0
+
   const copyToClipboard = () => {
     navigator.clipboard.writeText(jsonOutput)
   }
@@ -283,14 +313,17 @@ export function MatchGenerator({ serverId, onLaunchMatch, onStopMatch }: MatchGe
         <div className="xl:col-span-2 space-y-4 md:space-y-6 min-w-0">
           {/* Teams */}
           <section className={cn(CARD, 'p-4 sm:p-6')}>
-            <CardHeader icon={<Users size={18} />} title={t('Команды', 'Teams')} subtitle={t('название и тег в игре', 'name and tag in game')} />
+            <CardHeader icon={<Users size={18} />} title={t('Команды', 'Teams')} subtitle={library.length ? t('из библиотеки или вручную', 'from the library or by hand') : t('название и тег в игре', 'name and tag in game')} />
             <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
               {(['team1', 'team2'] as const).map((team) => (
-                <div key={team} className="p-4 rounded-xl border border-gray-800 bg-background/50 space-y-3">
+                <div key={team} className="p-4 rounded-xl border border-gray-800 bg-background/50 space-y-3 min-w-0">
                   <div className="flex items-center gap-3">
                     <div className={cn('w-9 h-9 rounded-xl border flex items-center justify-center text-xs font-black shrink-0', TEAM_CHIP[team])}>{initials(matchConfig[team].name)}</div>
                     <span className={cn('text-xs font-black uppercase tracking-wider', TEAM_TEXT[team])}>{team === 'team1' ? t('Команда 1', 'Team 1') : t('Команда 2', 'Team 2')}</span>
                   </div>
+                  {library.length > 0 && (
+                    <CustomSelect size="sm" className="h-[38px]" options={libraryOptions} value={library.some((tm) => tm.id === matchConfig[team].libraryId) ? matchConfig[team].libraryId : 0} onChange={(id) => pickTeam(team, id)} icon={<Shield className="w-4 h-4" />} />
+                  )}
                   <div className="grid grid-cols-[1fr_6rem] gap-3">
                     <div>
                       <label className={LABEL}>{t('Название', 'Name')}</label>
@@ -301,9 +334,35 @@ export function MatchGenerator({ serverId, onLaunchMatch, onStopMatch }: MatchGe
                       <input value={matchConfig[team].tag} onChange={(e) => setTeam(team, 'tag', e.target.value)} className={INPUT} />
                     </div>
                   </div>
+                  {matchConfig[team].players.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {matchConfig[team].players.map((p) => (
+                        <span key={p.steamid} title={p.steamid} className="px-2 py-0.5 rounded-full border border-gray-800 bg-card text-[11px] text-gray-300 font-semibold max-w-full truncate">
+                          {p.name || p.steamid}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
+            {hasRosters && (
+              <label className="mt-4 flex items-start gap-3 p-3 rounded-xl border border-gray-800 bg-background/50 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={matchConfig.lock_players}
+                  onChange={(e) => setMatchConfig({ ...matchConfig, lock_players: e.target.checked })}
+                  className="mt-0.5 w-4 h-4 accent-primary shrink-0"
+                />
+                <span className="min-w-0">
+                  <span className="block text-sm font-semibold text-white">{t('Пускать только игроков из составов', 'Only let roster players in')}</span>
+                  <span className="block text-xs text-gray-500 mt-0.5">
+                    {t('SteamID составов уходят в конфиг: MatchZy ставит игроков в их команды, остальных не пускает в игру. Выключите, если состав неполный.',
+                      'Roster SteamIDs go into the config: MatchZy puts players on their teams and keeps others out of the game. Turn off if a roster is incomplete.')}
+                  </span>
+                </span>
+              </label>
+            )}
           </section>
 
           {/* Maps */}

@@ -6,6 +6,7 @@ import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { useT } from '@/lib/i18n';
 import { CustomSelect } from '@/components/ui/custom-select';
+import { teamsApi } from '@/lib/teams';
 
 // Player Management from the Quatrix Players page (Live Players / Join Logs / Ban History),
 // laid out like the Match, Console and Chat pages: stat tiles on top, one card with the tabs.
@@ -37,6 +38,14 @@ export function PlayersView({ serverId }: { serverId: number }) {
   const [refreshing, setRefreshing] = React.useState(false);
   const [banFor, setBanFor] = React.useState<LivePlayer | null>(null);
   const [toast, setToast] = React.useState<{ ok: boolean; text: string } | null>(null);
+  // Team of each SteamID from the team library, shown next to the player's name
+  const [rosterTeam, setRosterTeam] = React.useState<Map<string, string>>(new Map());
+
+  React.useEffect(() => {
+    teamsApi.list()
+      .then((list) => setRosterTeam(new Map(list.flatMap((tm) => tm.players.map((p) => [p.steamid, tm.tag || tm.name] as [string, string])))))
+      .catch(() => {});
+  }, []);
 
   const notify = (ok: boolean, text: string) => {
     setToast({ ok, text });
@@ -194,7 +203,14 @@ export function PlayersView({ serverId }: { serverId: number }) {
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-black shrink-0">{initial(p.name)}</div>
                         <div className="min-w-0">
-                          <span className="font-bold text-white text-sm block truncate max-w-[14rem]">{p.name}</span>
+                          <span className="flex items-center gap-2 min-w-0">
+                            <span className="font-bold text-white text-sm truncate max-w-[14rem]">{p.name}</span>
+                            {rosterTeam.get(p.steamid) && (
+                              <span className="shrink-0 max-w-[8rem] truncate px-1.5 py-0.5 rounded-full border border-primary/30 bg-primary/10 text-primary text-[9px] font-black uppercase tracking-wider" title={t('Команда из библиотеки', 'Team from the library')}>
+                                {rosterTeam.get(p.steamid)}
+                              </span>
+                            )}
+                          </span>
                           <span className="text-[10px] text-gray-500 font-mono uppercase">{p.state} · #{p.userid}</span>
                         </div>
                       </div>

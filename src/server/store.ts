@@ -131,6 +131,43 @@ export const templates = {
   },
 };
 
+export interface TeamPlayer {
+  steamid: string; // SteamID64
+  name: string;
+}
+
+export interface StoredTeam {
+  id: number;
+  name: string;
+  tag: string;
+  flag: string; // two-letter country code (mp_teamflag), empty = none
+  players: TeamPlayer[];
+  created_at: string;
+}
+
+// Team library: saved teams with their rosters, shared by all judges
+export const teams = {
+  list: () => read<StoredTeam>('teams.json').sort((a, b) => a.name.localeCompare(b.name)),
+  get: (id: number) => read<StoredTeam>('teams.json').find((t) => t.id === id),
+  add(data: Omit<StoredTeam, 'id' | 'created_at'>) {
+    const items = read<StoredTeam>('teams.json');
+    const item = { ...data, id: nextId(items), created_at: new Date().toISOString() };
+    write('teams.json', [...items, item]);
+    return item;
+  },
+  update(id: number, data: Omit<StoredTeam, 'id' | 'created_at'>) {
+    const items = read<StoredTeam>('teams.json');
+    const index = items.findIndex((t) => t.id === id);
+    if (index < 0) return undefined;
+    items[index] = { ...items[index], ...data };
+    write('teams.json', items);
+    return items[index];
+  },
+  remove(id: number) {
+    write('teams.json', read<StoredTeam>('teams.json').filter((t) => t.id !== id));
+  },
+};
+
 export interface StoredAutoMessage {
   id: number;
   serverId: number;

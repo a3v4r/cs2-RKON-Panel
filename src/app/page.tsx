@@ -15,6 +15,7 @@ import { MatchGenerator } from '@/components/server/match-generator';
 import { GeneralSettings } from '@/components/settings/general-settings';
 import { BackupsView } from '@/components/settings/backups-view';
 import { UsersView } from '@/components/settings/users-view';
+import { TeamsView } from '@/components/teams/teams-view';
 import { db_helper, ServerProfile } from '@/lib/db';
 import { fetchServerInfo } from '@/lib/a2s';
 import { sendRconCommand } from '@/lib/rcon';
@@ -292,6 +293,7 @@ export default function Home() {
           {activeTab === 'general-settings' && <GeneralSettings />}
           {activeTab === 'backups' && <BackupsView />}
           {activeTab === 'users' && <UsersView />}
+          {activeTab === 'teams' && <TeamsView />}
           {activeTab === 'servers' && createOpen && (
             <CreateServerWizard
               key={editingManaged?.id ?? 'new'}
