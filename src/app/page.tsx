@@ -17,6 +17,7 @@ import { GeneralSettings } from '@/components/settings/general-settings';
 import { BackupsView } from '@/components/settings/backups-view';
 import { UsersView } from '@/components/settings/users-view';
 import { TeamsView } from '@/components/teams/teams-view';
+import { AgentView } from '@/components/agent/agent-view';
 import { db_helper, ServerProfile } from '@/lib/db';
 import { fetchServerInfo } from '@/lib/a2s';
 import { sendRconCommand } from '@/lib/rcon';
@@ -293,6 +294,7 @@ export default function Home() {
           {activeTab === 'backups' && <BackupsView />}
           {activeTab === 'users' && <UsersView />}
           {activeTab === 'teams' && <TeamsView />}
+          {activeTab === 'agent' && <AgentView />}
           {activeTab === 'servers' && createOpen && (
             <CreateServerWizard
               key={editingManaged?.id ?? 'new'}

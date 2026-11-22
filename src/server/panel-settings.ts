@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { dataDir } from './accounts';
+import type { AgentSettings } from './agent';
 
 // Panel-wide settings judges change in the interface (data/settings.json)
 export interface PanelSettings {
@@ -14,6 +15,8 @@ export interface PanelSettings {
   pluginAutoUpdate?: boolean;
   // Skins website for players, run by the panel (on unless enabled is false), see skins-site.ts
   skinsSite?: { enabled?: boolean; port?: number };
+  // Connection of the Agent tab (OpenAI-compatible API), see agent.ts
+  agent?: AgentSettings;
 }
 
 const file = () => path.join(dataDir(), 'settings.json');

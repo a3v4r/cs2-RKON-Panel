@@ -17,6 +17,7 @@ import {
   LogOut,
   Crosshair,
   SlidersHorizontal,
+  Bot,
   X,
   type LucideIcon,
 } from 'lucide-react';
@@ -24,7 +25,7 @@ import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
 import { Text, useT } from '@/lib/i18n';
 
-export type Section = 'dashboard' | 'servers' | 'live' | 'console' | 'chat' | 'maps' | 'players' | 'match' | 'teams' | 'settings' | 'users' | 'backups' | 'general-settings';
+export type Section = 'dashboard' | 'servers' | 'live' | 'console' | 'chat' | 'maps' | 'players' | 'match' | 'teams' | 'agent' | 'settings' | 'users' | 'backups' | 'general-settings';
 
 // label: menu item; title: page heading when it differs (as the Quatrix page titles)
 export const SECTIONS: Record<Section, { label: Text; title?: Text; hint: Text; icon: LucideIcon }> = {
@@ -36,6 +37,7 @@ export const SECTIONS: Record<Section, { label: Text; title?: Text; hint: Text; 
   maps: { label: { ru: 'Карты', en: 'Maps' }, title: { ru: 'Обозреватель карт', en: 'Map Explorer' }, hint: { ru: 'Запускайте карты и контент из Workshop на сервере', en: 'Deploy battlegrounds or workshop content to your node' }, icon: MapIcon },
   players: { label: { ru: 'Игроки', en: 'Players' }, title: { ru: 'Игроки', en: 'Player Management' }, hint: { ru: 'Игроки онлайн, журнал входов, кики и баны', en: 'Monitor live statistics, track join logs and manage server discipline.' }, icon: Users },
   match: { label: { ru: 'Запуск матча', en: 'Match setup' }, hint: { ru: 'MatchZy или Vanilla: правила и запуск', en: 'MatchZy or Vanilla: rules and launch' }, icon: Trophy },
+  agent: { label: { ru: 'Агент', en: 'Agent' }, title: { ru: 'ИИ-агент', en: 'AI Agent' }, hint: { ru: 'Спросите о серверах или попросите что-то сделать, действия выполняются после подтверждения', en: 'Ask about the servers or ask for something to be done; actions run after you confirm' }, icon: Bot },
   teams: { label: { ru: 'Команды', en: 'Teams' }, title: { ru: 'Библиотека команд', en: 'Team Library' }, hint: { ru: 'Сохранённые команды и составы по SteamID для запуска матчей', en: 'Saved teams and SteamID rosters for match setup' }, icon: Shield },
   settings: { label: { ru: 'Настройки сервера', en: 'Server settings' }, title: { ru: 'Настройки сервера', en: 'Server Settings' }, hint: { ru: 'Параметры сервера Counter-Strike 2 и его безопасность', en: 'Manage your Counter-Strike 2 server parameters and security protocols.' }, icon: SlidersHorizontal },
   users: { label: { ru: 'Пользователи', en: 'Users' }, title: { ru: 'Пользователи', en: 'User Management' }, hint: { ru: 'Аккаунты для входа в панель', en: 'Accounts that can sign in to the panel' }, icon: UserCog },
@@ -46,7 +48,7 @@ export const SECTIONS: Record<Section, { label: Text; title?: Text; hint: Text; 
 // Sections that work with one chosen server (the server is picked in their page header)
 export const SERVER_SECTIONS: Section[] = ['dashboard', 'live', 'console', 'chat', 'maps', 'players', 'match', 'settings'];
 
-const NAV: Section[] = ['dashboard', 'servers', 'live', 'console', 'chat', 'maps', 'players', 'match', 'teams'];
+const NAV: Section[] = ['dashboard', 'servers', 'live', 'console', 'chat', 'maps', 'players', 'match', 'teams', 'agent'];
 // The panel's own pages, in the Quatrix order
 const PANEL_NAV: Section[] = ['users', 'backups', 'general-settings'];
 
