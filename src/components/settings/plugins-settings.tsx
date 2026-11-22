@@ -1,7 +1,7 @@
 "use client"
 
 import React from 'react'
-import { Puzzle, RefreshCw, Download, RotateCcw, Trash2, Check, AlertTriangle, Lock } from 'lucide-react'
+import { Puzzle, RefreshCw, Download, RotateCcw, Trash2, Check, AlertTriangle, Lock, X } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
 import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
@@ -28,7 +28,11 @@ interface PluginInfo {
   problem: { kind: 'gamedata' | 'guidelines'; at: string; detail: string } | null
 }
 
-interface Job { running: boolean; title: string; phase: string; ok?: boolean; message?: string; log: string[] }
+interface Job { running: boolean; title: string; phase: string; ok?: boolean; message?: string; log: string[]; finishedAt?: number }
+
+// A finished job stays on the page until closed; a successful one also goes away by itself after a minute
+const JOB_OK_SHOWN_MS = 60_000
+const JOB_HIDDEN_KEY = 'matchdesk-plugin-job-hidden'
 interface AutoUpdate { enabled: boolean; checking: boolean; lastCheck: number | null; message: string | null; pending: string[] }
 interface View { plugins: PluginInfo[]; job: Job; auto: AutoUpdate; vcRedist: boolean | null; vcRedistUrl: string }
 
@@ -41,6 +45,14 @@ export function PluginsSettings() {
   const [wanted, setWanted] = React.useState<Partial<Record<PluginId, boolean>>>({})
   const [busy, setBusy] = React.useState(false)
   const [error, setError] = React.useState('')
+  const [hiddenJob, setHiddenJob] = React.useState<number | null>(() => {
+    try { return Number(localStorage.getItem(JOB_HIDDEN_KEY)) || null } catch { return null }
+  })
+  const hideJob = (finishedAt?: number) => {
+    if (!finishedAt) return
+    setHiddenJob(finishedAt)
+    try { localStorage.setItem(JOB_HIDDEN_KEY, String(finishedAt)) } catch {}
+  }
 
   const load = React.useCallback(async () => {
     const v = await api<View>('/api/plugins').catch(() => null)
@@ -104,6 +116,16 @@ export function PluginsSettings() {
   }
 
   const disabled = busy || running
+
+  const job = view?.job
+  const okAge = job && !job.running && job.ok && job.finishedAt ? Date.now() - job.finishedAt : null
+  const [, rerender] = React.useState(0)
+  React.useEffect(() => {
+    if (okAge === null || okAge >= JOB_OK_SHOWN_MS) return
+    const timer = setTimeout(() => rerender((n) => n + 1), JOB_OK_SHOWN_MS - okAge)
+    return () => clearTimeout(timer)
+  }, [okAge])
+  const showJob = Boolean(job?.title) && (job!.running || (job!.finishedAt !== hiddenJob && (okAge === null || okAge < JOB_OK_SHOWN_MS)))
 
   return (
     <div className="max-w-4xl animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -173,7 +195,7 @@ export function PluginsSettings() {
         </div>
       )}
 
-      {view?.job.title && (
+      {view && showJob && (
         <div className={cn(
           'mb-4 p-4 rounded-xl border text-sm',
           view.job.running ? 'bg-blue-500/10 border-blue-500/20 text-blue-400'
@@ -181,7 +203,12 @@ export function PluginsSettings() {
         )}>
           <div className="flex items-center gap-2 font-bold">
             {view.job.running ? <RefreshCw size={16} className="animate-spin shrink-0" /> : view.job.ok ? <Check size={16} className="shrink-0" /> : <AlertTriangle size={16} className="shrink-0" />}
-            {view.job.title}: {view.job.running ? view.job.phase : view.job.message}
+            <span className="flex-1 min-w-0">{view.job.title}: {view.job.running ? view.job.phase : view.job.message}</span>
+            {!view.job.running && (
+              <button onClick={() => hideJob(view.job.finishedAt)} className="shrink-0 p-1 -m-1 rounded-lg opacity-70 hover:opacity-100 hover:bg-white/5" title={t('Скрыть', 'Hide')} aria-label={t('Скрыть', 'Hide')}>
+                <X size={16} />
+              </button>
+            )}
           </div>
           {view.job.log.length > 0 && (
             <pre className="mt-2 max-h-32 overflow-auto text-[11px] text-gray-400 whitespace-pre-wrap">{view.job.log.slice(-8).join('\n')}</pre>
