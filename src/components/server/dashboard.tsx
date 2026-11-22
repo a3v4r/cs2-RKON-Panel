@@ -148,7 +148,8 @@ export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate
       </div>
 
       {/* Real-time monitoring cards, as the Quatrix CPU / RAM / Network / Disk cards */}
-      <div className="order-3 md:order-2 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
+      {/* Four in a row only from 1400px: narrower, the titles and values do not fit side by side */}
+      <div className="order-3 md:order-2 grid grid-cols-1 md:grid-cols-2 min-[1400px]:grid-cols-4 gap-4 md:gap-6">
         <ChartCard
           title={t('Пинг', 'Ping')}
           subtitle={t('до игрового сервера', 'to the game server')}
@@ -412,7 +413,8 @@ function ChartCard({ title, subtitle, value, unit, icon, tone, data, max }: {
           <div className="flex items-center gap-3 min-w-0">
             <div className={cn('p-2.5 rounded-xl transition-colors shrink-0', c.chip)}>{icon}</div>
             <div className="min-w-0">
-              <h3 className="text-xs font-black text-white uppercase tracking-wider whitespace-nowrap">{title}</h3>
+              {/* Wraps at spaces instead of running into the value */}
+              <h3 className="text-xs font-black text-white uppercase tracking-wider leading-tight">{title}</h3>
               <p className="text-[9px] text-gray-500 font-bold truncate">{subtitle}</p>
             </div>
           </div>
