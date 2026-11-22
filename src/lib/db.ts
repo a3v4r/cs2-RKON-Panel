@@ -12,6 +12,8 @@ export interface ServerProfile {
   created_at?: string;
   // Set for servers the panel starts itself on its own PC
   managed?: ManagedConfig;
+  // Server without MatchZy (Vanilla mode); missing = MatchZy ('matchzy' is only sent to switch back)
+  mode?: 'vanilla' | 'matchzy';
 }
 
 export interface ManagedConfig {

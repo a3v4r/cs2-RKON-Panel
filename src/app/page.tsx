@@ -12,6 +12,7 @@ import { PlayersView } from '@/components/server/players-view';
 import { Menu, Crosshair, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MatchGenerator } from '@/components/server/match-generator';
+import { MatchModeSwitch, VanillaMatch } from '@/components/server/vanilla-match';
 import { GeneralSettings } from '@/components/settings/general-settings';
 import { BackupsView } from '@/components/settings/backups-view';
 import { UsersView } from '@/components/settings/users-view';
@@ -162,6 +163,13 @@ export default function Home() {
   };
 
   const selectedServer = servers.find(s => s.id === activeServerId);
+  const vanilla = selectedServer?.mode === 'vanilla';
+
+  const setServerMode = async (next: boolean) => {
+    if (!selectedServer) return;
+    await db_helper.updateServer(selectedServer.id!, { mode: next ? 'vanilla' : 'matchzy' });
+    await loadServers();
+  };
 
   const handleStartMatch = async (config: string) => {
     if (!selectedServer) return;
@@ -330,6 +338,7 @@ export default function Home() {
                   serverInfo={serverInfo}
                   history={history}
                   canManage={isJudge}
+                  vanilla={vanilla}
                   onSendCommand={handleRconCommand}
                   onNavigate={setActiveTab}
                   onAddServer={() => setActiveTab('servers')}
@@ -340,7 +349,7 @@ export default function Home() {
               )}
               {activeTab === "console" && (
                 <div className="flex-1 min-h-[420px] p-3 md:p-6">
-                  <RCONConsole key={activeServerId} onSendCommand={handleRconCommand} />
+                  <RCONConsole key={activeServerId} onSendCommand={handleRconCommand} vanilla={vanilla} />
                 </div>
               )}
               {activeTab === "players" && activeServerId && (
@@ -367,13 +376,22 @@ export default function Home() {
                 />
               )}
               {activeTab === "match" && activeServerId && (
-                <MatchGenerator
-                  key={activeServerId}
-                  serverId={activeServerId}
-                  onStartMatch={handleStartMatch}
-                  onLaunchMatch={handleLaunchMatch}
-                  onStopMatch={handleStopMatch}
-                />
+                <>
+                  <div className="px-3 md:px-6 pt-3 md:pt-6">
+                    <MatchModeSwitch vanilla={vanilla} onChange={setServerMode} />
+                  </div>
+                  {vanilla ? (
+                    <VanillaMatch key={activeServerId} onSendCommand={handleRconCommand} onOpenLibrary={() => setActiveTab('teams')} />
+                  ) : (
+                    <MatchGenerator
+                      key={activeServerId}
+                      serverId={activeServerId}
+                      onStartMatch={handleStartMatch}
+                      onLaunchMatch={handleLaunchMatch}
+                      onStopMatch={handleStopMatch}
+                    />
+                  )}
+                </>
               )}
             </>
           )}

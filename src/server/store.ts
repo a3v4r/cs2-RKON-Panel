@@ -12,6 +12,8 @@ export interface StoredServer {
   created_at: string;
   // Set for servers the panel itself starts on this PC (instead of the tournament kit's .bat files)
   managed?: ManagedConfig;
+  // Server without MatchZy: rules, knife round and pauses by plain cvars (see lib/vanilla.ts)
+  mode?: 'vanilla';
 }
 
 export interface ManagedConfig {

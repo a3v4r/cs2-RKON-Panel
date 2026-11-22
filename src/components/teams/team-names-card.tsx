@@ -9,7 +9,8 @@ import { Team, teamsApi } from '@/lib/teams';
 
 // Team names on the scoreboard without a MatchZy match (mp_teamname_1/2, mp_teamflag_1/2).
 // A loaded MatchZy match sets them from its config itself.
-export function TeamNamesCard({ onSendCommand, onOpenLibrary }: { onSendCommand: (command: string) => Promise<string>; onOpenLibrary: () => void }) {
+// stacked: the two teams one under the other on wide screens, where the card sits in a narrow side column
+export function TeamNamesCard({ onSendCommand, onOpenLibrary, stacked }: { onSendCommand: (command: string) => Promise<string>; onOpenLibrary: () => void; stacked?: boolean }) {
   const { t } = useT();
   const [library, setLibrary] = React.useState<Team[]>([]);
   const [slots, setSlots] = React.useState([{ id: 0, name: '', flag: '' }, { id: 0, name: '', flag: '' }]);
@@ -65,7 +66,7 @@ export function TeamNamesCard({ onSendCommand, onOpenLibrary }: { onSendCommand:
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div className={cn('grid grid-cols-1 md:grid-cols-2 gap-3', stacked && 'xl:grid-cols-1')}>
         {slots.map((slot, i) => (
           <div key={i} className="space-y-2 min-w-0">
             <div className={cn('text-[10px] font-black uppercase tracking-wider', i === 0 ? 'text-sky-400' : 'text-amber-400')}>

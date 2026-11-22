@@ -5,6 +5,7 @@ import { Terminal as TerminalIcon, ChevronRight, History, Trash2, Copy, Check, P
 import { cn } from '@/lib/utils';
 import { copyText } from '@/lib/clipboard';
 import { useT } from '@/lib/i18n';
+import { controlCommands } from '@/lib/vanilla';
 
 // Command history survives tab switches and reloads (on phones there are no arrow keys to recall it)
 const HISTORY_KEY = 'cs2panel.console.history';
@@ -34,6 +35,11 @@ const COMMON_COMMANDS = [
   'mp_warmup_end',
   'mp_pause_match',
   'mp_unpause_match',
+  'mp_swapteams',
+  'mp_backup_restore_list_files',
+  'mp_backup_restore_load_file ',
+  'mp_teamname_1 ',
+  'mp_teamname_2 ',
   'mp_maxrounds ',
   'mp_roundtime ',
   'mp_freezetime ',
@@ -60,6 +66,8 @@ interface LogEntry {
 
 interface RCONConsoleProps {
   onSendCommand: (command: string) => Promise<string>;
+  // Server without MatchZy: start and pauses by plain cvars
+  vanilla?: boolean;
 }
 
 // Quatrix IconButton, variant ghost, size sm
@@ -68,7 +76,8 @@ const headerBtn = 'flex items-center justify-center transition-all active:scale-
 const newId = () => Math.random().toString(36).slice(2, 11);
 const now = () => new Date().toLocaleTimeString('ru-RU'); // 24-hour HH:MM:SS in both languages
 
-export function RCONConsole({ onSendCommand }: RCONConsoleProps) {
+export function RCONConsole({ onSendCommand, vanilla }: RCONConsoleProps) {
+  const control = controlCommands(vanilla ? 'vanilla' : 'matchzy');
   const { t } = useT();
   const [input, setInput] = useState('');
   const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -202,10 +211,10 @@ export function RCONConsole({ onSendCommand }: RCONConsoleProps) {
   };
 
   const quickActions = [
-    { command: 'css_start', label: t('Старт матча', 'Start match'), icon: <Play size={18} />, className: 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-900/30 border-transparent' },
+    { command: control.start, label: t('Старт матча', 'Start match'), icon: <Play size={18} />, className: 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-900/30 border-transparent' },
     { command: 'mp_restartgame 1', label: t('Рестарт', 'Restart'), icon: <RotateCcw size={18} className={busy ? 'animate-spin' : ''} />, className: 'bg-white/5 hover:bg-white/10 border-gray-800' },
-    { command: 'css_forcepause', label: t('Пауза', 'Pause'), icon: <Pause size={18} />, className: 'bg-amber-500 hover:bg-amber-400 !text-black shadow-amber-900/30 border-transparent' },
-    { command: 'css_forceunpause', label: t('Снять паузу', 'Unpause'), icon: <PlayCircle size={18} />, className: 'bg-primary hover:bg-primary/90 shadow-primary/20 border-transparent' },
+    { command: control.pause, label: t('Пауза', 'Pause'), icon: <Pause size={18} />, className: 'bg-amber-500 hover:bg-amber-400 !text-black shadow-amber-900/30 border-transparent' },
+    { command: control.unpause, label: t('Снять паузу', 'Unpause'), icon: <PlayCircle size={18} />, className: 'bg-primary hover:bg-primary/90 shadow-primary/20 border-transparent' },
   ];
 
   return (

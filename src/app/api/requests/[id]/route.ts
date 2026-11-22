@@ -3,6 +3,7 @@ import { ANY_ROLE, audit, requireRole } from '@/server/auth';
 import { rconCommand } from '@/server/rcon';
 import { requests } from '@/server/requests';
 import { servers } from '@/server/store';
+import { controlCommands } from '@/lib/vanilla';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -21,9 +22,10 @@ export async function POST(req: Request, { params }: Params) {
   if (decision === 'accept') {
     const server = servers.get(request.serverId);
     if (!server) return NextResponse.json({ error: 'Сервер не найден' }, { status: 404 });
+    const control = controlCommands(server.mode);
     const commands = request.type === 'pause'
-      ? ['css_forcepause', `say Пауза по запросу трансляции${request.reason ? `: ${request.reason}` : ''}`]
-      : ['say Трансляция готова, матч продолжается', 'css_forceunpause'];
+      ? [control.pause, `say Пауза по запросу трансляции${request.reason ? `: ${request.reason}` : ''}`]
+      : ['say Трансляция готова, матч продолжается', control.unpause];
     try {
       for (const command of commands) await rconCommand(server.host, server.port, server.rcon_password, command);
     } catch (e) {

@@ -8,6 +8,7 @@ import { api } from '@/lib/api';
 import { auditWho, useT } from '@/lib/i18n';
 import type { Section } from '@/components/layout/sidebar';
 import { TeamNamesCard } from '@/components/teams/team-names-card';
+import { controlCommands } from '@/lib/vanilla';
 
 export interface ServerSample {
   t: number;
@@ -48,10 +49,13 @@ interface ServerDashboardProps {
   onAddServer: () => void;
   // Custom quick commands can be added/removed by admins only
   canManage: boolean;
+  // Server without MatchZy: start and pauses by plain cvars
+  vanilla?: boolean;
 }
 
-export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate, onAddServer, canManage }: ServerDashboardProps) {
+export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate, onAddServer, canManage, vanilla }: ServerDashboardProps) {
   const { t, locale, lang } = useT();
+  const control = controlCommands(vanilla ? 'vanilla' : 'matchzy');
   const [system, setSystem] = React.useState<SystemInfo | null>(null);
   const [audit, setAudit] = React.useState<AuditEntry[] | null>(null);
 
@@ -194,10 +198,10 @@ export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 flex-1">
-          <ActionButton label={t('Старт матча', 'Start match')} icon={<Play size={16} />} tone="emerald" onClick={() => onSendCommand('css_start')} />
+          <ActionButton label={t('Старт матча', 'Start match')} icon={<Play size={16} />} tone="emerald" onClick={() => onSendCommand(control.start)} />
           <ActionButton label={t('Рестарт матча', 'Restart match')} icon={<RotateCcw size={16} />} tone="slate" onClick={() => onSendCommand('mp_restartgame 1')} />
-          <ActionButton label={t('Пауза', 'Pause')} icon={<Pause size={16} />} tone="amber" onClick={() => onSendCommand('css_forcepause')} />
-          <ActionButton label={t('Снять паузу', 'Unpause')} icon={<Play size={16} />} tone="blue" onClick={() => onSendCommand('css_forceunpause')} />
+          <ActionButton label={t('Пауза', 'Pause')} icon={<Pause size={16} />} tone="amber" onClick={() => onSendCommand(control.pause)} />
+          <ActionButton label={t('Снять паузу', 'Unpause')} icon={<Play size={16} />} tone="blue" onClick={() => onSendCommand(control.unpause)} />
 
           {customCommands.map(cmd => (
             <div key={cmd.id} className="relative group/btn">
