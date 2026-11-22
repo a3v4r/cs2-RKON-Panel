@@ -6,7 +6,7 @@
 
 | Папка | Ветка | Что там |
 |---|---|---|
-| `C:\dev\cs2\cs2-RKON-Panel` | `ui-redesign` (запушена, в `main` не влита) | основная копия панели Matchdesk |
+| `C:\dev\cs2\cs2-RKON-Panel` | `ui-redesign` (запушена, в `main` не влита) | основная копия панели Matchdesk; на GitHub `a3v4r/Matchdesk` (переименован из `cs2-RKON-Panel` 2026-11-22, старый адрес перенаправляется) |
 | `C:\dev\cs2\cs2-RKON-Panel-plugins` | `plugins` (git worktree от `ui-redesign`, коммит `7713dc5`, не запушена) | вкладка «Настройки → Плагины» |
 | `C:\dev\cs2\MatchZy-Patched` | `sync-upstream-0.9.1` (коммит `f24e27d`, в `main` форка не влит) | форк MatchZy, исправлен путь бэкапов раундов |
 | `C:\dev\cs2\cs2-WeaponPaints-sqlite` | `screen-menu` (коммит `435320b`, в `main` форка не влит) | форк WeaponPaints на SQLite, экранное меню скинов |
@@ -34,6 +34,7 @@
 
 ## Плагины (ветка `plugins`)
 
+- Форки `a3v4r/MatchZy-Patched` и `a3v4r/cs2-WeaponPaints-sqlite` открыты (публичные) 2026-11-22: панель видит их релизы (`0.9.1-patched`, `3.2b-patched`) без токена.
 - Закоммичено: `7713dc5` в ветке `plugins` (worktree `C:\dev\cs2\cs2-RKON-Panel-plugins`, от `ui-redesign` ffd913a). Не запушено и не влито в `ui-redesign`.
 - Набор плагинов один на всю установку CS2: Metamod, CounterStrikeSharp, MatchZy, WeaponPaints. Код в `src/server/plugins.ts`, `src/app/api/plugins/route.ts` и `src/components/settings/plugins-settings.tsx`.
 - **Зависимости.** MatchZy и WeaponPaints требуют CounterStrikeSharp, а он требует Metamod.
@@ -50,7 +51,6 @@
 - Без MatchZy серверы панели переходят в режим Vanilla.
 - Пока идёт установка, серверы не запускаются. Перед операцией панель проверяет, что `cs2.exe` не запущен.
 - **Что нужно от владельца.**
-  - Сделать публичными `a3v4r/MatchZy-Patched` и `a3v4r/cs2-WeaponPaints-sqlite`. Сейчас GitHub отвечает 404, и панель не может скачать форки.
   - Влить `f24e27d` в `main` форка MatchZy: workflow соберёт релиз.
   - Влить ветку `screen-menu` форка WeaponPaints (`435320b`) в `main`: там своё экранное меню скинов (A/D листать, E выбрать, R выход), MenuManagerCS2 больше не нужен. В игре ещё не проверено.
 - **WeaponPaints и `FollowCS2ServerGuidelines`.** Скины применяются, только если в `configs/core.json` CounterStrikeSharp стоит `false`. Установщик панели этот флаг пока не меняет: на чистой установке скины молча не работают. На тестовой установке `C:\cs2server\cs2` флаг уже переключён вручную.
