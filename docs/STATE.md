@@ -6,7 +6,7 @@
 
 | Папка | Ветка | Что там |
 |---|---|---|
-| `C:\dev\cs2\cs2-RKON-Panel` | `ui-redesign` (влита в `main` 2026-11-22, релиз `v0.13.0`) | основная копия панели Matchdesk; на GitHub `a3v4r/Matchdesk` (переименован из `cs2-RKON-Panel` 2026-11-22, старый адрес перенаправляется) |
+| `C:\dev\cs2\cs2-RKON-Panel` | `ui-redesign` (влита в `main` 2026-11-22, релиз `v0.13.1`) | основная копия панели Matchdesk; на GitHub `a3v4r/Matchdesk` (переименован из `cs2-RKON-Panel` 2026-11-22, старый адрес перенаправляется) |
 | `C:\dev\cs2\cs2-server-kit` | - | удалён 2026-11-22 (в корзину Windows): с `v0.8.0` всё делает панель, с `v0.9.0` - один `Matchdesk.exe` |
 | `C:\dev\cs2\MatchZy-Patched` | `main` = `sync-upstream-0.9.1` (`eb218c5`, релиз `0.9.2-patched`) | форк MatchZy, исправлен путь бэкапов раундов |
 | `C:\dev\cs2\cs2-WeaponPaints-sqlite` | `main` = `screen-menu` (`e9a6b4e`, релиз `3.3.3-patched`) | форк WeaponPaints на SQLite, экранное меню скинов |
