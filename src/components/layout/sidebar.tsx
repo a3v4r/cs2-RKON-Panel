@@ -96,7 +96,7 @@ export function Sidebar({ activeSection, onSelectSection, onClose, user }: Sideb
 
       {/* Sections */}
       <nav className="flex-1 px-4 space-y-1 overflow-y-auto" aria-label={t('Разделы', 'Main navigation')}>
-        {NAV.map((id) => (
+        {NAV.filter((id) => id !== 'agent' || !user.name).map((id) => (
           <NavItem key={id} section={id} active={activeSection === id || (id === 'servers' && activeSection === 'settings')} onClick={() => onSelectSection(id)} />
         ))}
         <div className="pt-4 pb-1 px-4 text-[10px] font-bold uppercase tracking-wider text-gray-500">{t('Панель', 'Panel')}</div>

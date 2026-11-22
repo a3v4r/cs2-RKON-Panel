@@ -121,13 +121,19 @@ export async function listModels() {
     .sort((a, b) => a.id.localeCompare(b.id));
 }
 
+// The request the turn came with: panel_api calls the panel's API with the same session
+export interface TurnContext {
+  cookie?: string;
+}
+
 // ---- Tools ------------------------------------------------------------------------------------------------
 
 interface Tool {
   description: string;
   parameters: Record<string, unknown>;
-  action?: (args: Record<string, unknown>) => string; // set: needs the user's OK; returns what is about to happen
-  run: (args: Record<string, unknown>, user: SessionUser) => Promise<string>;
+  // Set: may need the user's OK; returns what is about to happen, or '' when this call needs none
+  action?: (args: Record<string, unknown>) => string;
+  run: (args: Record<string, unknown>, user: SessionUser, ctx: TurnContext) => Promise<string>;
 }
 
 const serverIdParam = { server_id: { type: 'integer', description: 'ID сервера из list_servers' } };
@@ -166,7 +172,76 @@ function newestCssLog(prefix: string) {
   return files.find((f) => fs.statSync(f).size > 0) ?? files[0];
 }
 
+// What the panel's own API can do, for panel_api. Paths with {id} take the ID from list_servers / other lists.
+const PANEL_API = `Панель (все пути от /api, JSON):
+Серверы:
+- GET /servers - список серверов; POST /servers - добавить: внешний {name, host, port, rcon_password} или запускаемый панелью {name, port, rcon_password?, managed: {tvPort, map, maxPlayers, password, gameMode: competitive|wingman|casual|deathmatch|armsrace|demolition|training|custom, workshopMap?, gslt?, vac, tv, lan, hibernate, autoRestart, priority: Normal|AboveNormal|High, extraArgs?, extraCfg?, bindIp?}}
+- PUT /servers/{id} - изменить {name?, port?, rcon_password?, mode?: vanilla|matchzy, managed?: {...}}; DELETE /servers/{id} - удалить
+- POST /servers/{id}/process {action: start|stop|restart}; GET /instances - состояние процессов
+- POST /servers/{id}/rcon {command}; GET /servers/{id}/info - карта и игроки (A2S)
+- POST /servers/{id}/map {map} или {workshopId} - сменить карту (конфиг карты применится сам)
+- GET /servers/{id}/players; POST /servers/{id}/players/{userid} {action: kick, reason} | {action: ban, reason, minutes (0 = навсегда), steamid, name}
+- GET /servers/{id}/joins - входы и выходы; GET /servers/{id}/chat; GET /servers/{id}/live - живой матч
+- GET /servers/{id}/restore - бэкапы раундов MatchZy; POST /servers/{id}/restore {round} - откат к началу раунда
+- GET /servers/{id}/auto-messages; POST /servers/{id}/auto-messages {message, intervalMinutes}; PUT /auto-messages/{id} {enabled}; DELETE /auto-messages/{id}
+Матч MatchZy: POST /matches/config {config: строка JSON конфига MatchZy (matchid, num_maps, maplist, team1/team2 {name, players {steamid64: ник}}, players_per_team, ...), serverId} - вернёт url; затем RCON matchzy_loadmatch_url "<url>". Остановить матч: RCON get5_endmatch.
+Баны: GET /bans; DELETE /bans/{id} - разбан.
+Быстрые действия (кнопки на «Обзоре»): GET /commands; POST /commands {label, command} (несколько команд через ;); PUT /commands/{id} {label, command}; DELETE /commands/{id}.
+Шаблоны сообщений чата: GET /templates; POST /templates {name, message}; DELETE /templates/{id}.
+Команды (библиотека): GET /teams; POST /teams {name, tag, flag (RU, KZ...), players: [{steamid, name}]}; PUT /teams/{id} {...}; DELETE /teams/{id}.
+Карты Workshop: GET /maps/workshop; POST /maps/workshop {workshop_id, map_file?}; DELETE /maps/workshop/{id}. Конфиг карты: GET/POST /maps/config/{serverId}/{map} {content}.
+Плагины: GET /plugins; POST /plugins {action: check} | {action: update|rollback|remove, id: metamod|counterstrikesharp|matchzy|weaponpaints} | {action: apply, enabled: {matchzy: true, weaponpaints: false, ...}} | {action: auto, enabled}. Ставить и менять плагины можно, только когда все серверы остановлены.
+Сайт скинов: GET /skins-site; POST /skins-site {enabled?, port?} | {action: restart}.
+CS2: GET /cs2-update; POST /cs2-update {action: start|cancel} - установка/обновление через steamcmd (все серверы должны быть остановлены) | {action: firewall}.
+Настройки панели: GET /panel-settings; PUT /panel-settings {cs2Dir?, steamcmd?, panelName?, defaultPort?, chatPrefix?}.
+Бэкапы: GET /backups/{scope} (scope: panel - данные панели, cs2 - конфиги CS2); POST /backups/{scope} {} - сделать бэкап; POST /backups/file/{scope}/{name} - восстановить; DELETE /backups/file/{scope}/{name}; GET/PUT /backups/schedule {enabled, frequency: daily|weekly|monthly, time: "HH:MM", keep}.
+Пользователи: GET /users; POST /users {username, password}; PUT /users/{id} {password}; DELETE /users/{id}.
+Прочее: GET /audit - журнал действий; GET /system и /system/health - нагрузка и проверка установки; POST /system/health {action: repair|steamcmd}; GET /network.`;
+
+// Paths the agent must not call: its own settings, logins, and endpoints that game servers call with their own tokens
+const PANEL_API_BLOCKED = [/^\/api\/agent/, /^\/api\/log(in|out)/, /^\/api\/events\//, /^\/api\/logs\//];
+
+function panelRequest(args: Record<string, unknown>) {
+  const method = String(args.method ?? 'GET').toUpperCase();
+  if (!['GET', 'POST', 'PUT', 'DELETE'].includes(method)) throw new Error('method: GET, POST, PUT или DELETE');
+  let p = String(args.path ?? '').trim();
+  if (!p.startsWith('/')) p = `/${p}`;
+  if (!p.startsWith('/api/')) p = `/api${p}`;
+  if (/\.\.|[\s#]/.test(p)) throw new Error('Неверный путь');
+  if (PANEL_API_BLOCKED.some((re) => re.test(p))) throw new Error(`${p} агенту недоступен`);
+  const body = args.body === undefined || args.body === null ? undefined : args.body;
+  return { method, path: p, body };
+}
+
 const TOOLS: Record<string, Tool> = {
+  panel_api: {
+    description: `Любое действие или данные панели через её API. GET выполняется сразу, POST / PUT / DELETE - после подтверждения пользователем.\n${PANEL_API}`,
+    parameters: obj({
+      method: { type: 'string', enum: ['GET', 'POST', 'PUT', 'DELETE'] },
+      path: { type: 'string', description: 'Путь, например /api/servers/1/map' },
+      body: { type: 'object', description: 'Тело запроса для POST / PUT', additionalProperties: true },
+    }, ['method', 'path']),
+    action: (args) => {
+      const { method, path: p, body } = panelRequest(args);
+      if (method === 'GET') return '';
+      const json = body === undefined ? '' : ` ${JSON.stringify(body)}`;
+      return `Панель: ${method} ${p}${json.length > 400 ? `${json.slice(0, 400)}...` : json}`;
+    },
+    run: async (args, user, ctx) => {
+      const { method, path: p, body } = panelRequest(args);
+      if (method !== 'GET') audit(user, `agent api ${method} ${p}`);
+      const res = await fetch(`http://127.0.0.1:${process.env.PORT || 3000}${p}`, {
+        method,
+        headers: { ...(ctx.cookie ? { cookie: ctx.cookie } : {}), ...(body !== undefined ? { 'content-type': 'application/json' } : {}) },
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+        signal: AbortSignal.timeout(120_000),
+      });
+      const type = res.headers.get('content-type') ?? '';
+      const text = /json|text/.test(type) ? await res.text() : `(файл ${type || 'без типа'}, ${(await res.arrayBuffer()).byteLength} байт)`;
+      return clip(`HTTP ${res.status}\n${text}`);
+    },
+  },
+
   list_servers: {
     description: 'Список серверов CS2 в панели: ID, название, адрес, режим (MatchZy или Vanilla), запущен ли процесс панелью.',
     parameters: obj({}),
@@ -308,11 +383,13 @@ const TOOL_SPECS = Object.entries(TOOLS).map(([name, t]) => ({
 }));
 
 const SYSTEM_PROMPT = `Ты помощник судьи в Matchdesk - панели управления серверами CS2 для турниров в локальной сети (компьютерный клуб).
-Отвечай по-русски, коротко и по делу. Вместо длинного тире пиши обычный дефис.
+Отвечай по-русски, коротко и по делу. Вместо длинного тире пиши обычный дефис. Чат показывает простой текст: без таблиц и markdown-разметки, списки - строками через дефис.
 
 Как работать:
 - О состоянии серверов, игроков, матчей, плагинов и логов узнавай через инструменты, не выдумывай. Если данных не хватает, так и скажи.
-- Инструменты rcon и server_process меняют что-то на сервере. Вызывай их, когда пользователь просит что-то сделать: панель сама покажет ему действие и спросит подтверждение. Не спрашивай подтверждение текстом, просто вызови инструмент.
+- Всё, что умеет панель (серверы, матчи, игроки, баны, быстрые действия, команды, карты, плагины, сайт скинов, бэкапы, настройки, пользователи), доступно через panel_api; его описание есть в инструменте. Для обзора серверов, игроков, чата, логов и плагинов удобнее отдельные инструменты.
+- Если просят сделать что-то, для чего нужны команды CS2 (например, кнопку в быстрых действиях), подбери команды сам и коротко объясни, что каждая делает.
+- panel_api с POST / PUT / DELETE, rcon и server_process меняют что-то в панели или на сервере. Вызывай их, когда пользователь просит что-то сделать: панель сама покажет ему действие и спросит подтверждение. Не спрашивай подтверждение текстом, просто вызови инструмент.
 - Не выполняй действий, о которых пользователь не просил. Если неясно, на каком сервере, спроси или сначала посмотри list_servers.
 - Если пользователь отменил действие, не повторяй его.
 
@@ -388,18 +465,18 @@ async function callModel(messages: AgentMessage[]) {
   return reply;
 }
 
-async function runTool(call: ToolCall, user: SessionUser): Promise<string> {
+async function runTool(call: ToolCall, user: SessionUser, ctx: TurnContext): Promise<string> {
   const tool = TOOLS[call.function.name];
   if (!tool) return `Ошибка: инструмента ${call.function.name} нет`;
   try {
-    return await tool.run(parseArgs(call.function.arguments), user);
+    return await tool.run(parseArgs(call.function.arguments), user, ctx);
   } catch (e) {
     return `Ошибка: ${(e as Error).message}`;
   }
 }
 
 // One user turn: the model reads what it needs; actions wait for the user's decision (`decisions` by tool call id)
-export async function agentTurn(input: unknown, decisions: Record<string, unknown> | undefined, user: SessionUser) {
+export async function agentTurn(input: unknown, decisions: Record<string, unknown> | undefined, user: SessionUser, ctx: TurnContext = {}) {
   const messages = cleanMessages(input);
 
   // Answer the actions the user has just decided on. A new question instead of a decision skips them; the
@@ -408,7 +485,7 @@ export async function agentTurn(input: unknown, decisions: Record<string, unknow
   if (waiting.length && decisions) {
     for (const call of waiting) {
       const content = decisions[call.id] === 'run'
-        ? await runTool(call, user)
+        ? await runTool(call, user, ctx)
         : 'Пользователь отменил это действие.';
       messages.push({ role: 'tool', tool_call_id: call.id, content });
     }
@@ -432,14 +509,17 @@ export async function agentTurn(input: unknown, decisions: Record<string, unknow
       const tool = TOOLS[call.function.name];
       if (tool?.action) {
         try {
-          pending.push({ id: call.id, tool: call.function.name, description: tool.action(parseArgs(call.function.arguments)) });
-          continue;
+          const description = tool.action(parseArgs(call.function.arguments));
+          if (description) {
+            pending.push({ id: call.id, tool: call.function.name, description });
+            continue;
+          }
         } catch (e) {
           messages.push({ role: 'tool', tool_call_id: call.id, content: `Ошибка: ${(e as Error).message}` });
           continue;
         }
       }
-      messages.push({ role: 'tool', tool_call_id: call.id, content: await runTool(call, user) });
+      messages.push({ role: 'tool', tool_call_id: call.id, content: await runTool(call, user, ctx) });
     }
     if (pending.length) return { messages, pending };
   }

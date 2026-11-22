@@ -114,6 +114,7 @@ export function AgentView() {
       case 'audit_log': return t('Прочитал журнал действий', 'Read the action log')
       case 'rcon': return `RCON${sid}: ${a.command ?? ''}`
       case 'server_process': return t(`Сервер${sid}: ${a.action}`, `Server${sid}: ${a.action}`)
+      case 'panel_api': return t(`Панель: ${a.method} ${a.path}`, `Panel: ${a.method} ${a.path}`)
       default: return call.function.name
     }
   }

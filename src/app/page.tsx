@@ -294,7 +294,7 @@ export default function Home() {
           {activeTab === 'backups' && <BackupsView />}
           {activeTab === 'users' && <UsersView />}
           {activeTab === 'teams' && <TeamsView />}
-          {activeTab === 'agent' && <AgentView />}
+          {activeTab === 'agent' && !me.name && <AgentView />}
           {activeTab === 'servers' && createOpen && (
             <CreateServerWizard
               key={editingManaged?.id ?? 'new'}
