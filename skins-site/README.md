@@ -1,52 +1,54 @@
-# Сайт скинов CS2
+# CS2 skins website
 
-Сайт, где игроки выбирают скины для плагина WeaponPaints (форк `a3v4r/cs2-WeaponPaints-sqlite`): оружие, ножи, перчатки, наклейки, брелоки, музыку MVP и значки. Отдельно для T и CT.
+**English** | [Русский](README.ru.md)
 
-Обычно его запускает Matchdesk (`src/server/skins-site.ts`): сам пишет `config.json` в `PANEL_DATA_DIR\skins-site` со своими серверами и передаёт путь в `SKINS_CONFIG`. Ручной запуск ниже нужен, только если сайт работает без панели.
+A website where players choose skins for the WeaponPaints plugin (the `a3v4r/cs2-WeaponPaints-sqlite` fork): weapons, knives, gloves, stickers, keychains, MVP music kits and pins. Separately for T and CT.
 
-- Вход без ввода: игрок открывает сайт на компьютере, с которого играет, и сайт сам спрашивает у сервера (`css_wp_who <ip>`), кто играет с этого IP. Работает только в локальной сети, где у каждого компьютера свой IP.
-- Компьютеры в клубе общие: вход держится, только пока игрок на сервере и за тем же компьютером (`css_wp_ip`). Ушёл или пересел - страница через несколько секунд переключится на того, кто теперь играет с этого компьютера. Куки сессионные.
-- `!site` в игре показывает адрес сайта: при `"Website": "auto"` в настройках плагина - имя компьютера (`aevar-pc/`), а если имя сгенерировано Windows (`DESKTOP-XXXXX`) - его IP в локальной сети. Если в сети имя не открывается, впишите в `Website` IP.
-- Выбор пишется прямо в sqlite-базу плагина (`weapon_paints.db`).
-- После сохранения сайт отправляет на серверы по RCON `css_wp_reload <steamid>`: если игрок на сервере, скин меняется сразу. Команды `css_site`, `css_wp_who`, `css_wp_ip` и `css_wp_reload` - в файле `WebReload.cs` плагина.
-- Без зависимостей: нужен только Node.js 22.13 или новее (встроенный `node:sqlite`).
+Usually Matchdesk runs it (`src/server/skins-site.ts`): it writes `config.json` into `PANEL_DATA_DIR\skins-site` with its servers and passes the path in `SKINS_CONFIG`. The manual start below is needed only when the website runs without the panel.
 
-## Запуск
+- Login without typing anything: a player opens the website on the computer they play from, and the website asks the server (`css_wp_who <ip>`) who plays from that IP. Works only on a local network where every computer has its own IP.
+- Club computers are shared: a login lasts only while the player is on the server and at the same computer (`css_wp_ip`). If they leave or move to another seat, within a few seconds the page switches to whoever now plays from that computer. Cookies are session cookies.
+- `!site` in game shows the website address: with `"Website": "auto"` in the plugin settings, the computer name (`aevar-pc/`), or its LAN IP if Windows generated the name (`DESKTOP-XXXXX`). If the name does not open on the network, put the IP into `Website`.
+- Choices are written straight into the plugin's sqlite database (`weapon_paints.db`).
+- After a save the website sends `css_wp_reload <steamid>` to the servers over RCON: if the player is on a server, the skin changes at once. The commands `css_site`, `css_wp_who`, `css_wp_ip` and `css_wp_reload` are in the plugin's `WebReload.cs`.
+- No dependencies: only Node.js 22.13 or newer is needed (built-in `node:sqlite`).
 
-1. Скопировать `config.example.json` в `config.json` и заполнить:
-   - `pluginDir` - папка плагина WeaponPaints на сервере (там `weapon_paints.db` и `data/`);
-   - `servers` - серверы с этим плагином и их RCON-пароли;
-   - `publicUrl` - адрес, по которому игроки открывают сайт.
-2. `npm start` (или `node server.mjs`).
+## Running
 
-Сайт должен работать на той же машине, что и сервер: он открывает файл базы плагина напрямую.
+1. Copy `config.example.json` to `config.json` and fill it in:
+   - `pluginDir`: the WeaponPaints plugin folder on the server (with `weapon_paints.db` and `data/`);
+   - `servers`: servers with this plugin and their RCON passwords;
+   - `publicUrl`: the address players open.
+2. `npm start` (or `node server.mjs`).
 
-## Адрес для игроков
+The website must run on the same machine as the server: it opens the plugin's database file directly.
 
-Сайт рассчитан на локальную сеть и слушает порт 80, так что адрес без порта: `http://192.168.0.10` или `имя-компьютера/`.
-- `publicUrl` - этот адрес;
-- в настройках плагина (`configs/plugins/WeaponPaints/WeaponPaints.json`) `"Website": "auto"`: `!site` сам покажет имя компьютера (или IP, если имя вида `DESKTOP-XXXXX`);
-- порт 80 открыть в брандмауэре Windows для частной сети.
+## Address for players
 
-## Картинки
+The website is made for a local network and listens on port 80, so the address has no port: `http://192.168.0.10` or `computer-name/`.
+- `publicUrl`: this address;
+- in the plugin settings (`configs/plugins/WeaponPaints/WeaponPaints.json`) `"Website": "auto"`: `!site` shows the computer name by itself (or the IP for names like `DESKTOP-XXXXX`);
+- open port 80 in Windows Firewall for the private network.
 
-Картинки предметов лежат на GitHub, и оттуда они грузятся медленно. Поэтому сайт хранит их копии у себя (`image-cache/`) и отдаёт по адресу `/img/<файл>`:
-- при запуске он в фоне докачивает всё, чего ещё нет на диске: около 12 500 файлов, примерно 1,4 ГБ (из них 9 600+ наклеек, их качает последними);
-- картинка, которую открыли раньше, чем дошла очередь, скачивается сразу;
-- меню скинов в игре берёт картинки отсюда же, пока сайт отвечает (`"Website": "auto"` - по LAN IP этого компьютера на порту 80); если сайт выключен, меню грузит их с GitHub.
+## Pictures
 
-Интернет нужен только для первой закачки. Место занимает только этот компьютер, у игроков ничего не хранится.
+Item pictures are hosted on GitHub and load slowly from there. So the website keeps copies (`image-cache/`) and serves them at `/img/<file>`:
+- on start it downloads in the background everything that is not on disk yet: about 12,500 files, roughly 1.4 GB (9,600+ of them stickers, downloaded last);
+- a picture opened before its turn comes is downloaded at once;
+- the in-game skins menu takes pictures from here too while the website answers (`"Website": "auto"`: the LAN IP of this computer on port 80); if the website is off, the menu loads them from GitHub.
 
-## Настройки
+Internet is needed only for the first download. Only this computer uses disk space; players store nothing.
 
-| Поле | Что это |
+## Settings
+
+| Field | What it is |
 |---|---|
-| `port`, `host` | где слушает сайт, по умолчанию `0.0.0.0:80` |
-| `publicUrl` | адрес сайта для игроков |
-| `pluginDir` | папка плагина; `database` и `dataDir` можно задать отдельно |
-| `imageCacheDir` | папка для копий картинок, по умолчанию `image-cache` рядом с сайтом |
-| `language` | язык названий скинов из `data/*_<язык>.json`, по умолчанию `ru` |
+| `port`, `host` | where the website listens, `0.0.0.0:80` by default |
+| `publicUrl` | website address for players |
+| `pluginDir` | plugin folder; `database` and `dataDir` can be set separately |
+| `imageCacheDir` | folder for picture copies, `image-cache` next to the website by default |
+| `language` | language of skin names from `data/*_<lang>.json`, `ru` by default |
 | `servers` | `[{ name, host, port, rconPassword }]` |
-| `devLogin` | вход за любого игрока по адресу `/auth/dev?steamid=…`, только с этого компьютера и без проверки, что игрок на сервере. Для разработки; на турнире выключить |
+| `devLogin` | login as any player at `/auth/dev?steamid=...`, only from this computer and without checking that the player is on the server. For development; turn it off at a tournament |
 
-Ключ подписи входа создаётся сам в файле `.secret` при первом запуске.
+The login signing key is created by itself in the `.secret` file on the first start.

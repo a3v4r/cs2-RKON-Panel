@@ -1,143 +1,145 @@
 # Matchdesk
 
-Панель для турниров CS2 в локальной сети. Всё живёт на одном ПК: сервер CS2 и его плагины, серверы матчей, сайт скинов для игроков и ИИ-агент. Судьи управляют этим из браузера с ноутбука или телефона.
+**English** | [Русский](README.ru.md)
 
-![Обзор](screenshots/overview.png)
+A panel for CS2 tournaments on a local network. Everything lives on one PC: the CS2 server and its plugins, the match servers, the skins website for players and an AI agent. Referees run it from a browser on a laptop or phone.
 
-## Что умеет
+![Overview](screenshots/overview.png)
 
-**Серверы CS2**
-- Ставит выделенный сервер CS2 с нуля: сама скачивает steamcmd и сервер (около 60 ГБ), потом обновляет его одной кнопкой.
-- Создаёт серверы: порты, карта или карта из Workshop, режим игры, слоты, пароль, GOTV, GSLT, VAC, приоритет процесса, свои аргументы запуска и строки cfg.
-- Запускает, останавливает и перезапускает `cs2.exe` без окон консоли и поднимает сервер снова, если он упал. Серверы продолжают работать, когда панель перезапускают.
-- Подключает и внешние серверы по RCON: с другого ПК или запущенные не из панели.
+## Features
 
-**Плагины**
-- Ставит и обновляет Metamod, CounterStrikeSharp, [MatchZy](https://github.com/a3v4r/MatchZy-Patched) и [WeaponPaints](https://github.com/a3v4r/cs2-WeaponPaints-sqlite) (форки под LAN-турниры), включает, выключает и откатывает на прошлую версию.
-- Автообновление: раз в 3 часа скачивает новые версии и ставит, когда ни один сервер не работает.
-- Предупреждает, когда скины перестали применяться после обновления CS2, и когда на ПК нет Visual C++ Redistributable.
+**CS2 servers**
+- Installs a CS2 dedicated server from scratch: downloads steamcmd and the server (about 60 GB) by itself, then updates it with one button.
+- Creates servers: ports, map or Workshop map, game mode, slots, password, GOTV, GSLT, VAC, process priority, custom launch arguments and cfg lines.
+- Starts, stops and restarts `cs2.exe` without console windows and brings a server back up if it crashes. Servers keep running while the panel restarts.
+- Connects external servers over RCON too: on another PC or started outside the panel.
 
-**Матчи**
-- «Запуск матча»: конфиг MatchZy (BO1-BO5, вето или карты и стороны заранее, составы из библиотеки команд) уходит на сервер в один клик.
-- Режим Vanilla для серверов без MatchZy: правила 5на5 MR12 и 2на2 MR8, ножевой раунд и паузы обычными командами CS2.
-- «Матч»: счёт, раунды, статистика игроков (K/D/A, ADR, HS%, KAST, клатчи), лента убийств, таймер раунда.
-- Пауза, форс-старт, ножевой раунд и откат раунда. MatchZy сохраняет бэкап в начале каждого раунда, откатить можно к началу любого сыгранного раунда.
+**Plugins**
+- Installs and updates Metamod, CounterStrikeSharp, [MatchZy](https://github.com/a3v4r/MatchZy-Patched) and [WeaponPaints](https://github.com/a3v4r/cs2-WeaponPaints-sqlite) (forks for LAN tournaments); turns them on and off and rolls back to the previous version.
+- Auto update: every 3 hours downloads new versions and installs them when no server is running.
+- Warns when skins stop applying after a CS2 update and when the PC has no Visual C++ Redistributable.
 
-**Игроки и чат**
-- Игроки онлайн с пингом, кик и бан (бан-лист общий на все серверы, сроки от часа до навсегда), журнал входов и выходов.
-- История игрового чата с поиском, сообщения в чат, автосообщения по таймеру и шаблоны.
-- Библиотека команд: название, тег, флаг, состав по SteamID (принимается в любом виде, включая ссылку на профиль).
+**Matches**
+- "Match setup": a MatchZy config (BO1-BO5, veto or maps and sides set in advance, rosters from the team library) goes to the server in one click.
+- Vanilla mode for servers without MatchZy: 5v5 MR12 and 2v2 MR8 rules, knife round and pauses with plain CS2 commands.
+- "Match": score, rounds, player stats (K/D/A, ADR, HS%, KAST, clutches), kill feed, round timer.
+- Pause, force start, knife round and round restore. MatchZy saves a backup at the start of every round, so a match can go back to the start of any round played.
 
-**Сайт скинов** для WeaponPaints
-- Игрок пишет `!site` в чате, открывает адрес на своём компьютере и сразу попадает в свой профиль, без логина. Скины, ножи, перчатки, наклейки, брелоки, музыка и значки, отдельно для T и CT.
-- Изменения применяются в игре сразу. Картинки предметов хранятся на ПК с панелью, интернет для них не нужен.
-- Панель запускает сайт сама (порт 80), отдельный процесс без доступа к панели.
+**Players and chat**
+- Online players with ping, kick and ban (one ban list for all servers, from an hour to permanent), join and leave log.
+- In-game chat history with search, chat messages, timed auto messages and templates.
+- Team library: name, tag, flag, roster by SteamID (any form is accepted, profile links included).
 
-**ИИ-агент**
-- Вкладка «Агент»: чат с языковой моделью, которая может всё, что умеет панель. «Что сейчас на серверах?», «Почему не применяются скины?», «Добавь кнопку с бесконечными деньгами на разминке», «Откати 1 раунд», «Установи все плагины, создай сервер и запусти его».
-- Сам читает состояние серверов, игроков, матча, чат, логи и плагины. Любое изменение только предлагает: оно выполняется после кнопки «Выполнить» и попадает в журнал действий.
-- Работает с любым OpenAI-совместимым API: OpenRouter, DeepSeek, локальная Ollama. Доступен только аккаунту `admin`.
+**Skins website** for WeaponPaints
+- A player types `!site` in chat, opens the address on their computer and lands in their profile with no login. Skins, knives, gloves, stickers, keychains, music kits and pins, separately for T and CT.
+- Changes apply in game at once. Item pictures are stored on the panel PC, so they need no internet.
+- The panel runs the website by itself (port 80), as a separate process with no access to the panel.
 
-**Прочее**
-- «Обзор»: состояние сервера, графики пинга, игроков и нагрузки ПК, быстрые действия и свои кнопки с командами.
-- Консоль RCON с подсказками команд, карты и их конфиги, бэкапы данных панели и конфигов CS2 по расписанию, журнал всех действий.
-- Русский и английский интерфейс, вёрстка под телефон.
+**AI agent**
+- "Agent" tab: a chat with a language model that can do everything the panel does. "What is on the servers now?", "Why are skins not applied?", "Add a button for infinite money in warmup", "Restore 1 round", "Install all plugins, create a server and start it".
+- Reads the state of servers, players, the match, chat, logs and plugins by itself. Any change is only proposed: it runs after the "Run" button and goes into the action log.
+- Works with any OpenAI-compatible API: OpenRouter, DeepSeek, a local Ollama. Available only to the `admin` account.
 
-| Агент | Плагины | Запуск матча |
+**Other**
+- "Overview": server status, ping, player and PC load charts, quick actions and custom command buttons.
+- RCON console with command hints, maps and their configs, scheduled backups of the panel data and CS2 configs, a log of every action.
+- Russian and English interface, mobile layout.
+
+| Agent | Plugins | Match setup |
 |---|---|---|
-| ![Агент](screenshots/agent.png) | ![Плагины](screenshots/plugins.png) | ![Запуск матча](screenshots/match-setup.png) |
+| ![Agent](screenshots/agent.png) | ![Plugins](screenshots/plugins.png) | ![Match setup](screenshots/match-setup.png) |
 
-## Установка
+## Install
 
-Нужен ПК с Windows 10 или 11 и 85 ГБ свободного места под сервер CS2.
+You need a PC with Windows 10 or 11 and 85 GB of free space for the CS2 server.
 
-1. Скачайте `Matchdesk.exe` из [Releases](https://github.com/a3v4r/Matchdesk/releases) и положите в постоянную папку, например `C:\Matchdesk`. Устанавливать ничего не нужно.
-2. Запустите `Matchdesk.exe`. Файл не подписан, поэтому при первом запуске Windows может показать «Windows защитила ваш компьютер»: «Подробнее» → «Выполнить в любом случае». Exe:
-   - распаковывает панель рядом с собой в `app\`;
-   - создаёт `matchdesk.ini` и пароль аккаунта `admin`, пароль виден в окне;
-   - предлагает установить Microsoft Visual C++ Redistributable (без него не загрузятся Metamod и CounterStrikeSharp) и разрешить панель в брандмауэре Windows; на оба Windows спросит права администратора;
-   - показывает адреса панели. Окно не закрывайте: это и есть работающая панель, при падении она перезапускается сама.
-3. Откройте `http://<IP этого ПК>:3000` с любого устройства в той же сети и войдите как `admin`.
-4. «Серверы» → «Установить CS2». Когда установка закончится, в том же окне нажмите «Разрешить» в строке «Брандмауэр», чтобы игроки могли подключиться к серверам.
-5. «Настройки» → «Плагины»: включите MatchZy и, если нужны скины, WeaponPaints. Metamod и CounterStrikeSharp включатся сами.
-6. «Серверы» → «Создать сервер», потом запустите его.
+1. Download `Matchdesk.exe` from [Releases](https://github.com/a3v4r/Matchdesk/releases) and put it in a permanent folder, for example `C:\Matchdesk`. Nothing needs to be installed.
+2. Run `Matchdesk.exe`. The file is not signed, so on the first run Windows may show "Windows protected your PC": "More info" → "Run anyway". The exe:
+   - unpacks the panel next to itself into `app\`;
+   - creates `matchdesk.ini` and the password of the `admin` account, shown in the window;
+   - offers to install Microsoft Visual C++ Redistributable (Metamod and CounterStrikeSharp do not load without it) and to allow the panel in Windows Firewall; Windows asks for administrator rights for both;
+   - shows the panel addresses. Keep the window open: it is the running panel, and it restarts the panel by itself if it crashes.
+3. Open `http://<this PC's IP>:3000` from any device on the same network and sign in as `admin`.
+4. "Servers" → "Install CS2". When the install finishes, press "Allow" in the "Firewall" row of the same window so players can connect to the servers.
+5. "Settings" → "Plugins": turn on MatchZy and, if you want skins, WeaponPaints. Metamod and CounterStrikeSharp are turned on by themselves.
+6. "Servers" → "Create Server", then start it.
 
-Шаги 4-6 можно поручить агенту одной фразой, если он подключён.
+Steps 4-6 can be given to the agent in one sentence once it is connected.
 
-### Обновление
+### Updating
 
-Замените `Matchdesk.exe` новым из Releases и запустите. Exe сам распакует новую панель; `data\` и `matchdesk.ini` останутся как были.
+Replace `Matchdesk.exe` with the new one from Releases and run it. The exe unpacks the new panel by itself; `data\` and `matchdesk.ini` stay as they were.
 
-### Что лежит рядом с exe
+### Files next to the exe
 
-| Путь | Что это |
+| Path | What it is |
 |---|---|
-| `app\` | сама панель, распаковывается из exe, руками не трогать |
-| `data\` | данные панели: серверы, пользователи, настройки, команды, баны, журнал действий, бэкапы, кэш плагинов и картинок сайта скинов |
-| `matchdesk.ini` | порт панели и пароль `admin` |
+| `app\` | the panel itself, unpacked from the exe; do not edit |
+| `data\` | panel data: servers, users, settings, teams, bans, action log, backups, plugin cache and the skins website's pictures |
+| `matchdesk.ini` | panel port and the `admin` password |
 
-Сервер CS2 по умолчанию ставится в `C:\cs2server\cs2`, папку можно поменять в «Настройки» → «Сервер CS2».
+The CS2 server is installed to `C:\cs2server\cs2` by default; the folder can be changed in "Settings" → "Server Engine".
 
-## Аккаунты
+## Accounts
 
-Сначала есть один аккаунт `admin` с паролем из `matchdesk.ini`. Остальным людям он заводит личные аккаунты в разделе «Пользователи». Права у всех одинаковые и полные, кроме агента: он доступен только `admin`. Смена пароля или удаление пользователя сразу завершают его сессии. Каждое действие записывается в журнал с именем того, кто его сделал.
+At first there is one account, `admin`, with the password from `matchdesk.ini`. It creates personal accounts for other people in "Users". Everyone has the same full rights, except the agent: only `admin` can use it. Changing a password or deleting a user ends their sessions at once. Every action is logged with the name of whoever did it.
 
-## Сеть
+## Network
 
-| Порт | Кто открывает |
+| Port | Who opens it |
 |---|---|
-| 3000 (TCP) | панель: судьи; меняется в `matchdesk.ini` |
-| 80 (TCP) | сайт скинов: игроки; меняется в «Настройки» → «Плагины» |
-| 27015 и дальше (UDP) | серверы CS2: игроки; порт и порт GOTV задаются у каждого сервера |
+| 3000 (TCP) | panel: referees; set in `matchdesk.ini` |
+| 80 (TCP) | skins website: players; set in "Settings" → "Plugins" |
+| 27015 and up (UDP) | CS2 servers: players; the port and the GOTV port are set per server |
 
-Правила брандмауэра добавляет сам Matchdesk: для `Matchdesk.exe` (панель и сайт скинов) и для `cs2.exe`.
+Matchdesk adds the firewall rules by itself: for `Matchdesk.exe` (panel and skins website) and for `cs2.exe`.
 
-Игровые серверы тоже обращаются к панели: MatchZy забирает с неё конфиг матча и присылает события матча, сервер присылает лог с чатом. Поэтому серверы должны видеть ПК с панелью по сети; если они на этом же ПК, всё работает само.
+The game servers also talk to the panel: MatchZy fetches the match config from it and sends match events, and the server sends its log with the chat. So the servers must reach the panel PC over the network; if they run on the same PC, this works on its own.
 
-## ИИ-агент
+## AI agent
 
-«Агент» → «Подключение»: выберите сервис (OpenRouter, DeepSeek или Ollama на этом ПК), вставьте ключ API и выберите модель. Модель должна уметь вызывать инструменты (tool calling); для OpenRouter кнопка рядом с полем «Модель» покажет такие модели с ценами.
+"Agent" → "Connection": choose a service (OpenRouter, DeepSeek or Ollama on this PC), paste the API key and choose a model. The model must support tool calling; for OpenRouter, the button next to the "Model" field lists such models with prices.
 
-- Ключ хранится в `data\settings.json` на ПК с панелью и в браузер не отдаётся.
-- Нужен интернет на ПК с панелью. Логи, ники и чат, которые агент читает, уходят выбранному сервису.
-- Сервер, выбранный справа сверху, агент считает сервером по умолчанию.
-- Разговор хранится в браузере, «Новый разговор» его стирает.
+- The key is stored in `data\settings.json` on the panel PC and is never sent to the browser.
+- The panel PC needs internet. The logs, nicknames and chat the agent reads are sent to the chosen service.
+- The agent treats the server picked in the top right as the default server.
+- The conversation is kept in the browser; "New chat" clears it.
 
-## Без exe
+## Without the exe
 
-На Linux или со своим Node.js 22.13+ запускайте панель из архива `matchdesk-<версия>-app.zip` в Releases: `node server.js` в распакованной папке с переменными окружения.
+On Linux or with your own Node.js 22.13+, run the panel from the `matchdesk-<version>-app.zip` archive in Releases: `node server.js` in the unpacked folder, with environment variables.
 
-| Переменная | Назначение |
+| Variable | Purpose |
 |---|---|
-| `PANEL_PASSWORD` | пароль `admin`; без него вход отключён и панель открыта всем в сети (только для разработки) |
-| `PORT`, `HOSTNAME` | порт и адрес панели, например `3000` и `0.0.0.0` |
-| `PANEL_DATA_DIR` | папка данных, по умолчанию `./data` |
-| `CS2_DIR` | папка сервера CS2, если она не задана в настройках; по умолчанию `C:\cs2server\cs2` |
+| `PANEL_PASSWORD` | `admin` password; without it sign-in is off and the panel is open to the whole network (development only) |
+| `PORT`, `HOSTNAME` | panel port and address, for example `3000` and `0.0.0.0` |
+| `PANEL_DATA_DIR` | data folder, `./data` by default |
+| `CS2_DIR` | CS2 server folder if it is not set in the settings; `C:\cs2server\cs2` by default |
 
-Установка CS2, плагины и запуск серверов рассчитаны на Windows.
+Installing CS2, plugins and starting servers are made for Windows.
 
-## Разработка
+## Development
 
 ```bash
 npm install
-npm run dev        # http://localhost:3000, без пароля
-npm run package    # .next/standalone: панель для node server.js
-npm run exe        # dist\Matchdesk.exe (нужен Node.js 25.5+)
+npm run dev        # http://localhost:3000, no password
+npm run package    # .next/standalone: the panel for node server.js
+npm run exe        # dist\Matchdesk.exe (needs Node.js 25.5+)
 ```
 
-| Папка | Что там |
+| Folder | What is there |
 |---|---|
-| `src/app` | страницы и API панели (Next.js App Router) |
-| `src/components` | интерфейс |
-| `src/server` | серверная часть: RCON, A2S, запуск серверов, плагины, матчи, сайт скинов, агент |
-| `skins-site/` | сайт скинов, Node без зависимостей |
-| `launcher/main.cjs` | запускалка внутри `Matchdesk.exe` |
-| `scripts/` | сборка standalone и exe |
-| `docs/STATE.md` | текущее состояние проекта и находки для следующих сессий |
+| `src/app` | panel pages and API (Next.js App Router) |
+| `src/components` | interface |
+| `src/server` | server side: RCON, A2S, starting servers, plugins, matches, skins website, agent |
+| `skins-site/` | the skins website, Node with no dependencies |
+| `launcher/main.cjs` | the launcher inside `Matchdesk.exe` |
+| `scripts/` | standalone and exe builds |
+| `docs/STATE.md` | current project state and notes for the next sessions (in Russian) |
 
-Релиз собирает GitHub Actions при каждом пуше в `main`: версия берётся из `package.json`, в релиз уходят `Matchdesk.exe` и `matchdesk-<версия>-app.zip`.
+GitHub Actions builds a release on every push to `main`: the version comes from `package.json`, and the release gets `Matchdesk.exe` and `matchdesk-<version>-app.zip`.
 
-Стек: Next.js 15, React 18, Tailwind CSS, Radix UI, Lucide. RCON и A2S написаны без внешних библиотек, данные хранятся в JSON-файлах.
+Stack: Next.js 15, React 18, Tailwind CSS, Radix UI, Lucide. RCON and A2S are written without external libraries; data is stored in JSON files.
 
 ---
-*Разработано командой Aevarx.*
+*Made by the Aevarx team.*
