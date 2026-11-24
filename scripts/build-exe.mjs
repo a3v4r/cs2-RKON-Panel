@@ -20,7 +20,7 @@ fs.rmSync(dist, { recursive: true, force: true });
 fs.mkdirSync(dist);
 const zip = path.join(dist, 'app.zip');
 // Windows tar: -a picks zip from the extension
-const tar = process.platform === 'win32' ? path.join(process.env.SystemRoot || 'C:\Windows', 'System32', 'tar.exe') : 'tar';
+const tar = process.platform === 'win32' ? path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'tar.exe') : 'tar';
 execFileSync(tar, ['-a', '-c', '-f', zip, '-C', standalone, '.'], { stdio: 'inherit' });
 fs.writeFileSync(path.join(dist, 'build.txt'), build);
 
