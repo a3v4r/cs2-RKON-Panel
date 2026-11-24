@@ -5,7 +5,7 @@ import zlib from 'node:zlib';
 import os from 'node:os';
 import { config, root } from './lib/config.mjs';
 import { readSession, sessionCookie, clearCookie } from './lib/session.mjs';
-import { loginUrl, verifyLogin, steamProfile } from './lib/steam.mjs';
+import { steamProfile } from './lib/steam.mjs';
 import { rconCommand } from './lib/rcon.mjs';
 import * as db from './lib/db.mjs';
 import {
@@ -14,7 +14,6 @@ import {
 } from './lib/catalog.mjs';
 import { getImage, prefetchImages } from './lib/images.mjs';
 
-const CALLBACK = `${config.publicUrl}/auth/callback`;
 const PUBLIC_DIR = path.join(root, 'public');
 const STATIC = {
   '/': ['index.html', 'text/html; charset=utf-8'],
@@ -319,13 +318,6 @@ async function handle(req, res) {
   }
 
   if (url.pathname === '/auth/auto' && req.method === 'POST') return autoLogin(req, res);
-  if (url.pathname === '/auth/login') return redirect(res, loginUrl(CALLBACK, config.publicUrl));
-  if (url.pathname === '/auth/callback') {
-    const steamId = await verifyLogin(url.searchParams, CALLBACK);
-    if (!steamId) return redirect(res, '/?login=failed');
-    presence.delete(steamId);
-    return redirect(res, '/', sessionCookie(steamId, 'steam'));
-  }
   if (url.pathname === '/auth/logout' && req.method === 'POST') return redirect(res, '/', clearCookie());
   if (url.pathname === '/auth/dev' && config.devLogin && isLocal(req)) {
     const steamId = url.searchParams.get('steamid') ?? '';

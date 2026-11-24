@@ -7,12 +7,17 @@ import { localImage, imageName } from './images.mjs';
 // Every picture is fetched in advance (~1.4 GB with 9 600+ stickers), stickers last
 const prefetch = new Set();
 
+// Music ("Valve — CS:GO") and a few stickers use long dashes: shown as a plain hyphen
+const NAME_FIELDS = ['name', 'paint_name', 'agent_name'];
+const plainDashes = (text) => text.replace(/\s*[–—]\s*/g, ' - ');
+
 function load(kind) {
   for (const lang of [config.language, 'en']) {
     const file = path.join(config.dataDir, `${kind}_${lang}.json`);
     if (!fs.existsSync(file)) continue;
     const items = JSON.parse(fs.readFileSync(file, 'utf8'));
     for (const item of items) {
+      for (const field of NAME_FIELDS) if (typeof item[field] === 'string') item[field] = plainDashes(item[field]);
       if (!item.image) continue;
       item.image = localImage(item.image);
       const name = imageName(item.image);

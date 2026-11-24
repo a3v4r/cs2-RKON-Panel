@@ -4,7 +4,7 @@ import { config } from './config.mjs';
 // Login cookie: SteamID + how he logged in, signed. No Max-Age: the browser drops it when closed
 // (club PCs are shared). The site also checks on every request that the player is still on the server.
 const COOKIE = 'skins_session';
-const KINDS = new Set(['game', 'steam', 'dev']);
+const KINDS = new Set(['game', 'dev']);
 
 function sign(data) {
   return crypto.createHmac('sha256', config.secret).update(data).digest('base64url');

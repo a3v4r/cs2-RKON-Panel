@@ -44,7 +44,7 @@ function currentServers() {
 export const config = {
   port,
   host: raw.host ?? '0.0.0.0',
-  // Address players open: Steam sends them back here after login
+  // Address players open (shown in the log; https:// makes the login cookie Secure)
   publicUrl: String(raw.publicUrl ?? (port === 80 ? 'http://localhost' : `http://localhost:${port}`)).replace(/\/+$/, ''),
   database: raw.database ?? path.join(pluginDir, 'weapon_paints.db'),
   dataDir: raw.dataDir ?? path.join(pluginDir, 'data'),
