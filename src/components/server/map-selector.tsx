@@ -7,8 +7,6 @@ import { api } from '@/lib/api'
 import { useT } from '@/lib/i18n'
 import { STOCK_MAPS, mapImage, stockMap } from '@/lib/maps'
 
-// Map Explorer, laid out as the Quatrix Maps page (MapCard, WorkshopModal, MapConfigEditor in one file)
-
 type MapType = 'Defusal' | 'Hostage' | 'Workshop'
 
 interface CS2Map {
@@ -163,7 +161,6 @@ export function MapSelector({ serverId, currentMap, online, onCommand }: MapSele
 
   return (
     <div className="p-3 md:p-6 space-y-4 md:space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {/* Hero, as on the Match page: the current map behind its name, the map actions on the right */}
       <section className="relative overflow-hidden rounded-2xl border border-gray-800 shadow-2xl bg-card">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={activeMap?.image || mapImage(currentMap)} alt="" className={cn('absolute inset-0 w-full h-full object-cover', online ? 'opacity-30' : 'opacity-10 grayscale')} />
@@ -202,7 +199,6 @@ export function MapSelector({ serverId, currentMap, online, onCommand }: MapSele
       </section>
 
       <section className={cn(card, 'overflow-hidden')}>
-        {/* Header: categories as the Servers view switch, search, add from Workshop */}
         <div className="p-4 sm:px-6 border-b border-gray-800/60 flex flex-col lg:flex-row lg:items-center gap-3">
           <div className="grid grid-cols-2 sm:flex gap-[3px] bg-background/50 border border-gray-800 rounded-xl p-[3px] shadow-sm shadow-black/20">
             {categories.map((cat) => (
@@ -270,7 +266,6 @@ export function MapSelector({ serverId, currentMap, online, onCommand }: MapSele
         </div>
       </section>
 
-      {/* Toast, as react-hot-toast in Quatrix */}
       {toast && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[70] animate-in fade-in slide-in-from-bottom-4 duration-300">
           <div className={cn('flex items-center gap-2 px-4 py-3 rounded-xl shadow-2xl border text-sm font-medium bg-card', toast.ok ? 'border-green-500/30 text-green-400' : 'border-red-500/30 text-red-400')}>
@@ -360,7 +355,6 @@ export function MapSelector({ serverId, currentMap, online, onCommand }: MapSele
   )
 }
 
-// Card, header and buttons as on the Match, Console and Players pages
 const card = 'bg-card rounded-2xl border border-gray-800 shadow-2xl'
 const btn = 'inline-flex items-center justify-center gap-2 px-4 h-[38px] text-sm rounded-xl font-bold transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap min-w-0'
 const btnPrimary = 'bg-primary hover:bg-blue-600 text-white shadow-lg shadow-blue-500/20'
@@ -388,7 +382,6 @@ const TYPE_LABEL: Record<MapType, { ru: string; en: string }> = {
   Workshop: { ru: 'Workshop', en: 'Workshop' },
 }
 
-// Map card as the Quatrix MapCard, with the active map marked like the Match tiles
 function MapCard({ map, onOpenConfig, onRemoveWorkshop, onChangeMap, isServerOnline, isChanging }: {
   map: CS2Map
   onOpenConfig: (map: CS2Map) => void

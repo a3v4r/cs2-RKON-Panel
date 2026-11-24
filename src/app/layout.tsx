@@ -3,7 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 
-// Self-hosted at build time: the panel works without internet once built
+// next/font self-hosts at build time: no internet needed at runtime
 const inter = Inter({ subsets: ["latin", "cyrillic"], variable: "--font-inter", display: "swap" });
 
 export const metadata: Metadata = {

@@ -1,6 +1,6 @@
 import net from 'node:net';
 
-// Source RCON. CS2 sends no end-of-reply packet, so a reply ends when the socket goes quiet.
+// CS2 sends no end-of-reply packet: a reply ends when the socket goes quiet
 const SERVERDATA_AUTH = 3;
 const SERVERDATA_AUTH_RESPONSE = 2;
 const SERVERDATA_EXECCOMMAND = 2;

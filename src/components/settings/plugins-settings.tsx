@@ -8,8 +8,6 @@ import { cn } from '@/lib/utils'
 import { useT } from '@/lib/i18n'
 import { SkinsSiteSettings } from './skins-site-settings'
 
-// The plugin set of the CS2 install (one for every server on this PC): on / off, download, update, rollback, remove.
-
 type PluginId = 'metamod' | 'counterstrikesharp' | 'matchzy' | 'weaponpaints'
 
 interface PluginInfo {
@@ -30,13 +28,13 @@ interface PluginInfo {
 
 interface Job { running: boolean; title: string; phase: string; ok?: boolean; message?: string; log: string[]; finishedAt?: number }
 
-// A finished job stays on the page until closed; a successful one also goes away by itself after a minute
+// finished job stays until closed; a successful one hides itself after a minute
 const JOB_OK_SHOWN_MS = 60_000
 const JOB_HIDDEN_KEY = 'matchdesk-plugin-job-hidden'
 interface AutoUpdate { enabled: boolean; checking: boolean; lastCheck: number | null; message: string | null; pending: string[] }
 interface View { plugins: PluginInfo[]; job: Job; auto: AutoUpdate; vcRedist: boolean | null; vcRedistUrl: string }
 
-// Order on the page: what judges pick first, the dependencies after
+// what judges pick first, dependencies last
 const ORDER: PluginId[] = ['matchzy', 'weaponpaints', 'counterstrikesharp', 'metamod']
 
 export function PluginsSettings() {
@@ -62,7 +60,7 @@ export function PluginsSettings() {
 
   React.useEffect(() => { load() }, [load])
 
-  // While a job runs: poll it, and take the new state as the draft when it ends
+  // poll the running job, take its final state as the draft
   const running = view?.job.running ?? false
   React.useEffect(() => {
     if (!running) return
@@ -73,7 +71,6 @@ export function PluginsSettings() {
     return () => clearInterval(timer)
   }, [running, load])
 
-  // An automatic check runs on its own: follow it until it is done
   const autoChecking = view?.auto.checking ?? false
   React.useEffect(() => {
     if (!autoChecking) return
@@ -83,7 +80,7 @@ export function PluginsSettings() {
 
   const byId = (id: PluginId) => view?.plugins.find((p) => p.id === id)
 
-  // A plugin switched on turns on what it needs (CounterStrikeSharp, Metamod), and that one stays locked on
+  // enabling a plugin enables its deps (CounterStrikeSharp, Metamod) and locks them on
   const state = React.useMemo(() => {
     const on: Partial<Record<PluginId, boolean>> = {}
     const lockedBy: Partial<Record<PluginId, string>> = {}

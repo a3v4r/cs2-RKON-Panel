@@ -4,14 +4,12 @@ import path from 'node:path';
 import { pluginJobRunning, serverCs2Running, syncMetamod, unzip } from './plugins';
 import { cs2Paths } from './panel-settings';
 
-// Installs or updates the CS2 dedicated server with steamcmd, from the panel and with progress. steamcmd itself is
-// downloaded from Valve when it is missing, so a clean PC needs nothing but the panel.
-// All CS2 servers on this PC must be stopped: steamcmd replaces files they keep open.
+// all servers must be stopped: steamcmd replaces files they keep open
 
 export interface UpdateState {
   running: boolean;
   phase: string;
-  progress: number | null; // %, null when steamcmd does not report it
+  progress: number | null; // %, null when steamcmd doesn't report it
   attempt: number;
   startedAt?: number;
   finishedAt?: number;
@@ -20,9 +18,9 @@ export interface UpdateState {
   log: string[];
 }
 
-const ATTEMPTS = 5; // steamcmd often fails the first time right after updating itself
+const ATTEMPTS = 5; // steamcmd often fails right after updating itself
 const STEAMCMD_URL = 'https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip';
-const FREE_GB_FOR_INSTALL = 85; // the server takes ~60 GB, steamcmd needs room for the download on top
+const FREE_GB_FOR_INSTALL = 85; // ~60 GB server + room for the download
 const LOG_LINES = 300;
 
 const g = globalThis as unknown as { cs2Update?: UpdateState; cs2UpdateChild?: ChildProcess | null; cs2UpdateCancel?: boolean };
@@ -31,7 +29,6 @@ const state = (): UpdateState => (g.cs2Update ??= { running: false, phase: '', p
 export const updateState = () => state();
 export const isUpdating = () => state().running;
 
-// Free space on the drive of `dir` (or of its nearest existing parent), in GB
 function freeGb(dir: string) {
   let probe = path.resolve(dir);
   while (!fs.existsSync(probe) && path.dirname(probe) !== probe) probe = path.dirname(probe);
@@ -94,7 +91,7 @@ function runSteamcmd(steamcmd: string, gameDir: string): Promise<number | null> 
     g.cs2UpdateChild = child;
     let rest = '';
     const feed = (chunk: Buffer) => {
-      // steamcmd ends progress lines with \r as well as \n
+      // progress lines end with \r too
       const parts = (rest + chunk.toString('utf8')).split(/\r?\n|\r/);
       rest = parts.pop() ?? '';
       parts.forEach(onLine);
@@ -118,7 +115,7 @@ export async function startUpdate() {
       throw new Error(`Для установки CS2 нужно минимум ${FREE_GB_FOR_INSTALL} ГБ, на диске с папкой ${paths.dir} свободно ${Math.floor(free)} ГБ. Освободите место или выберите другую папку в настройках («Сервер CS2»).`);
     }
   }
-  // Only servers from the panel's CS2 folder: a game client open on this PC does not hold these files
+  // only the panel's CS2 folder; a game client doesn't lock these files
   if (await serverCs2Running()) {
     throw new Error('Работает сервер CS2 из папки панели. Остановите все серверы (и запущенные батниками тоже) и нажмите ещё раз.');
   }

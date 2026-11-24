@@ -16,9 +16,8 @@ interface MatchGeneratorProps {
   onStopMatch: () => Promise<void>;
 }
 
-// Defusal maps of the CS2 install: the choice for each map slot
 const MAPS = STOCK_MAPS.filter((m) => m.type === 'Defusal').map((m) => m.name)
-// Default pool for the in-game veto (MatchZy bans and picks from it)
+// MatchZy bans and picks from it
 const DEFAULT_VETO_POOL = ['de_inferno', 'de_mirage', 'de_nuke', 'de_cache', 'de_ancient', 'de_anubis', 'de_dust2']
 
 const defaultMatchConfig = () => ({
@@ -31,13 +30,13 @@ const defaultMatchConfig = () => ({
   players_per_team: 5,
   skip_veto: true,
   veto_pool: DEFAULT_VETO_POOL,
-  // Players from the library rosters go to MatchZy, which then keeps them on their teams
+  // MatchZy keeps library roster players on their teams
   lock_players: true,
 })
 
 type MatchFormConfig = ReturnType<typeof defaultMatchConfig>
 
-// The form survives tab switches and page reloads (phones reload background tabs), per server, in this browser.
+// persisted per server in this browser: phones reload background tabs
 const storageKey = (serverId: number) => `cs2panel.match.${serverId}`
 
 function loadMatchConfig(serverId: number): MatchFormConfig {
@@ -46,20 +45,20 @@ function loadMatchConfig(serverId: number): MatchFormConfig {
     if (saved) {
       const defaults = defaultMatchConfig()
       const config: MatchFormConfig = { ...defaults, ...JSON.parse(saved) }
-      // Forms saved before the team library have no flag/roster
+      // saved forms may lack flag/roster
       config.team1 = { ...defaults.team1, ...config.team1 }
       config.team2 = { ...defaults.team2, ...config.team2 }
-      // "standard" was offered by older versions but MatchZy rejects it in map_sides
+      // saved forms may have "standard", which MatchZy rejects in map_sides
       config.map_sides = config.map_sides.map((side) => (side === 'standard' ? 'knife' : side))
       return config
     }
   } catch {
-    // storage unavailable (private mode): start from defaults
+    // storage unavailable (private mode)
   }
   return defaultMatchConfig()
 }
 
-// Team block of the MatchZy config; the roster only when players are locked to their teams
+// roster only when players are locked to teams
 function teamJson(team: MatchFormConfig['team1'], lockPlayers: boolean) {
   return {
     name: team.name,
@@ -89,7 +88,6 @@ export function MatchGenerator({ serverId, onLaunchMatch, onStopMatch }: MatchGe
     }
   }, [serverId, matchConfig])
 
-  // Side options show the team names typed below
   const team1Label = matchConfig.team1.name.trim() || t('Команда 1', 'Team 1')
   const team2Label = matchConfig.team2.name.trim() || t('Команда 2', 'Team 2')
 
@@ -122,7 +120,7 @@ export function MatchGenerator({ serverId, onLaunchMatch, onStopMatch }: MatchGe
       team1: teamJson(matchConfig.team1, matchConfig.lock_players),
       team2: teamJson(matchConfig.team2, matchConfig.lock_players),
       num_maps: matchConfig.num_maps,
-      // Veto: the whole pool goes to MatchZy and the captains ban/pick in game (sides too)
+      // veto: whole pool goes to MatchZy, captains ban/pick in game (sides too)
       ...(matchConfig.skip_veto
         ? {
             maplist: matchConfig.maplist.slice(0, matchConfig.num_maps),
@@ -147,7 +145,7 @@ export function MatchGenerator({ serverId, onLaunchMatch, onStopMatch }: MatchGe
       setStatus({ type: 'error', message: t(`Для BO${matchConfig.num_maps} в пуле вето нужно хотя бы ${matchConfig.num_maps} карт`, `BO${matchConfig.num_maps} needs at least ${matchConfig.num_maps} maps in the veto pool`) })
       return
     }
-    // A new id for every launch (the saved form would repeat it): backups, demos and live stats are keyed by it
+    // fresh id per launch (the saved form would repeat it); backups, demos and live stats are keyed by it
     const matchid = Math.floor(Date.now() / 1000) % 10000
     setMatchConfig((c) => ({ ...c, matchid }))
     const json = generateJson(matchid)
@@ -156,10 +154,8 @@ export function MatchGenerator({ serverId, onLaunchMatch, onStopMatch }: MatchGe
     setIsLoading(true)
     setStatus({ type: 'idle', message: '' })
     try {
-      // 1. Host the JSON on the panel server, 2. get the URL the game server can reach it at
       const { url: configUrl } = await api<{ url: string }>('/api/matches/config', { body: { config: json, serverId } });
 
-      // 3. Launch via RCON
       await onLaunchMatch(json, configUrl)
       setStatus({ type: 'success', message: t('Матч загружен на сервер. Счёт и статистика в разделе «Матч».', 'Match loaded on the server. Score and stats are in the "Match" section.') })
     } catch (error: any) {
@@ -217,7 +213,6 @@ export function MatchGenerator({ serverId, onLaunchMatch, onStopMatch }: MatchGe
   const setTeam = (team: 'team1' | 'team2', key: 'name' | 'tag', value: string) =>
     setMatchConfig((prev) => ({ ...prev, [team]: { ...prev[team], [key]: value } }))
 
-  // A team from the library fills the name, tag, flag and roster; "by hand" clears the roster
   const pickTeam = (team: 'team1' | 'team2', id: number) => {
     const picked = library.find((tm) => tm.id === id)
     setMatchConfig((prev) => ({
@@ -248,7 +243,6 @@ export function MatchGenerator({ serverId, onLaunchMatch, onStopMatch }: MatchGe
 
   return (
     <div className="p-3 md:p-6 space-y-4 md:space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {/* Hero, as on the Match page: the first map behind the teams, the launch buttons on top */}
       <section className="relative overflow-hidden rounded-2xl border border-gray-800 shadow-2xl bg-card">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={mapImage(heroMaps[0])} alt="" className={cn('absolute inset-0 w-full h-full object-cover', heroMaps.length ? 'opacity-30' : 'opacity-10 grayscale')} />
@@ -311,7 +305,6 @@ export function MatchGenerator({ serverId, onLaunchMatch, onStopMatch }: MatchGe
 
       <div className="grid gap-4 md:gap-6 xl:grid-cols-3 items-start">
         <div className="xl:col-span-2 space-y-4 md:space-y-6 min-w-0">
-          {/* Teams */}
           <section className={cn(CARD, 'p-4 sm:p-6')}>
             <CardHeader icon={<Users size={18} />} title={t('Команды', 'Teams')} subtitle={library.length ? t('из библиотеки или вручную', 'from the library or by hand') : t('название и тег в игре', 'name and tag in game')} />
             <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -365,7 +358,6 @@ export function MatchGenerator({ serverId, onLaunchMatch, onStopMatch }: MatchGe
             )}
           </section>
 
-          {/* Maps */}
           <section className={cn(CARD, 'p-4 sm:p-6')}>
             <CardHeader
               icon={<MapIcon size={18} />}
@@ -398,7 +390,6 @@ export function MatchGenerator({ serverId, onLaunchMatch, onStopMatch }: MatchGe
         </div>
 
         <div className="space-y-4 md:space-y-6 min-w-0">
-          {/* Format */}
           <section className={cn(CARD, 'p-4 sm:p-6 space-y-5')}>
             <CardHeader icon={<Trophy size={18} />} title={t('Формат серии', 'Series format')} />
             <div className="grid grid-cols-4 gap-2">
@@ -441,7 +432,6 @@ export function MatchGenerator({ serverId, onLaunchMatch, onStopMatch }: MatchGe
             </div>
           </section>
 
-          {/* Config, as the Quatrix config editor card */}
           <section className={cn(CARD, 'overflow-hidden flex flex-col')}>
             <div className="flex items-center justify-between gap-3 p-4 sm:px-6 border-b border-gray-800/60">
               <CardHeader icon={<Braces size={18} />} title={t('Конфиг матча', 'Match config')} subtitle={`match_${matchConfig.matchid}.json`} />
@@ -472,7 +462,6 @@ export function MatchGenerator({ serverId, onLaunchMatch, onStopMatch }: MatchGe
   )
 }
 
-// Map tiles with the map pictures, as the Quatrix map cards
 function MapTiles({ selected, onPick }: { selected: (map: string) => boolean; onPick: (map: string) => void }) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
@@ -529,7 +518,6 @@ function CardHeader({ icon, title, subtitle }: { icon: React.ReactNode; title: s
   )
 }
 
-// Quatrix design tokens, the same as on the Match page
 const CARD = 'bg-card rounded-2xl border border-gray-800 shadow-2xl'
 const BTN = 'inline-flex items-center justify-center gap-2 px-5 py-1.5 text-sm rounded-xl font-bold h-[38px] transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap'
 const LABEL = 'block text-xs font-bold text-gray-400 mb-2'

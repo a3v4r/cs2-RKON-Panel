@@ -1,4 +1,4 @@
-// Team checks shared by the browser and the panel server (no imports: safe on both sides)
+// shared by the browser and the panel server; no imports so it is safe on both
 
 export interface TeamPlayer {
   steamid: string; // SteamID64
@@ -12,11 +12,11 @@ export interface TeamInput {
   players: TeamPlayer[];
 }
 
-export const MAX_PLAYERS = 10; // 5 players, subs and coaches
+export const MAX_PLAYERS = 10; // 5 players + subs and coaches
 
 const STEAM64_BASE = BigInt('76561197960265728');
 
-// SteamID64 from what judges paste: SteamID64, STEAM_0:1:123, [U:1:123] or a steamcommunity.com/profiles/ link
+// SteamID64 from SteamID64, STEAM_0:1:123, [U:1:123] or a steamcommunity.com/profiles/ link
 export function toSteamId64(input: string): string | null {
   const s = input.trim();
   let m = s.match(/^(?:https?:\/\/)?(?:www\.)?steamcommunity\.com\/profiles\/(\d{17})\/?$/i);
@@ -29,7 +29,6 @@ export function toSteamId64(input: string): string | null {
   return null;
 }
 
-// Checks and trims a team from a request; returns an error text or the clean team
 export function cleanTeam(raw: any): TeamInput | string {
   const name = String(raw?.name ?? '').trim().slice(0, 40);
   if (!name) return 'Нужно название команды';

@@ -12,13 +12,10 @@ import { pluginsView } from './plugins';
 import { rconCommand } from './rcon';
 import { StoredServer, servers } from './store';
 
-// The "Agent" tab: a chat with a language model that can look at the panel's servers itself.
-// Any OpenAI-compatible chat completions API works (OpenRouter by default, DeepSeek, a local Ollama...): plain
-// fetch, no SDK. Reading tools run at once; tools that change something (RCON, start / stop) only run after the
-// user presses "Run" in the chat. The conversation lives in the browser and is sent with every turn.
+// OpenAI-compatible API via plain fetch; mutating tools wait for the user's Run, history lives client-side
 
 export const DEFAULT_AGENT_URL = 'https://openrouter.ai/api/v1';
-const MAX_STEPS = 30; // model calls per turn; waiting for a plugin install or a server start takes several
+const MAX_STEPS = 30; // per turn; waiting on an install or server start takes many
 const TOOL_OUTPUT_CHARS = 12_000;
 const REQUEST_TIMEOUT_MS = 120_000;
 
@@ -47,8 +44,6 @@ export interface PendingAction {
   description: string;
 }
 
-// ---- Settings ---------------------------------------------------------------------------------------------
-
 const agentSettings = (): AgentSettings => readSettings().agent ?? {};
 
 export function agentView() {
@@ -68,7 +63,7 @@ export function saveAgentSettings(update: { baseUrl?: unknown; apiKey?: unknown;
     if (url && !/^https?:\/\//i.test(url)) throw new Error('Адрес API должен начинаться с http:// или https://');
     next.baseUrl = url || undefined;
   }
-  // Empty key in the form = keep the saved one; "-" clears it (Ollama needs none)
+  // empty = keep saved key, "-" clears it (Ollama needs none)
   if (update.apiKey !== undefined && String(update.apiKey).trim() !== '') {
     const key = String(update.apiKey).trim();
     next.apiKey = key === '-' ? undefined : key;
@@ -102,7 +97,6 @@ async function apiError(res: Response) {
   return new Error(`API модели ответил ${res.status}${message ? `: ${message}` : ''}`);
 }
 
-// Models of the provider, for the settings form; with OpenRouter only those that can call tools
 export async function listModels() {
   const { baseUrl, apiKey } = { baseUrl: agentSettings().baseUrl || DEFAULT_AGENT_URL, apiKey: agentSettings().apiKey ?? '' };
   const res = await fetch(`${baseUrl}/models`, { headers: headers(apiKey), signal: AbortSignal.timeout(30_000) });
@@ -113,7 +107,7 @@ export async function listModels() {
     .map((m) => ({
       id: m.id,
       name: m.name ?? m.id,
-      // OpenRouter: dollars per token, as strings
+      // openrouter: $ per token, as strings
       price: m.pricing?.prompt !== undefined && m.pricing?.completion !== undefined
         ? { input: Number(m.pricing.prompt) * 1e6, output: Number(m.pricing.completion) * 1e6 }
         : null,
@@ -121,19 +115,16 @@ export async function listModels() {
     .sort((a, b) => a.id.localeCompare(b.id));
 }
 
-// The request the turn came with: panel_api calls the panel's API with the same session
 export interface TurnContext {
   cookie?: string;
-  // The server picked at the top right of the panel: "the server" when the user names none
+  // server selected in the header, default target
   selectedServerId?: number;
 }
-
-// ---- Tools ------------------------------------------------------------------------------------------------
 
 interface Tool {
   description: string;
   parameters: Record<string, unknown>;
-  // Set: may need the user's OK; returns what is about to happen, or '' when this call needs none
+  // returns the confirmation text, or '' if this call needs none
   action?: (args: Record<string, unknown>) => string;
   run: (args: Record<string, unknown>, user: SessionUser, ctx: TurnContext) => Promise<string>;
 }
@@ -163,18 +154,16 @@ function tailLines(file: string, lines: number) {
   }
 }
 
-// Newest CounterStrikeSharp log whose name starts with `prefix` (log-all, log-WeaponPaints, log-MatchZy...)
 function newestCssLog(prefix: string) {
   const dir = path.join(cs2Paths().csgo, 'addons', 'counterstrikesharp', 'logs');
   const files = fs.readdirSync(dir)
     .filter((f) => f.toLowerCase().startsWith(prefix.toLowerCase()) && f.endsWith('.txt'))
     .map((f) => path.join(dir, f))
     .sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs);
-  // The plugin logs start a new (often empty) file on each load: take the newest one with text
+  // each plugin load starts a new, often empty, file
   return files.find((f) => fs.statSync(f).size > 0) ?? files[0];
 }
 
-// What the panel's own API can do, for panel_api. Paths with {id} take the ID from list_servers / other lists.
 const PANEL_API = `Панель (все пути от /api, JSON):
 Серверы:
 - GET /servers - список серверов; POST /servers - добавить: внешний {name, host, port, rcon_password} или запускаемый панелью {name, port, rcon_password?, managed: {tvPort, map, maxPlayers, password, gameMode: competitive|wingman|casual|deathmatch|armsrace|demolition|training|custom, workshopMap?, gslt?, vac, tv, lan, hibernate, autoRestart, priority: Normal|AboveNormal|High, extraArgs?, extraCfg?, bindIp?}}
@@ -200,7 +189,7 @@ CS2: GET /cs2-update; POST /cs2-update {action: start|cancel} - установк
 Пользователи: GET /users; POST /users {username, password}; PUT /users/{id} {password}; DELETE /users/{id}.
 Прочее: GET /audit - журнал действий; GET /system и /system/health - нагрузка и проверка установки; POST /system/health {action: repair|steamcmd}; GET /network.`;
 
-// Paths the agent must not call: its own settings, logins, and endpoints that game servers call with their own tokens
+// own settings, login, and game-server endpoints (token auth)
 const PANEL_API_BLOCKED = [/^\/api\/agent/, /^\/api\/log(in|out)/, /^\/api\/events\//, /^\/api\/logs\//];
 
 function panelRequest(args: Record<string, unknown>) {
@@ -432,8 +421,6 @@ const SYSTEM_PROMPT = `Ты помощник судьи в Matchdesk - пане�
 - mp_restartgame 1 - рестарт игры;
 - status - игроки и состояние сервера.`;
 
-// ---- Conversation -----------------------------------------------------------------------------------------
-
 function cleanMessages(input: unknown): AgentMessage[] {
   if (!Array.isArray(input)) throw new Error('Нет сообщений');
   if (input.length > 400) throw new Error('Слишком длинный разговор: начните новый');
@@ -457,7 +444,6 @@ function parseArgs(raw: string): Record<string, unknown> {
   return value;
 }
 
-// Tool calls of the last assistant message that have no answer yet
 function unanswered(messages: AgentMessage[]) {
   const last = [...messages].reverse().find((m) => m.role === 'assistant');
   if (!last?.tool_calls) return [];
@@ -513,8 +499,7 @@ async function runTool(call: ToolCall, user: SessionUser, ctx: TurnContext): Pro
   }
 }
 
-// One user turn: the model reads what it needs; actions wait for the user's decision (`decisions` by tool call id)
-// onMessage: each message as it is added, so the chat can show the agent's steps while it works
+// actions wait for the user: `decisions` by tool call id
 export async function agentTurn(
   input: unknown,
   decisions: Record<string, unknown> | undefined,
@@ -528,8 +513,7 @@ export async function agentTurn(
     onMessage(message);
   };
 
-  // Answer the actions the user has just decided on. A new question instead of a decision skips them; the
-  // answers must stand right after the assistant message that asked, before that question.
+  // tool answers must follow the assistant message that asked, before any new question
   const waiting = unanswered(messages);
   if (waiting.length && decisions) {
     for (const call of waiting) {

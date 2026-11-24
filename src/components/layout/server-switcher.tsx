@@ -14,7 +14,6 @@ interface ServerSwitcherProps {
   className?: string;
 }
 
-// Server choice in the header of every tool: the Quatrix "Select server..." dropdown (CustomSelect, size sm)
 export function ServerSwitcher({ servers, activeServerId, onSelect, className }: ServerSwitcherProps) {
   const { t } = useT();
   const [open, setOpen] = React.useState(false);

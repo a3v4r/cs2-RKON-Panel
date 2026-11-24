@@ -1,4 +1,4 @@
-// Clipboard API needs HTTPS or localhost; the panel is opened over plain http on the LAN, so fall back to execCommand.
+// Clipboard API needs HTTPS or localhost; the panel runs on plain http in the LAN, so fall back to execCommand.
 export async function copyText(text: string) {
   if (navigator.clipboard && window.isSecureContext) {
     await navigator.clipboard.writeText(text);

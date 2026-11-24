@@ -16,12 +16,12 @@ export async function PUT(req: Request, { params }: Params) {
   const body = await req.json();
   const update: Record<string, unknown> = {};
   if (body.name !== undefined) update.name = String(body.name);
-  // A server started by the panel always lives on this PC
+  // panel-started servers are always local
   if (body.host !== undefined && !current.managed) update.host = String(body.host).trim();
   if (body.port !== undefined) update.port = Number(body.port);
   if (body.mode !== undefined) update.mode = body.mode === 'vanilla' ? 'vanilla' : undefined;
   if (body.country_code !== undefined) update.country_code = body.country_code || undefined;
-  // Empty password field in the form = keep the stored one
+  // empty password = keep the stored one
   if (body.rcon_password) update.rcon_password = String(body.rcon_password);
   if (current.managed && body.managed) {
     try {

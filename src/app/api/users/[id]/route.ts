@@ -4,7 +4,7 @@ import { deleteUser, listUsers, publicUser, updateUser } from '@/server/users';
 
 type Params = { params: Promise<{ id: string }> };
 
-// Change the password; that ends the user's current sessions
+// password change ends the user's sessions
 export async function PUT(req: Request, { params }: Params) {
   const user = await requireUser();
   if (user instanceof NextResponse) return user;

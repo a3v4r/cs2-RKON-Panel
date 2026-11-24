@@ -7,7 +7,6 @@ import { useT } from '@/lib/i18n';
 import { TeamNamesCard } from '@/components/teams/team-names-card';
 import { RulesetId, backupFileName, batchCommands, parseBackupFiles, vanillaSteps } from '@/lib/vanilla';
 
-// MatchZy or Vanilla for this server, above the Match setup page
 export function MatchModeSwitch({ vanilla, onChange }: { vanilla: boolean; onChange: (vanilla: boolean) => Promise<void> }) {
   const { t } = useT();
   const [busy, setBusy] = React.useState(false);
@@ -41,7 +40,7 @@ export function MatchModeSwitch({ vanilla, onChange }: { vanilla: boolean; onCha
   );
 }
 
-// Match control for a server without MatchZy. The knife round is by hand: the judge sees who won and picks the side.
+// no MatchZy: knife round by hand, the judge sees who won and picks the side
 export function VanillaMatch({ onSendCommand, onOpenLibrary }: { onSendCommand: (command: string) => Promise<string>; onOpenLibrary: () => void }) {
   const { t } = useT();
   const [ruleset, setRuleset] = React.useState<RulesetId>('5v5');
@@ -77,7 +76,6 @@ export function VanillaMatch({ onSendCommand, onOpenLibrary }: { onSendCommand: 
 
       <div className="grid gap-4 md:gap-6 xl:grid-cols-3 items-start">
         <div className="xl:col-span-2 space-y-4 md:space-y-6 min-w-0">
-          {/* Rules */}
           <section className={cn(CARD, 'p-4 sm:p-6 space-y-5')}>
             <CardHeader icon={<Scale size={18} />} title={t('Правила', 'Rules')} subtitle={t('отправляются на сервер по RCON', 'sent to the server over RCON')} />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -104,7 +102,6 @@ export function VanillaMatch({ onSendCommand, onOpenLibrary }: { onSendCommand: 
             </p>
           </section>
 
-          {/* Start */}
           <section className={cn(CARD, 'p-4 sm:p-6 space-y-5')}>
             <CardHeader icon={<Swords size={18} />} title={t('Старт', 'Start')} subtitle={t('нож или сразу в игру', 'knife or straight to the game')} />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -144,7 +141,7 @@ export function VanillaMatch({ onSendCommand, onOpenLibrary }: { onSendCommand: 
   );
 }
 
-// Round rollback by the game's own round backups (mp_backup_restore_*), no plugin needed
+// rollback via the game round backups (mp_backup_restore_*), no plugin
 function RoundRollback({ onSendCommand }: { onSendCommand: (command: string) => Promise<string> }) {
   const { t } = useT();
   const [files, setFiles] = React.useState<{ file: string; round: number }[] | null>(null);
@@ -172,7 +169,7 @@ function RoundRollback({ onSendCommand }: { onSendCommand: (command: string) => 
     setBusy(true);
     setStatus(null);
     try {
-      // The server log is echoed into the reply (sv_logecho): keep the server's own answer, "Loaded server checkpoint ..."
+      // reply includes the echoed server log (sv_logecho); keep the server answer, "Loaded server checkpoint ..."
       const output = (await onSendCommand(`mp_backup_restore_load_file ${file}`)).split('\n').map((l) => l.trim()).filter((l) => l && !/^L \d\d\//.test(l)).join(' ');
       setStatus({ ok: true, text: output ? `${t('Команда отправлена', 'Command sent')}: ${output}` : t('Команда отправлена', 'Command sent') });
     } catch (e) {
@@ -254,6 +251,5 @@ function CardHeader({ icon, title, subtitle }: { icon: React.ReactNode; title: s
   );
 }
 
-// Quatrix design tokens, the same as on the Match setup page
 const CARD = 'bg-card rounded-2xl border border-gray-800 shadow-2xl';
 const BTN = 'inline-flex items-center justify-center gap-2 px-5 py-1.5 text-sm rounded-xl font-bold h-[38px] transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap';

@@ -14,8 +14,7 @@ interface ServerSettingsProps {
 
 type RconCheck = { state: 'checking' } | { state: 'ok'; detail: string } | { state: 'error'; detail: string }
 
-// Read-only port of the Quatrix Server Settings page: the same cards and fields,
-// values are changed in the existing edit dialog (onEdit)
+// read-only; values are changed in the edit dialog (onEdit)
 export function ServerSettings({ server, onEdit, onCommand }: ServerSettingsProps) {
   const [check, setCheck] = React.useState<RconCheck>({ state: 'checking' })
   const { t } = useT()
@@ -37,7 +36,6 @@ export function ServerSettings({ server, onEdit, onCommand }: ServerSettingsProp
     <div className="p-3 md:p-6 h-full flex flex-col">
       <div className="space-y-8 flex-1">
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-          {/* Server Information */}
           <div className="bg-card rounded-2xl border border-gray-800 p-5 md:p-8">
             <h3 className="text-lg font-bold text-white mb-8 flex items-center gap-3">
               <Server className="w-5 h-5 text-primary" />
@@ -92,7 +90,6 @@ export function ServerSettings({ server, onEdit, onCommand }: ServerSettingsProp
             </div>
           </div>
 
-          {/* Security Settings */}
           <div className="bg-card rounded-2xl border border-gray-800 p-5 md:p-8">
             <h3 className="text-lg font-bold text-white mb-8 flex items-center gap-3">
               <Shield className="w-5 h-5 text-primary" />
@@ -117,7 +114,6 @@ export function ServerSettings({ server, onEdit, onCommand }: ServerSettingsProp
                 {t('Пароль RCON хранится только на сервере панели и не передаётся в браузер.', 'The RCON password is stored only on the panel server and never sent to the browser.')}
               </p>
 
-              {/* RCON connection check */}
               <div className="space-y-4 pt-4 border-t border-gray-800/50">
                 <div className="flex items-center gap-4">
                   <div className={cn(
@@ -162,7 +158,6 @@ export function ServerSettings({ server, onEdit, onCommand }: ServerSettingsProp
           </div>
         </div>
 
-        {/* Global Action Footer */}
         <div className="flex items-center justify-end gap-4 p-4 md:p-6 bg-card rounded-2xl border border-gray-800">
           <button
             type="button"
@@ -187,7 +182,6 @@ function Field({ label, children }: { label: React.ReactNode, children: React.Re
   )
 }
 
-// Looks like the Quatrix input, but read-only
 function Value({ children, icon, mono = false, muted = false }: { children: React.ReactNode, icon?: React.ReactNode, mono?: boolean, muted?: boolean }) {
   return (
     <div className="relative">
@@ -204,7 +198,6 @@ function Value({ children, icon, mono = false, muted = false }: { children: Reac
   )
 }
 
-// The Quatrix switch, shown read-only
 function Toggle({ checked, title, desc }: { checked: boolean, title: string, desc: string }) {
   return (
     <div className="flex items-center gap-4">

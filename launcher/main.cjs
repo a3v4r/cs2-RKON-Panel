@@ -1,10 +1,9 @@
 'use strict';
 
-// Matchdesk.exe: Node.js single executable application (scripts/build-exe.mjs). Built-in modules only.
-// - no arguments: unpacks the panel next to the exe (app\), keeps matchdesk.ini with the passwords,
-//   offers the Visual C++ runtime and the firewall rules, then runs the panel and restarts it after a crash;
-// - --run-script <file>: runs a script of the unpacked panel (the panel itself, the skins site);
-// - --firewall: adds the firewall rules (started elevated by the exe itself or by the panel).
+// Matchdesk.exe entry (Node SEA, see scripts/build-exe.mjs). Built-in modules only.
+// no args: unpack app\, run the panel, restart on crash
+// --run-script <file>: run a script of the unpacked app
+// --firewall: add firewall rules (run elevated)
 
 const sea = require('node:sea');
 const fs = require('node:fs');
@@ -40,12 +39,12 @@ function fail(text) {
   return pause().then(() => process.exit(1));
 }
 
-// The window must not vanish before the error is read
+// keep the console open so the error can be read
 function pause() {
   return ask('Нажмите Enter, чтобы закрыть окно.', 0, '');
 }
 
-// Answer from the console, or `fallback` after `seconds` (0 = wait forever)
+// seconds = 0: no timeout
 function ask(question, seconds, fallback) {
   return new Promise((resolve) => {
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
@@ -61,10 +60,8 @@ function ask(question, seconds, fallback) {
 }
 const yes = (answer) => /^(y|д|да|yes)?$/i.test(answer.trim());
 
-// ---- Scripts of the unpacked panel ---------------------------------------------------------------
-
 function runScript(file) {
-  // node:sqlite of the skins site is still marked experimental: its warning only scares people
+  // hide node:sqlite ExperimentalWarning (skins site)
   const emit = process.emitWarning;
   process.emitWarning = (warning, ...rest) => {
     const type = typeof rest[0] === 'string' ? rest[0] : rest[0]?.type;
@@ -73,13 +70,11 @@ function runScript(file) {
   };
   const load = createRequire(file);
   if (file.endsWith('.mjs')) {
-    // The exe's own entry cannot import(): a helper file next to the panel does it
+    // SEA entry can't import() ESM; matchdesk-run.cjs (from build-exe.mjs) does
     return load(path.join(APP, 'matchdesk-run.cjs'))(file);
   }
   return load(file);
 }
-
-// ---- Unpacking ------------------------------------------------------------------------------------
 
 function ensureApp() {
   const build = sea.getAsset('build.txt', 'utf8').trim();
@@ -112,8 +107,6 @@ function ensureApp() {
   fs.writeFileSync(marker, build);
   ok('Готово');
 }
-
-// ---- matchdesk.ini ----------------------------------------------------------------------------------
 
 const INI_TEMPLATE = [
   '# Настройки запуска Matchdesk. Формат: КЛЮЧ=значение, строки с # - комментарии.',
@@ -153,14 +146,12 @@ function password() {
   return Array.from(crypto.randomBytes(8), (b) => chars[b % chars.length]).join('');
 }
 
-// ---- Visual C++ runtime (Metamod and CounterStrikeSharp need it) ------------------------------------
-
 function vcInstalled() {
   const r = spawnSync('reg', ['query', 'HKLM\\SOFTWARE\\Microsoft\\VisualStudio\\14.0\\VC\\Runtimes\\x64', '/v', 'Installed'], { encoding: 'utf8', windowsHide: true });
   return r.status === 0 && /Installed\s+REG_DWORD\s+0x1\b/i.test(r.stdout);
 }
 
-// Runs a program as administrator (Windows asks for permission) and returns its exit code
+// UAC prompt; exit code, or null if cancelled
 function runElevated(file, args) {
   const q = (s) => `'${String(s).replace(/'/g, "''")}'`;
   const argList = args.length ? ` -ArgumentList ${args.map(q).join(',')}` : '';
@@ -191,9 +182,6 @@ async function offerVcRuntime() {
   }
 }
 
-// ---- Firewall ------------------------------------------------------------------------------------------
-
-// Folder of the CS2 server: from the panel settings, else the panel's default
 function cs2Exe() {
   let dir = 'C:\\cs2server\\cs2';
   try {
@@ -205,7 +193,7 @@ function cs2Exe() {
   return path.join(dir, 'game', 'bin', 'win64', 'cs2.exe');
 }
 
-// A rule with this name that allows exactly this program
+// name alone is not enough: must allow this exact program path
 function ruleOk(name, program) {
   const r = spawnSync('netsh', ['advfirewall', 'firewall', 'show', 'rule', `name=${name}`, 'verbose'], { encoding: 'utf8', windowsHide: true });
   return r.status === 0 && r.stdout.toLowerCase().includes(program.toLowerCase());
@@ -225,7 +213,6 @@ function addRule(name, program) {
   return r.status === 0;
 }
 
-// Started elevated: Matchdesk.exe --firewall
 async function firewallMode() {
   process.title = 'Matchdesk - брандмауэр';
   step(`Правило для ${EXE}`);
@@ -250,8 +237,6 @@ async function offerFirewall() {
   if (code === null) warn('Отменено. Правила можно добавить позже: «Серверы» -> окно установки CS2 -> «Брандмауэр».');
   else if (!firewallMissing().length) ok('Правила добавлены');
 }
-
-// ---- Panel -------------------------------------------------------------------------------------------------
 
 function addresses(port) {
   const ips = Object.values(os.networkInterfaces()).flat()

@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 type Params = { params: Promise<{ id: string }> };
 
-// In-game chat history; ?since=<ms> returns only newer messages
+// ?since=<ms>: only newer messages
 export async function GET(req: Request, { params }: Params) {
   const user = await requireUser();
   if (user instanceof NextResponse) return user;
@@ -16,7 +16,7 @@ export async function GET(req: Request, { params }: Params) {
   return NextResponse.json(chatSince(id, since));
 }
 
-// Tell the game server to send its log (with the chat) to the panel
+// ask the game server to send its log (with chat) here
 export async function POST(_req: Request, { params }: Params) {
   const user = await requireUser();
   if (user instanceof NextResponse) return user;

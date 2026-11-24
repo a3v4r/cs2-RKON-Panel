@@ -8,10 +8,7 @@ import { cs2Paths, readSettings } from './panel-settings';
 import { weaponPaintsProblem } from './plugin-health';
 import { servers } from './store';
 
-// Plugins of the CS2 install (one set for every server on this PC): Metamod, CounterStrikeSharp and the CounterStrikeSharp
-// plugins. The panel downloads them (official builds, the forks from their GitHub releases), turns them on and off
-// and updates them on request or by themselves (auto-update, see the end). Everything here changes files the server's
-// cs2.exe keeps open, so all servers must be stopped.
+// one plugin set per CS2 install; touches files cs2.exe keeps open, so all servers must be stopped
 
 export type PluginId = 'metamod' | 'counterstrikesharp' | 'matchzy' | 'weaponpaints';
 
@@ -21,7 +18,7 @@ interface PluginDef {
   id: PluginId;
   name: string;
   requires?: PluginId;
-  folder?: string; // folder in addons/counterstrikesharp/plugins
+  folder?: string; // in addons/counterstrikesharp/plugins
   source: Source;
 }
 
@@ -31,7 +28,7 @@ export const PLUGINS: PluginDef[] = [
     id: 'counterstrikesharp',
     name: 'CounterStrikeSharp',
     requires: 'metamod',
-    // with the .NET runtime: the plugins need the one CounterStrikeSharp was built with
+    // with-runtime build: plugins need the .NET CounterStrikeSharp was built with
     source: { type: 'github', repo: 'roflmuffin/CounterStrikeSharp', asset: /^counterstrikesharp-with-runtime-windows-.*\.zip$/i },
   },
   { id: 'matchzy', name: 'MatchZy', requires: 'counterstrikesharp', folder: 'MatchZy', source: { type: 'github', repo: 'a3v4r/MatchZy-Patched', asset: /\.zip$/i } },
@@ -42,10 +39,10 @@ const def = (id: PluginId) => PLUGINS.find((p) => p.id === id)!;
 const dependents = (id: PluginId) => PLUGINS.filter((p) => p.requires === id).map((p) => p.id);
 
 interface Release {
-  version: string; // release tag or file name
+  version: string;
   file: string;
   url: string;
-  updatedAt: string; // the forks re-upload the zip under the same tag, so the date tells a new build apart
+  updatedAt: string; // forks re-upload under the same tag; the date tells builds apart
 }
 
 interface PluginRecord {
@@ -53,8 +50,8 @@ interface PluginRecord {
   version?: string;
   updatedAt?: string;
   installedAt?: number;
-  file?: string; // the installed zip in data/plugin-cache/<id>
-  previous?: { version: string; updatedAt: string; file: string }; // the one before it, for a rollback
+  file?: string; // data/plugin-cache/<id>
+  previous?: { version: string; updatedAt: string; file: string };
 }
 
 type Records = Partial<Record<PluginId, PluginRecord>>;
@@ -82,15 +79,13 @@ function updateRecord(id: PluginId, update: Partial<PluginRecord>) {
   writeRecords(records);
 }
 
-// ---- Files of each plugin in the CS2 install
-
 const addons = () => path.join(cs2Paths().csgo, 'addons');
 const cssPlugins = () => path.join(addons(), 'counterstrikesharp', 'plugins');
-// Metamod loads addons/metamod/*.vdf, not the subfolders; CounterStrikeSharp skips plugins/disabled
+// Metamod loads addons/metamod/*.vdf only, not subfolders; CounterStrikeSharp skips plugins/disabled
 const cssVdf = () => path.join(addons(), 'metamod', 'counterstrikesharp.vdf');
 const cssVdfOff = () => path.join(addons(), 'metamod', 'disabled', 'counterstrikesharp.vdf');
 
-// Where the plugin is when on / off (Metamod is switched in gameinfo.gi instead)
+// Metamod is toggled in gameinfo.gi instead
 function locations(id: PluginId): { on: string; off: string } | null {
   if (id === 'metamod') return null;
   if (id === 'counterstrikesharp') return { on: cssVdf(), off: cssVdfOff() };
@@ -105,20 +100,19 @@ export function isInstalled(id: PluginId) {
   return fs.existsSync(loc.on) || fs.existsSync(loc.off);
 }
 
-// The setting, or for a plugin the panel has not touched yet, whether it is installed (an install made by hand keeps working)
+// not touched by the panel yet: on if installed, so manual installs keep working
 export function isEnabled(id: PluginId, records = readRecords()) {
   return records[id]?.enabled ?? isInstalled(id);
 }
 
-// WeaponPaints swaps items, which CounterStrikeSharp blocks while it follows Valve's server guidelines
-// (FollowCS2ServerGuidelines in configs/core.json, on by default): skins then silently do nothing.
-// Turned off before each start while WeaponPaints is on; left as it is when WeaponPaints is off.
+// CounterStrikeSharp blocks WeaponPaints' item swaps under FollowCS2ServerGuidelines (configs/core.json, on by default),
+// skins then silently do nothing. turned off before each start while WeaponPaints is on
 export function syncWeaponPaintsGuidelines() {
   if (!isEnabled('weaponpaints') || !isInstalled('weaponpaints')) return;
   const dir = path.join(addons(), 'counterstrikesharp', 'configs');
   const core = path.join(dir, 'core.json');
   if (!fs.existsSync(core)) {
-    // CounterStrikeSharp ships core.example.json; core.json is ours to make
+    // CounterStrikeSharp ships only core.example.json
     const example = path.join(dir, 'core.example.json');
     if (!fs.existsSync(example)) return;
     fs.copyFileSync(example, core);
@@ -137,7 +131,7 @@ function move(from: string, to: string) {
   fs.renameSync(from, to);
 }
 
-// Steam rewrites gameinfo.gi on every CS2 update, so this runs before each start and after an update
+// Steam rewrites gameinfo.gi on every CS2 update: run before each start and after an update
 export function syncMetamod() {
   const gameinfo = cs2Paths().gameinfo;
   if (!fs.existsSync(gameinfo)) throw new Error(`Не найден ${gameinfo}: сервер CS2 не установлен?`);
@@ -159,8 +153,6 @@ function activate(id: PluginId, on: boolean) {
   if (on) move(loc.off, loc.on);
   else move(loc.on, loc.off);
 }
-
-// ---- Releases
 
 const UA = { 'User-Agent': 'Matchdesk-panel', Accept: 'application/vnd.github+json' };
 
@@ -196,8 +188,6 @@ async function latestRelease(id: PluginId): Promise<Release> {
 const isNewer = (rec: PluginRecord | undefined, latest: Release) =>
   !rec?.version || rec.version !== latest.version || rec.updatedAt !== latest.updatedAt;
 
-// ---- Background job (downloads take a while), polled by the settings page
-
 export interface PluginJob {
   running: boolean;
   title: string;
@@ -219,16 +209,16 @@ function log(text: string) {
   if (s.log.length > 200) s.log.splice(0, s.log.length - 200);
 }
 
-// cs2.exe started from the panel's CS2 folder: a server (also one started by a batch file). The game client
-// lives in Steam's folder and does not hold these files, so a judge may keep playing on this PC.
+// any cs2.exe from the panel's CS2 folder is a server (bat-started too). the game client lives in
+// Steam's folder and doesn't lock these files, so a judge can keep playing
 export function serverCs2Running(): Promise<boolean> {
   const exe = path.resolve(cs2Paths().exe).toLowerCase();
   return new Promise((resolve) => {
     execFile('powershell', ['-NoProfile', '-NonInteractive', '-Command',
       "Get-CimInstance Win32_Process -Filter \"Name='cs2.exe'\" | ForEach-Object { if ($_.ExecutablePath) { $_.ExecutablePath } else { '?' } }"],
     { windowsHide: true, timeout: 20_000 }, (err, out) => {
-      if (err) return resolve(true); // cannot tell: better not touch the files
-      // '?': a cs2.exe whose path we may not read (another user): could be a server
+      if (err) return resolve(true); // can't tell: don't touch the files
+      // '?': path unreadable (another user), could be a server
       resolve(out.split(/\r?\n/).map((l) => l.trim()).filter(Boolean).some((l) => l === '?' || path.resolve(l).toLowerCase() === exe));
     });
   });
@@ -243,7 +233,7 @@ async function guard() {
 
 function runJob(title: string, work: () => Promise<string>) {
   g.pluginJob = { running: true, title, phase: 'Начинаю', log: [] };
-  // The skins site keeps the WeaponPaints database open, and Windows will not move or delete an open file
+  // skins site holds the WeaponPaints DB open; Windows won't move or delete an open file
   const site = import('./skins-site');
   return site.then((m) => m.pauseSkinsSite())
     .then(work)
@@ -255,8 +245,6 @@ function runJob(title: string, work: () => Promise<string>) {
     .finally(() => site.then((m) => m.resumeSkinsSite()).catch(() => {}));
 }
 
-// ---- Install from a zip
-
 function run(file: string, args: string[]): Promise<void> {
   return new Promise((resolve, reject) => {
     execFile(file, args, { windowsHide: true, timeout: 300_000 }, (err, _out, stderr) => {
@@ -267,14 +255,14 @@ function run(file: string, args: string[]): Promise<void> {
 }
 
 export async function unzip(zip: string, dir: string) {
-  // tar of Windows 10+ unpacks zip much faster than Expand-Archive (CounterStrikeSharp has thousands of files)
+  // Win10+ tar unpacks zip much faster than Expand-Archive (CounterStrikeSharp has thousands of files)
   const tar = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'tar.exe');
   if (fs.existsSync(tar)) return run(tar, ['-xf', zip, '-C', dir]);
   const q = (s: string) => `'${s.replace(/'/g, "''")}'`;
   return run('powershell', ['-NoProfile', '-NonInteractive', '-Command', `Expand-Archive -Force -Path ${q(zip)} -DestinationPath ${q(dir)}`]);
 }
 
-// Settings the judges may have changed: kept, only added when missing. Everything else (dll, gamedata, lang) is replaced.
+// judge-editable settings: kept, only added if missing. dll, gamedata, lang get replaced
 const KEEP = [/^cfg\//i, /^addons\/counterstrikesharp\/configs\//i, /^addons\/metamod\/metaplugins\.ini$/i];
 
 function copyTree(from: string, to: string, rel = '') {
@@ -295,7 +283,7 @@ function copyTree(from: string, to: string, rel = '') {
   return count;
 }
 
-// The archive root is the folder with addons/ (some archives wrap everything in one more folder)
+// archive root = folder with addons/ (some zips wrap it in one more folder)
 function archiveRoot(dir: string): string {
   if (fs.existsSync(path.join(dir, 'addons'))) return dir;
   const subdirs = fs.readdirSync(dir, { withFileTypes: true }).filter((e) => e.isDirectory());
@@ -303,8 +291,7 @@ function archiveRoot(dir: string): string {
   throw new Error('В архиве нет папки addons');
 }
 
-// The forks upload every build as the same WeaponPaints.zip: the cache name carries version and build time,
-// so a new build does not overwrite the installed zip (the one a rollback needs)
+// forks reuse WeaponPaints.zip for every build: version + build time in the name keeps the rollback zip
 const cacheName = (release: Release) =>
   `${release.version}_${release.updatedAt}_${release.file}`.replace(/[^\w.-]+/g, '-');
 
@@ -314,7 +301,7 @@ async function download(id: PluginId, release: Release, say: (text: string) => v
   const target = path.join(dir, cacheName(release));
   if (fs.existsSync(target)) return target;
   say(`Скачиваю ${release.file}`);
-  // GitHub's file hosts drop a connection now and then: one more try before giving up
+  // GitHub file hosts drop connections now and then: retry once
   const res = await get(release.url, { headers: { 'User-Agent': UA['User-Agent'] } })
     .catch(() => get(release.url, { headers: { 'User-Agent': UA['User-Agent'] } }));
   if (!res.ok || !res.body) throw new Error(`Не удалось скачать ${release.file}: ${res.status}`);
@@ -329,7 +316,7 @@ async function installZip(id: PluginId, zip: string) {
     log(`Распаковываю ${path.basename(zip)}`);
     await unzip(zip, temp);
     const root = archiveRoot(temp);
-    // Into the place it loads from, then off again if it is switched off
+    // install where it loads from, then disable again if it is off
     const enabled = isEnabled(id);
     if (id !== 'metamod') activate(id, true);
     log('Копирую файлы в папку CS2');
@@ -341,7 +328,6 @@ async function installZip(id: PluginId, zip: string) {
   }
 }
 
-// Keeps the installed zip and the one before it
 function remember(id: PluginId, release: Release, zip: string) {
   const rec = readRecords()[id];
   const previous = rec?.file && rec.version && rec.file !== zip && fs.existsSync(rec.file)
@@ -364,10 +350,7 @@ async function installLatest(id: PluginId) {
   log(`${def(id).name} ${release.version} установлен`);
 }
 
-// ---- What the settings page calls
-
-// Metamod and CounterStrikeSharp need the Visual C++ runtime (x64). Installing it takes an administrator,
-// so the panel only checks for it and says where to get it; Matchdesk.exe offers to install it on start.
+// VC++ x64 runtime for Metamod / CounterStrikeSharp; installing needs admin, Matchdesk.exe offers it on start
 export const VC_REDIST_URL = 'https://aka.ms/vs/17/release/vc_redist.x64.exe';
 const gv = globalThis as unknown as { vcRedist?: { ok: boolean | null; at: number; checking?: boolean } };
 
@@ -405,7 +388,6 @@ export function pluginsView() {
         latest: latest && 'version' in latest ? latest.version : null,
         latestError: latest && 'error' in latest ? latest.error : null,
         updateAvailable: latest && 'version' in latest ? isInstalled(p.id) && isNewer(rec, latest) : false,
-        // What the plugin itself reported in its log (see plugin-health.ts)
         problem: p.id === 'weaponpaints' && isInstalled(p.id) && isEnabled(p.id, records) ? weaponPaintsProblem() : null,
       };
     }),
@@ -424,7 +406,7 @@ export async function checkUpdates() {
   g.pluginLatest = result;
 }
 
-// Turns plugins on and off; what is turned on and not installed yet is downloaded. A plugin brings what it needs with it.
+// enabling a missing plugin downloads it; dependencies get enabled too
 export async function applyPlugins(wanted: Partial<Record<PluginId, boolean>>) {
   await guard();
   const records = readRecords();
@@ -437,13 +419,13 @@ export async function applyPlugins(wanted: Partial<Record<PluginId, boolean>>) {
       const was = isEnabled(p.id);
       updateRecord(p.id, { enabled: next[p.id] });
       if (next[p.id] && !isInstalled(p.id)) {
-        // Not downloaded: stays off, so the page does not show it as on
+        // download failed: keep it off
         await installLatest(p.id).catch((e) => { updateRecord(p.id, { enabled: was }); throw e; });
       }
       if (isInstalled(p.id) || p.id === 'metamod') activate(p.id, next[p.id]);
       if (was !== next[p.id]) log(`${p.name}: ${next[p.id] ? 'включён' : 'выключен'}`);
     }
-    // Servers without MatchZy run in Vanilla mode, and back to MatchZy when it is on again
+    // servers without MatchZy switch to Vanilla mode, and back when it is on again
     if (matchzyBefore !== next.matchzy) {
       for (const s of servers.list()) if (s.managed) servers.update(s.id, { mode: next.matchzy ? undefined : 'vanilla' });
       log(next.matchzy ? 'Серверы панели переключены в режим MatchZy' : 'Серверы панели переключены в режим Vanilla');
@@ -472,7 +454,7 @@ export async function rollbackPlugin(id: PluginId) {
   });
 }
 
-// Deletes the plugin files (its settings in cfg / configs stay). What needs the plugin must be removed first.
+// settings in cfg / configs stay; dependents must be removed first
 export async function removePlugin(id: PluginId) {
   await guard();
   const installedDependents = dependents(id).filter(isInstalled);
@@ -497,10 +479,8 @@ export async function removePlugin(id: PluginId) {
 
 export const isPluginId = (v: unknown): v is PluginId => PLUGINS.some((p) => p.id === v);
 
-// ---- Automatic updates
-// Every few hours the panel looks for new releases and downloads them in the background (servers keep running).
-// They are installed only while no server of this install runs: right away, or just before the next server start.
-// Off in the settings ("pluginAutoUpdate": false) for a tournament day, if nothing should change.
+// auto-update: checks every few hours and downloads in the background, installs only while no
+// server of this install runs (now or right before the next start). "pluginAutoUpdate": false turns it off
 
 const AUTO_FIRST_CHECK_MS = 2 * 60_000;
 const AUTO_CHECK_MS = 3 * 3600_000;
@@ -509,7 +489,7 @@ interface Pending { release: Release; zip: string }
 interface AutoState {
   checking: boolean;
   lastCheck?: number;
-  message?: string; // what the last automatic check did, for the settings page
+  message?: string; // last auto-check result
   pending: Partial<Record<PluginId, Pending>>;
 }
 
@@ -518,7 +498,6 @@ const auto = (): AutoState => (ga.pluginAuto ??= { checking: false, pending: {} 
 
 export const autoUpdateOn = () => readSettings().pluginAutoUpdate !== false;
 
-// Downloaded updates that are still newer than what is installed
 function pendingUpdates() {
   const records = readRecords();
   const result: [PluginId, Pending][] = [];
@@ -558,8 +537,7 @@ export async function autoCheck() {
       a.message = 'Обновлений нет';
       return;
     }
-    // Quietly, not as a job: a running download must not stop a judge from starting a server.
-    // One failed download does not hold back the others; it is tried again on the next check.
+    // not a job, so it never blocks a server start; failed downloads retry on the next check
     const failed: string[] = [];
     for (const p of fresh) {
       const release = g.pluginLatest![p.id] as Release;
@@ -589,7 +567,6 @@ export async function autoCheck() {
   }
 }
 
-// Before a server starts: put in what was downloaded, if no other server of this install is running
 export async function installPendingBeforeStart() {
   if (!autoUpdateOn() || pluginJobRunning() || isUpdating() || pendingUpdates().length === 0) return;
   if (await serverCs2Running()) return;

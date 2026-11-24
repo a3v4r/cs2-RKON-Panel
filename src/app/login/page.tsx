@@ -35,7 +35,6 @@ export default function LoginPage() {
     <div className="min-h-[100dvh] flex items-center justify-center p-4 bg-background relative overflow-hidden">
       <div className="absolute top-4 right-4 z-10"><LanguageMenu /></div>
 
-      {/* Background decor */}
       <div className="fixed top-0 left-0 w-full h-full z-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 rounded-full blur-[120px]"></div>
         <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] bg-primary/10 rounded-full blur-[100px]"></div>

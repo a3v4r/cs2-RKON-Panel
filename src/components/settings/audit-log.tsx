@@ -11,7 +11,6 @@ interface AuditEntry {
   action: string
 }
 
-// Who did what and when (pauses, RCON commands, match loads)
 export function AuditLog() {
   const [entries, setEntries] = React.useState<AuditEntry[]>([])
   const { t, locale, lang } = useT()

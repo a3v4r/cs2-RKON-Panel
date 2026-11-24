@@ -96,13 +96,12 @@ const WEAPONS: Record<string, string> = {
 };
 const weaponName = (weapon: string) => WEAPONS[weapon] ?? (weapon.startsWith('knife') || weapon.startsWith('bayonet') ? 'Knife' : weapon.toUpperCase());
 
-// Team colours stay the same all match; the side (CT/T) is shown separately
+// team colours fixed for the match, side shown separately
 const TEAM_TEXT = { team1: 'text-sky-400', team2: 'text-amber-400' } as const;
 const TEAM_DOT = { team1: 'bg-sky-400', team2: 'bg-amber-400' } as const;
 const TEAM_CHIP = { team1: 'bg-sky-500/10 text-sky-400 border-sky-500/30', team2: 'bg-amber-500/10 text-amber-400 border-amber-500/30' } as const;
 const TEAM_CELL = { team1: 'bg-sky-500/20 text-sky-300 border-sky-500/40', team2: 'bg-amber-500/20 text-amber-300 border-amber-500/40' } as const;
 
-// Quatrix card and button classes
 const card = 'bg-card rounded-2xl border border-gray-800 shadow-2xl';
 const btn = 'inline-flex items-center justify-center gap-1.5 px-5 py-1.5 h-[34px] text-sm rounded-xl font-bold transition-all active:scale-95 disabled:opacity-50 disabled:active:scale-100 whitespace-nowrap';
 const btnPrimary = 'bg-primary hover:bg-blue-600 text-white shadow-lg shadow-blue-500/20';
@@ -110,7 +109,6 @@ const btnSecondary = 'bg-gray-800 hover:bg-gray-700 text-white border border-gra
 const btnDanger = 'bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/20';
 const pill = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border';
 
-// Card header: icon chip + bold title, as the Quatrix dashboard cards
 function CardHeader({ icon, title, subtitle, right, className }: { icon: React.ReactNode; title: React.ReactNode; subtitle?: React.ReactNode; right?: React.ReactNode; className?: string }) {
   return (
     <div className={cn('flex flex-wrap items-center justify-between gap-3', className)}>
@@ -126,7 +124,6 @@ function CardHeader({ icon, title, subtitle, right, className }: { icon: React.R
   );
 }
 
-// Stat tile as on the Quatrix dashboard
 function StatCard({ title, value, icon, description, color, valueClass }: { title: string; value: React.ReactNode; icon: React.ReactNode; description: string; color: string; valueClass?: string }) {
   return (
     <div className="p-4 sm:p-6 bg-card rounded-2xl border border-gray-800/60 hover:border-white/10 transition-all hover:translate-y-[-2px] group shadow-lg shadow-black/20 min-w-0">
@@ -172,7 +169,7 @@ export function LiveMatch({ serverId, onLaunch }: { serverId: number; onLaunch?:
   }
 
   const { status, live } = data;
-  // A finished match stays on the page while nothing else is loaded, but only if it was actually played
+  // finished match stays until something else loads, only if it was actually played
   const lastMatch = !status && live && (live.rounds.length > 0 || live.maps.length > 0) ? live : null;
   const current = status ? live : null;
 
@@ -240,7 +237,7 @@ function MatchView({ data, live, serverId, onReload }: { data: LiveData; live: L
   const dotClass = status?.paused ? 'bg-yellow-500' : isLive ? 'bg-green-500 animate-pulse' : 'bg-gray-500';
 
   const kills = live?.kills ?? [];
-  // The panel keeps only the latest kills for the feed; totals come from the players' stats of this map
+  // panel keeps only the latest kills; totals come from player stats
   const allPlayers = live ? [...live.team1.players, ...live.team2.players] : [];
   const totalKills = allPlayers.reduce((n, p) => n + (p.stats.kills ?? 0), 0);
   const headshots = allPlayers.reduce((n, p) => n + (p.stats.headshot_kills ?? 0), 0);
@@ -249,7 +246,6 @@ function MatchView({ data, live, serverId, onReload }: { data: LiveData; live: L
 
   return (
     <>
-      {/* Hero: the map picture behind the score, as the Quatrix map cards */}
       <section className="relative overflow-hidden rounded-2xl border border-gray-800 shadow-2xl bg-card">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={mapImage(map)} alt="" className="absolute inset-0 w-full h-full object-cover opacity-30" />
@@ -288,7 +284,6 @@ function MatchView({ data, live, serverId, onReload }: { data: LiveData; live: L
         </div>
       </section>
 
-      {/* Stat tiles, as the Quatrix dashboard */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard title={t('Раунд', 'Round')} value={round || '-'} icon={<Swords size={18} />} color="text-primary" description={live?.rounds.length ? t(`сыграно раундов: ${live.rounds.length}`, `rounds played: ${live.rounds.length}`) : t('раунды ещё не сыграны', 'no rounds played yet')} />
         <ClockCard clock={status?.clock ?? null} paused={!!status?.paused} receivedAt={data.receivedAt} />
@@ -371,7 +366,7 @@ const CLOCK_PHASES: Record<string, { label: Text; className: string }> = {
   timeout_t: { label: { ru: 'Тайм-аут T', en: 'T timeout' }, className: 'text-amber-400' },
 };
 
-// The server reports the timer every 3 s; in between it counts down here. A pause holds the freeze time.
+// timer arrives every 3 s, counted down locally in between; pause holds freeze time
 function ClockCard({ clock, paused, receivedAt }: { clock: { phase: string; seconds: number } | null; paused: boolean; receivedAt: number }) {
   const { t, lang } = useT();
   const [now, setNow] = React.useState(() => Date.now());
@@ -406,7 +401,7 @@ interface Backup {
   team2Score: number;
 }
 
-// Round restore: the list comes from the backups on the game server, so it works for any match MatchZy runs
+// list comes from the game server backups, so any MatchZy match works
 function RoundRestore({ serverId, paused, round, onDone }: { serverId: number; paused: boolean; round: number; onDone: () => void }) {
   const { t } = useT();
   const [backups, setBackups] = React.useState<Backup[] | null>(null);
@@ -418,14 +413,13 @@ function RoundRestore({ serverId, paused, round, onDone }: { serverId: number; p
     try {
       const { backups } = await api<{ backups: Backup[] }>(`/api/servers/${serverId}/restore`);
       setBackups(backups);
-      // By default the start of the current round
       setSelected((prev) => (backups.some((b) => String(b.round) === prev) ? prev : backups.length ? String(backups[backups.length - 1].round) : ''));
     } catch (e) {
       setMessage({ ok: false, text: (e as Error).message });
     }
   }, [serverId]);
 
-  // While the list is open, keep it in step with the rounds being played
+  // keep in step with live rounds while open
   React.useEffect(() => {
     if (backups) loadBackups();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -528,7 +522,7 @@ function TeamHeader({ name, side, team, align = 'left' }: { name: string; side: 
   );
 }
 
-// Round history: one row per team, a filled cell where that team won the round
+// one row per team, filled cell = round won
 function RoundHistory({ rounds, t1, t2 }: { rounds: Round[]; t1: string; t2: string }) {
   const { t, lang } = useT();
   const byRound = new Map(rounds.map((r) => [r.round, r]));
@@ -603,7 +597,6 @@ function playerRow(p: { steamid: string; name: string; stats: Stats }) {
   };
 }
 
-// Player stats in the Quatrix Players table style; a click on a column sorts by it
 function PlayersTable({ team, teamKey }: { team: LiveTeam; teamKey: TeamKey }) {
   const { t } = useT();
   const [sort, setSort] = React.useState<{ key: SortKey; desc: boolean }>({ key: 'kills', desc: true });

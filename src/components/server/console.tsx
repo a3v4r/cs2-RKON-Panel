@@ -7,7 +7,7 @@ import { copyText } from '@/lib/clipboard';
 import { useT } from '@/lib/i18n';
 import { controlCommands } from '@/lib/vanilla';
 
-// Command history survives tab switches and reloads (on phones there are no arrow keys to recall it)
+// persisted: phones have no arrow keys to recall history
 const HISTORY_KEY = 'cs2panel.console.history';
 
 function loadHistory(): string[] {
@@ -18,8 +18,7 @@ function loadHistory(): string[] {
   }
 }
 
-// Autocomplete list, as Quatrix config/consoleCommands.ts, with the commands a referee needs.
-// A trailing space means the command takes an argument.
+// trailing space = takes an argument
 const COMMON_COMMANDS = [
   // MatchZy
   'css_start',
@@ -66,15 +65,14 @@ interface LogEntry {
 
 interface RCONConsoleProps {
   onSendCommand: (command: string) => Promise<string>;
-  // Server without MatchZy: start and pauses by plain cvars
+  // no MatchZy: start and pauses via plain cvars
   vanilla?: boolean;
 }
 
-// Quatrix IconButton, variant ghost, size sm
 const headerBtn = 'flex items-center justify-center transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed group p-1.5 rounded-lg w-8 h-8 text-gray-400 hover:text-white hover:bg-white/5';
 
 const newId = () => Math.random().toString(36).slice(2, 11);
-const now = () => new Date().toLocaleTimeString('ru-RU'); // 24-hour HH:MM:SS in both languages
+const now = () => new Date().toLocaleTimeString('ru-RU'); // 24h in both languages
 
 export function RCONConsole({ onSendCommand, vanilla }: RCONConsoleProps) {
   const control = controlCommands(vanilla ? 'vanilla' : 'matchzy');
@@ -99,7 +97,7 @@ export function RCONConsole({ onSendCommand, vanilla }: RCONConsoleProps) {
     }
   }, [history]);
 
-  // Follow new lines unless the referee scrolled up to read
+  // autoscroll unless scrolled up
   useEffect(() => {
     if (isAutoScroll && consoleRef.current) {
       consoleRef.current.scrollTop = consoleRef.current.scrollHeight;
@@ -125,7 +123,6 @@ export function RCONConsole({ onSendCommand, vanilla }: RCONConsoleProps) {
   };
 
   const execute = async (command: string) => {
-    // Add to history
     setHistory((prev) => {
       const next = [...prev.filter((c) => c !== command), command];
       if (next.length > 50) next.shift();
@@ -203,7 +200,7 @@ export function RCONConsole({ onSendCommand, vanilla }: RCONConsoleProps) {
       : type === 'error' ? <span className="text-red-400 mr-2">ERROR:</span>
       : null;
 
-  // A command from the lists goes into the input; the judge checks it and presses Enter
+  // only fills the input; the judge checks it and presses Enter
   const insert = (command: string) => {
     setCommand(command);
     setHistoryIndex(-1);
@@ -219,7 +216,6 @@ export function RCONConsole({ onSendCommand, vanilla }: RCONConsoleProps) {
 
   return (
     <div className="grid gap-4 md:gap-6 xl:grid-cols-3 items-start animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {/* Console window, a card as on the Match page */}
       <section className={cn(card, 'xl:col-span-2 flex flex-col overflow-hidden h-[65dvh] xl:h-[calc(100dvh-10rem)] min-h-[420px] min-w-0')}>
         <div className="p-4 sm:px-6 border-b border-gray-800/60 flex items-center justify-between gap-3">
           <CardHeader icon={<TerminalIcon size={18} />} title={t('Живая консоль сервера', 'Server Live Console')} subtitle={t('команды RCON и ответы сервера', 'RCON commands and server replies')} />
@@ -277,7 +273,6 @@ export function RCONConsole({ onSendCommand, vanilla }: RCONConsoleProps) {
           </div>
         </div>
 
-        {/* Command input, the Quatrix input field with the send button next to it */}
         <form onSubmit={handleSend} className="p-3 sm:p-4 border-t border-gray-800/60 flex items-center gap-2 sm:gap-3">
           <div className="relative flex-1 min-w-0 group">
             <ChevronRight className="absolute left-3 top-1/2 -translate-y-1/2 text-primary w-4 h-4 pointer-events-none" />
@@ -315,7 +310,6 @@ export function RCONConsole({ onSendCommand, vanilla }: RCONConsoleProps) {
       </section>
 
       <div className="space-y-4 md:space-y-6 min-w-0">
-        {/* Quick referee commands, as the Overview quick actions */}
         <section className={cn(card, 'p-4 sm:p-6')}>
           <CardHeader icon={<Zap size={18} />} title={t('Быстрые действия', 'Quick actions')} subtitle={t('отправляются сразу', 'sent right away')} />
           <div className="mt-5 grid grid-cols-2 gap-3">
@@ -333,7 +327,6 @@ export function RCONConsole({ onSendCommand, vanilla }: RCONConsoleProps) {
           </div>
         </section>
 
-        {/* Frequent commands: a click puts the command into the input */}
         <section className={cn(card, 'p-4 sm:p-6')}>
           <CardHeader icon={<ListChecks size={18} />} title={t('Частые команды', 'Common commands')} subtitle={t('нажмите, чтобы вставить в строку', 'click to put into the input')} />
           <div className="mt-5 flex flex-wrap gap-2">
@@ -349,7 +342,6 @@ export function RCONConsole({ onSendCommand, vanilla }: RCONConsoleProps) {
           </div>
         </section>
 
-        {/* Command history, kept in this browser */}
         <section className={cn(card, 'overflow-hidden')}>
           <div className="p-4 sm:px-6 border-b border-gray-800/60 flex items-center justify-between gap-3">
             <CardHeader icon={<History size={18} />} title={t('История команд', 'Command history')} subtitle={t('нажмите, чтобы повторить', 'click to repeat')} />
@@ -379,7 +371,6 @@ export function RCONConsole({ onSendCommand, vanilla }: RCONConsoleProps) {
   );
 }
 
-// Card and header as on the Match page
 const card = 'bg-card rounded-2xl border border-gray-800 shadow-2xl';
 
 function CardHeader({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle?: string }) {
@@ -394,5 +385,4 @@ function CardHeader({ icon, title, subtitle }: { icon: React.ReactNode; title: s
   );
 }
 
-// Shown as chips on the side; a trailing space means the command takes an argument
 const FREQUENT = ['status', 'get5_status', 'tv_status', 'mp_warmup_end', 'mp_restartgame 1', 'css_restore ', 'changelevel ', 'say ', 'mp_maxrounds ', 'bot_kick'];

@@ -2,20 +2,17 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { cs2Paths } from './panel-settings';
 
-// Problems WeaponPaints reports in its own log (addons/counterstrikesharp/logs/log-WeaponPaints*.txt), shown on the
-// Plugins tab so nobody has to read the log:
-// - "Skins are not applied": a native call failed, almost always gamedata/weaponpaints.json out of date after a CS2
-//   update. Counted only after the gamedata file last changed, so a plugin update with new gamedata clears it.
-// - "Skins will not be applied": FollowCS2ServerGuidelines is on. The panel turns it off before each start, so this
-//   only shows for a server started some other way; counted after core.json last changed.
+// WeaponPaints problems from its own log, for the Plugins tab:
+// "Skins are not applied": stale gamedata/weaponpaints.json after a CS2 update; counted after gamedata mtime
+// "Skins will not be applied": FollowCS2ServerGuidelines on (server not started by the panel); counted after core.json mtime
 
-const FILES = 5; // the plugin starts a new file on every load
+const FILES = 5; // new file on every plugin load
 const TAIL = 256 * 1024;
 const CACHE_MS = 30_000;
 
 export interface WeaponPaintsProblem {
   kind: 'gamedata' | 'guidelines';
-  at: string; // ISO time of the log line
+  at: string; // ISO, from the log line
   detail: string;
 }
 
@@ -80,7 +77,7 @@ export function weaponPaintsProblem(): WeaponPaintsProblem | null {
   try {
     problem = scan();
   } catch {
-    // an unreadable log is not worth an error on the page
+    // unreadable log: not worth an error
   }
   g.wpHealth = { at: Date.now(), problem };
   return problem;

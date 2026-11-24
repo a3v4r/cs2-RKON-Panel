@@ -11,10 +11,7 @@ import { cs2Paths } from './panel-settings';
 import { rconCommand } from './rcon';
 import { GameMode, Priority, StoredServer, servers } from './store';
 
-// Runs CS2 servers on this PC the way the tournament kit's start-server.ps1 did:
-// one CS2 install, a generated cfg per server, Metamod in gameinfo.gi, restart after a crash.
-// Servers are started detached, so they keep running when the panel stops; on the next start the
-// panel finds them again by the PIDs saved in data/processes.json.
+// servers run detached and are re-adopted by the PIDs in data/processes.json after a panel restart
 
 export type ProcState = 'stopped' | 'starting' | 'running' | 'stopping' | 'crashed';
 
@@ -28,14 +25,14 @@ interface Proc {
 }
 
 const WATCH_MS = 3_000;
-const MIN_UPTIME_FOR_RESTART_MS = 60_000; // a crash right after start would only loop
+const MIN_UPTIME_FOR_RESTART_MS = 60_000; // a crash right after start would loop
 const RESTART_DELAY_MS = 5_000;
 const STOP_WAIT_MS = 10_000;
-// 0xC000013A: the server console window was closed (or Ctrl+C) - a manual stop, not a crash
+// 0xC000013A: console window closed or Ctrl+C, a manual stop
 const CONSOLE_CLOSED = [3221225786, -1073741510];
 // 0xC0000005: access violation
 const ACCESS_VIOLATION = [3221225477, -1073741819];
-// +game_type / +game_mode for each mode (Valve's gamemodes.txt)
+// Valve's gamemodes.txt
 const GAME_TYPE_MODE: Record<GameMode, [number, number]> = {
   competitive: [0, 1], casual: [0, 0], wingman: [0, 2], deathmatch: [1, 2],
   armsrace: [1, 0], demolition: [1, 1], training: [2, 0], custom: [3, 0],
@@ -55,7 +52,7 @@ function savePids() {
     fs.mkdirSync(dataDir(), { recursive: true });
     fs.writeFileSync(pidFile(), JSON.stringify(running, null, 2));
   } catch {
-    // losing the file only means the panel will not re-attach after its own restart
+    // only costs re-attach after a panel restart
   }
 }
 
@@ -68,7 +65,7 @@ function alive(pid: number) {
   }
 }
 
-// A saved PID may belong to another program by now: only adopt it if it is still a cs2.exe
+// PIDs get reused: adopt only if still cs2.exe
 function isCs2(pid: number): Promise<boolean> {
   return new Promise((resolve) => {
     execFile('tasklist', ['/FI', `PID eq ${pid}`, '/FO', 'CSV', '/NH'], { windowsHide: true }, (err, out) => {
@@ -103,7 +100,6 @@ async function writeCfg(csgo: string, server: StoredServer) {
     `sv_lan ${m.lan === false ? 0 : 1}`,
     `sv_hibernate_when_empty ${m.hibernate ? 1 : 0}`,
     `tv_enable ${m.tv === false ? 0 : 1}`,
-    // In-game chat goes to the panel's Chat section
     ...(await chatCfgLines(server)),
     ...(m.extraCfg ? ['', '// Extra lines from the server settings', ...m.extraCfg.split('\n')] : []),
     '',
@@ -112,7 +108,7 @@ async function writeCfg(csgo: string, server: StoredServer) {
 }
 
 function onExit(id: number, proc: Proc, code: number | null) {
-  if (procs.get(id) !== proc) return; // already handled (exit event and watcher both report)
+  if (procs.get(id) !== proc) return; // exit event and watcher both report
   const uptime = Date.now() - (proc.startedAt ?? Date.now());  if (proc.stopRequested || (code !== null && CONSOLE_CLOSED.includes(code))) {
     procs.set(id, { state: 'stopped', message: proc.stopRequested ? undefined : 'Окно консоли сервера закрыли вручную' });
     savePids();
@@ -132,7 +128,7 @@ function onExit(id: number, proc: Proc, code: number | null) {
       state: 'crashed',
       message: uptime < MIN_UPTIME_FOR_RESTART_MS
         ? `Сервер упал сразу после запуска${codeText}. ${server?.managed?.hideConsole === false ? 'Посмотрите окно консоли сервера' : `Посмотрите game\\csgo\\console_server${id}.log`} и логи addons\\counterstrikesharp\\logs.`
-          // 0xC0000005 right after an update of CS2 is almost always Metamod or CounterStrikeSharp built for the old version
+          // 0xC0000005 after a CS2 update: Metamod / CounterStrikeSharp built for the old version
           + (code !== null && ACCESS_VIOLATION.includes(code) ? ' Если CS2 недавно обновился, скорее всего Metamod или CounterStrikeSharp ещё не поддерживают новую версию: обновите их.' : '')
         : `Сервер остановился${codeText}`,
     });
@@ -153,7 +149,7 @@ export async function startServer(id: number) {
   if (!fs.existsSync(paths.exe)) {
     throw new Error(`Не найден ${paths.exe}. Укажите папку сервера CS2 в настройках панели.`);
   }
-  // Plugin updates downloaded in the background go in now, while nothing holds their files
+  // apply pending plugin updates while nothing holds the files
   await installPendingBeforeStart();
   syncMetamod();
   ensureRussian(paths.csgo);
@@ -161,7 +157,7 @@ export async function startServer(id: number) {
     applyChatPrefix(paths.csgo);
     syncWeaponPaintsGuidelines();
   } catch {
-    // A broken plugin config must not stop the server from starting
+    // a broken plugin config must not block the start
   }
   await writeCfg(paths.csgo, server);
 
@@ -169,12 +165,11 @@ export async function startServer(id: number) {
   const hidden = m.hideConsole !== false;
   const args = [
     '-dedicated', '-console', '-usercon',
-    // Round backups on disk for rollbacks (mp_backup_restore_load_file); CS2 writes none without it
+    // CS2 writes no round backups without it (mp_backup_restore_load_file)
     '-allow_round_backup_files',
-    // Without a window the console text goes to a file, to see why a server fell.
-    // The suffix gives each server its own game\csgo\console_server<id>.log instead of one shared console.log.
+    // no window: console goes to game\csgo\console_server<id>.log, one per server
     ...(hidden ? ['-condebug', '+con_logfile_suffix', `_server${id}`] : []),
-    // Without -ip CS2 binds RCON (TCP) to one interface of its choice, sometimes a VPN adapter
+    // without -ip CS2 binds RCON to an interface of its choice, sometimes a VPN adapter
     '-ip', m.bindIp || '0.0.0.0',
     '-port', String(server.port),
     '-maxplayers', String(m.maxPlayers),
@@ -197,8 +192,7 @@ export async function startServer(id: number) {
 
 const psQuote = (s: string) => `'${s.replace(/'/g, "''")}'`;
 
-// cs2.exe opens its console window itself and ignores Start-Process -WindowStyle Hidden, so the window
-// is hidden once it appears (it may flash for a moment). The server keeps running as usual.
+// cs2.exe opens its own console and ignores -WindowStyle Hidden: hide it once it shows (may flash)
 function hideWindow(pid: number) {
   const script = [
     `Add-Type -Name W -Namespace Matchdesk -MemberDefinition '[DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int cmd);'`,
@@ -214,10 +208,8 @@ function hideWindow(pid: number) {
   execFile('powershell', ['-NoProfile', '-NonInteractive', '-EncodedCommand', encoded], { windowsHide: true, timeout: 120_000 }, () => {});
 }
 
-// cs2.exe is started through PowerShell's Start-Process (as the kit did), so it is not a child of the panel:
-// stopping or restarting the panel, even with its whole process tree, leaves running matches alone.
-// All arguments are validated numbers, map names and IPs (extra arguments: one line without quotes),
-// so joining them with spaces is safe.
+// Start-Process so cs2.exe isn't our child: killing the panel's process tree leaves matches running.
+// args are validated (numbers, map names, IPs, one-line extra args), so joining with spaces is safe
 function launch(exe: string, args: string[], priority: Priority = 'Normal'): Promise<number> {
   const setPriority = priority === 'Normal' ? '' : ` try { $p.PriorityClass = '${priority}' } catch {};`;
   const command = `$p = Start-Process -FilePath ${psQuote(exe)} -ArgumentList ${psQuote(args.join(' '))} -WorkingDirectory ${psQuote(path.dirname(exe))} -PassThru;${setPriority} $p.Id`;
@@ -230,14 +222,14 @@ function launch(exe: string, args: string[], priority: Priority = 'Normal'): Pro
   });
 }
 
-// A small PowerShell waits for the server process and returns its exit code: closing the server window by hand
-// (0xC000013A) must not count as a crash. It dies with the panel; the panel starts a new one when it re-attaches.
+// waits for cs2 and returns its exit code, so a closed window (0xC000013A) isn't a crash.
+// dies with the panel; re-attach starts a new one
 function waitForExit(id: number, proc: Proc) {
   if (!proc.pid) return;
   const command = `$p = Get-Process -Id ${proc.pid} -ErrorAction Stop; $null = $p.Handle; $p.WaitForExit(); exit $p.ExitCode`;
   const waiter = spawn('powershell', ['-NoProfile', '-NonInteractive', '-Command', command], { windowsHide: true, stdio: 'ignore' });
   waiter.on('exit', (code) => {
-    if (proc.pid && alive(proc.pid)) return; // the waiter itself failed; the watcher still keeps an eye on the server
+    if (proc.pid && alive(proc.pid)) return; // waiter failed; the watcher still covers it
     onExit(id, proc, code);
   });
   waiter.on('error', () => {});
@@ -256,7 +248,6 @@ export async function stopServer(id: number) {
   proc.state = 'stopping';
   const pid = proc.pid;
 
-  // Ask the server to quit by itself first, then end the process
   const server = servers.get(id);
   if (server) await rconCommand(server.host, server.port, server.rcon_password, 'quit').catch(() => {});
   for (let waited = 0; waited < STOP_WAIT_MS && alive(pid); waited += 500) await sleep(500);
@@ -278,7 +269,6 @@ function watch() {
   }
 }
 
-// Called once when the panel starts: re-attach to servers that kept running, then keep an eye on them
 export async function startInstanceWatcher() {
   if (g.instWatcher) return;
   g.instWatcher = setInterval(watch, WATCH_MS);

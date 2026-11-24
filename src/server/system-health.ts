@@ -6,13 +6,10 @@ import { ensureRussian } from './cs2-files';
 import { isEnabled, syncMetamod } from './plugins';
 import { cs2Paths } from './panel-settings';
 
-// "System Health" of the Quatrix settings, for a Windows tournament PC: hardware, and whether the
-// CS2 server is installed with what the tournament needs (Metamod, CounterStrikeSharp, MatchZy).
-
 const GB = 1024 ** 3;
 
 function diskFree(dir: string) {
-  // statfs needs an existing path: walk up to the drive root if the CS2 folder is not there yet
+  // statfs needs an existing path: walk up if the CS2 folder isn't there yet
   let target = dir;
   while (!fs.existsSync(target) && path.dirname(target) !== target) target = path.dirname(target);
   try {
@@ -48,7 +45,7 @@ export function systemHealth() {
     disk: { ...disk, status: disk.free >= 40 * GB ? 'good' : 'low' },
     paths: { cs2: p.dir, steamcmd: p.steamcmd },
     checks,
-    // What Repair can fix by itself (the rest needs the kit installer)
+    // what Repair fixes itself; the rest needs the kit installer
     repairable: checks.cs2 && checks.metamod && isEnabled('metamod') && !checks.metamodInGameinfo,
   };
 }
@@ -59,7 +56,6 @@ export function repairSystem() {
   ensureRussian(p.csgo);
 }
 
-// Download steamcmd.zip from Valve and unpack it next to the path set for steamcmd.exe
 export function downloadSteamcmd(): Promise<string> {
   const target = cs2Paths().steamcmd;
   const dir = path.dirname(target);

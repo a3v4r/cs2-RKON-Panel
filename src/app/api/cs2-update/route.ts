@@ -18,7 +18,7 @@ export async function GET() {
   return NextResponse.json(await info());
 }
 
-// Start or cancel the CS2 install / update through steamcmd, or add the firewall rules (Matchdesk.exe only)
+// start / cancel steamcmd install, or add firewall rules (Matchdesk.exe only)
 export async function POST(req: Request) {
   const user = await requireUser();
   if (user instanceof NextResponse) return user;

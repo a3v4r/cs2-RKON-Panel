@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SESSION_COOKIE, resolveSession } from '@/server/session';
 
-// Login check for every page and API call except the login itself and the match config URL that MatchZy downloads.
-// Each API route checks the session itself as well (requireUser).
-// MatchZy event posts and the CS2 chat log are checked by their own token (see /api/events, /api/logs).
+// Login required for everything except login itself and the match config URL MatchZy downloads.
+// API routes also check the session (requireUser).
+// MatchZy events and the CS2 chat log use per-server tokens (see /api/events, /api/logs).
 const PUBLIC_PATHS = ['/login', '/api/login', '/api/matches/config/', '/api/events/', '/api/logs/'];
 
 export async function middleware(req: NextRequest) {
@@ -24,7 +24,7 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  // Node runtime: sessions are checked against data files and PANEL_PASSWORD at run time
+  // node runtime: sessions checked against data files and PANEL_PASSWORD at run time
   runtime: 'nodejs',
   matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 };

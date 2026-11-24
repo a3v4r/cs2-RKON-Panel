@@ -5,8 +5,8 @@ import { eventToken } from '@/server/session';
 
 type Params = { params: Promise<{ serverId: string }> };
 
-// MatchZy remote log: game events for live match stats. Authenticated by the per-server token the panel puts into the
-// match config (matchzy_remote_log_header_*), not by a login.
+// MatchZy remote log for live stats. Auth by the per-server token in the match config
+// (matchzy_remote_log_header_*), not a login.
 export async function POST(req: Request, { params }: Params) {
   const serverId = Number((await params).serverId);
   const expected = Buffer.from(`Bearer ${eventToken(serverId)}`);

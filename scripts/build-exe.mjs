@@ -1,5 +1,5 @@
-// After `npm run package`: Matchdesk.exe = this Node.js + launcher/main.cjs + the standalone panel as a zip inside
-// (Node single executable application, `node --build-sea`, Node 25.5+). Output in dist/.
+// Matchdesk.exe = this node + launcher/main.cjs + standalone panel as app.zip asset.
+// Node SEA via --build-sea, needs Node 25.5+. Run after `npm run package`.
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -12,14 +12,14 @@ const { version } = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 const buildId = fs.readFileSync(path.join(standalone, '.next', 'BUILD_ID'), 'utf8').trim();
 const build = `${version}-${buildId}`;
 
-// The exe's entry cannot import() ES modules (the skins site): this file next to the panel does it for it
+// SEA entry can't import() ESM (skins site); the launcher requires this shim
 fs.writeFileSync(path.join(standalone, 'matchdesk-run.cjs'),
   "module.exports = (file) => import(require('node:url').pathToFileURL(file).href);\n");
 
 fs.rmSync(dist, { recursive: true, force: true });
 fs.mkdirSync(dist);
 const zip = path.join(dist, 'app.zip');
-// tar of Windows 10+ writes zip (-a picks the format by the extension)
+// Windows tar: -a picks zip from the extension
 const tar = process.platform === 'win32' ? path.join(process.env.SystemRoot || 'C:\Windows', 'System32', 'tar.exe') : 'tar';
 execFileSync(tar, ['-a', '-c', '-f', zip, '-C', standalone, '.'], { stdio: 'inherit' });
 fs.writeFileSync(path.join(dist, 'build.txt'), build);
@@ -38,7 +38,7 @@ execFileSync(process.execPath, ['--build-sea', configFile], { stdio: 'inherit' }
 
 fs.rmSync(configFile);
 fs.rmSync(path.join(dist, 'build.txt'));
-// app.zip stays: the same panel for running with your own Node.js (`node server.js`), e.g. on Linux
+// also shipped for plain `node server.js`, e.g. on Linux
 fs.renameSync(zip, path.join(dist, `matchdesk-${version}-app.zip`));
 const mb = (f) => `${Math.round(fs.statSync(f).size / 1024 / 1024)} MB`;
 console.log(`Matchdesk.exe ${build}: ${mb(config.output)}`);

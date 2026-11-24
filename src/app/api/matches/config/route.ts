@@ -5,7 +5,7 @@ import { addressFor } from '@/server/network';
 import { eventToken } from '@/server/session';
 import { servers } from '@/server/store';
 
-// Stores the config and returns the URL the game server downloads it from (/api/matches/config/<id>, public).
+// returns the public URL the game server downloads it from (/api/matches/config/<id>)
 export async function POST(req: Request) {
   const user = await requireUser();
   if (user instanceof NextResponse) return user;
@@ -23,7 +23,7 @@ export async function POST(req: Request) {
   const host = await addressFor(server.host);
   const port = Number(process.env.PORT || 3000);
 
-  // MatchZy sends its events (scores, player stats) back to the panel for the live match tab
+  // MatchZy posts events (scores, player stats) back for the live tab
   const withEvents = {
     ...parsed,
     cvars: {

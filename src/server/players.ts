@@ -4,10 +4,8 @@ import { dataDir } from './accounts';
 import { rconCommand } from './rcon';
 import { StoredServer, servers } from './store';
 
-// Player Management, as on the Quatrix Players page, without the SimpleAdmin plugin:
-// live players from RCON "status", SteamIDs and join / leave events from the server log the panel already
-// receives (see chat-log.ts), kicks with kickid, and a ban list kept by the panel that kicks a banned
-// SteamID as soon as the server logs it connecting.
+// no SimpleAdmin: players from RCON status, SteamIDs and joins from the server log (chat-log.ts),
+// kicks via kickid, panel-side ban list enforced when a banned SteamID connects
 
 export interface JoinEvent {
   t: number;
@@ -44,7 +42,7 @@ const KEEP_JOINS = 500;
 
 const g = globalThis as unknown as {
   joinLogs?: Map<number, JoinEvent[]>;
-  // userid -> what the log said when the player connected, per server
+  // userid -> connect info from the log, per server
   seen?: Map<number, Map<number, { name: string; steamid: string; address?: string }>>;
 };
 const joins = (g.joinLogs ??= new Map<number, JoinEvent[]>());
@@ -53,7 +51,7 @@ const seen = (g.seen ??= new Map<number, Map<number, { name: string; steamid: st
 const joinsFile = (serverId: number) => path.join(dataDir(), 'joins', `${serverId}.jsonl`);
 const bansFile = () => path.join(dataDir(), 'bans.json');
 
-// A deleted server's ID is given to the next new one: its join history must not carry over (bans are panel-wide)
+// server IDs get reused (bans are panel-wide)
 export function clearJoins(serverId: number) {
   joins.delete(serverId);
   seen.delete(serverId);
@@ -81,13 +79,11 @@ function addJoin(serverId: number, e: JoinEvent) {
     fs.appendFileSync(joinsFile(serverId), JSON.stringify(e) + '\n');
     if (fs.statSync(joinsFile(serverId)).size > 300_000) fs.writeFileSync(joinsFile(serverId), list.map((j) => JSON.stringify(j)).join('\n') + '\n');
   } catch {
-    // the live list in memory still works
+    // in-memory list still works
   }
 }
 
 export const joinLog = (serverId: number) => [...loadJoins(serverId)].reverse();
-
-// --- Bans ---
 
 export function listBans(): Ban[] {
   try {
@@ -133,15 +129,11 @@ export function unban(id: number) {
   return ban;
 }
 
-// --- Kick ---
-
 const clean = (s: string) => s.replace(/["\\;\r\n]/g, '').slice(0, 120);
 
 export function kick(server: StoredServer, userid: number, reason: string) {
   return rconCommand(server.host, server.port, server.rcon_password, `kickid ${userid} "${clean(reason) || 'Kicked by referee'}"`);
 }
-
-// --- From the server log ---
 
 function steam64(id: string) {
   const m = /^\[U:1:(\d+)\]$/.exec(id);
@@ -178,8 +170,6 @@ export function ingestPlayerLines(serverId: number, lines: string[]) {
     }
   }
 }
-
-// --- Live players from "status" ---
 
 // CS2: "    3      00:07   50    0     active 196608 127.0.0.1:62546 'Player'"
 const STATUS_ROW = /^\s*(\d+)\s+(\S+)\s+(\d+)\s+(\d+)\s+(\w+)\s+(\d+)\s*(\S+)\s+'(.*)'\s*$/;

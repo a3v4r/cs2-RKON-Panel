@@ -5,8 +5,7 @@ import { queryInfo } from './a2s';
 import { rconCommand } from './rcon';
 import { StoredServer } from './store';
 
-// Map Explorer (as in Quatrix): workshop maps added by the judges and a config per map and server
-// that the panel runs after the map has loaded.
+// workshop maps added by judges, plus a cfg per map and server, run once the map loads
 
 export interface WorkshopMap {
   id: number;
@@ -33,7 +32,7 @@ function saveWorkshop(items: WorkshopMap[]) {
   fs.renameSync(workshopFile() + '.tmp', workshopFile());
 }
 
-// Title and preview from Steam; on a LAN without internet the map is added under its id
+// offline LAN: added under its id
 async function steamDetails(workshopId: string): Promise<{ title?: string; preview?: string }> {
   try {
     const body = new URLSearchParams({ itemcount: '1', 'publishedfileids[0]': workshopId });
@@ -74,8 +73,6 @@ export function removeWorkshop(id: number) {
   saveWorkshop(listWorkshop().filter((m) => m.id !== id));
 }
 
-// --- Config per map and server ---
-
 const safeMap = (map: string) => {
   if (!/^[\w.-]+$/.test(map)) throw new Error('Неверное имя карты');
   return map;
@@ -96,14 +93,12 @@ export function writeMapCfg(serverId: number, map: string, content: string) {
   fs.writeFileSync(file, content);
 }
 
-// Commands of a cfg: one per line, // comments and empty lines skipped
 const cfgCommands = (content: string) =>
   content.split(/\r?\n/).map((l) => l.replace(/\/\/.*$/, '').trim()).filter(Boolean);
 
 const g = globalThis as unknown as { mapCfgJobs?: Map<number, NodeJS.Timeout> };
 const jobs = (g.mapCfgJobs ??= new Map<number, NodeJS.Timeout>());
 
-// After a map change: wait until A2S reports the new map, then send that map's config over RCON
 function applyCfgWhenLoaded(server: StoredServer, map: string) {
   const commands = cfgCommands(readMapCfg(server.id, map));
   const old = jobs.get(server.id);

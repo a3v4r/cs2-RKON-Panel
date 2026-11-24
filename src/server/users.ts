@@ -3,9 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { ADMIN_LOGIN, dataDir } from './accounts';
 
-// Personal accounts (User Management, as in Quatrix), next to the shared account admin. Everyone has full access.
-// Passwords are kept as scrypt hashes; a session carries a fingerprint of the hash, so changing the
-// password or deleting the user ends their sessions.
+// scrypt; sessions carry a hash fingerprint, so a password change or deletion logs the user out
 
 export interface StoredUser {
   id: number;
@@ -42,8 +40,6 @@ function verify(password: string, stored: string) {
   const given = crypto.scryptSync(password, Buffer.from(salt, 'hex'), 32);
   return crypto.timingSafeEqual(given, Buffer.from(key, 'hex'));
 }
-
-// The shared account keeps its name
 
 function checkUsername(username: string) {
   const name = username.trim();
@@ -94,5 +90,5 @@ export function checkLogin(username: string, password: string): StoredUser | nul
   return user;
 }
 
-// role: left in users.json by versions with roles, not used any more
+// drop the legacy role field
 export const publicUser = ({ hash, role, ...rest }: StoredUser & { role?: string }) => rest;

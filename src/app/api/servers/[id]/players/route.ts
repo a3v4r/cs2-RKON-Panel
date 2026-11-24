@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 type Params = { params: Promise<{ id: string }> };
 
-// Players on the server now (RCON "status", SteamIDs from the server log)
+// RCON "status", SteamIDs from the server log
 export async function GET(_req: Request, { params }: Params) {
   const user = await requireUser();
   if (user instanceof NextResponse) return user;

@@ -1,6 +1,5 @@
-// Stock CS2 maps with their pictures: one list for Servers, Maps, Match and Match setup.
-// Pictures of the maps Quatrix had are its .webp; the newer ones are the CS2 map screenshots
-// (panorama/images/map_icons/screenshots) cut to 640x360.
+// Stock CS2 maps with pictures, shared by Servers, Maps, Match and Match setup.
+// Newer maps use CS2 screenshots (panorama/images/map_icons/screenshots) cut to 640x360.
 export interface StockMap {
   name: string;
   displayName: string;
@@ -38,5 +37,4 @@ export const stockMap = (map?: string | null) => {
   return STOCK_MAPS.find((m) => m.name === name || m.aliases?.includes(name));
 };
 
-// The Quatrix getMapImage: stock maps by name (also inside workshop paths), anything else gets a default picture
 export const mapImage = (map?: string | null) => stockMap(map)?.image ?? '/images/maps/de_dust2.webp';

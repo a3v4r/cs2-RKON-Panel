@@ -7,8 +7,8 @@ export const dynamic = 'force-dynamic';
 
 type Params = { params: Promise<{ serverId: string; token: string }> };
 
-// CS2 log over HTTP (logaddress_add_http). The game server cannot log in and cannot send headers here,
-// so the per-server token is part of the URL.
+// CS2 log over HTTP (logaddress_add_http). The game server cannot log in or send headers,
+// so the per-server token is in the URL.
 export async function POST(req: Request, { params }: Params) {
   const { serverId, token } = await params;
   const id = Number(serverId);

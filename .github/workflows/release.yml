@@ -23,7 +23,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Matchdesk.exe: Node.js + launcher/main.cjs + the panel inside (scripts/build-exe.mjs, needs Node 25.5+)
+      # --build-sea needs Node 25.5+
       - name: Build Matchdesk.exe
         run: npm run exe
 

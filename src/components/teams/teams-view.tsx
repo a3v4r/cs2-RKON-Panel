@@ -7,13 +7,11 @@ import { useT } from '@/lib/i18n';
 import { copyText } from '@/lib/clipboard';
 import { MAX_PLAYERS, Team, TeamInput, teamsApi, toSteamId64 } from '@/lib/teams';
 
-// Team library, in the style of the Match setup page: a toolbar, team cards and an editor dialog
 export function TeamsView() {
   const { t } = useT();
   const [teams, setTeams] = React.useState<Team[] | null>(null);
   const [error, setError] = React.useState('');
   const [search, setSearch] = React.useState('');
-  // Editor: a team to edit, 'new' or closed
   const [editing, setEditing] = React.useState<Team | 'new' | null>(null);
   const [copied, setCopied] = React.useState<string | null>(null);
 
@@ -38,7 +36,7 @@ export function TeamsView() {
       setCopied(id);
       setTimeout(() => setCopied(null), 1500);
     } catch {
-      // the id stays visible to copy by hand
+      // id stays visible to copy by hand
     }
   };
 
@@ -50,7 +48,6 @@ export function TeamsView() {
 
   return (
     <div className="p-3 md:p-6 space-y-4 md:space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {/* Toolbar */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <div className="relative group flex-1 sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4 group-focus-within:text-primary transition-colors" />
@@ -159,12 +156,12 @@ function TeamDialog({ team, onClose, onSaved }: { team: Team | null; onClose: ()
 
   const setPlayer = (i: number, key: keyof PlayerRow, value: string) =>
     setPlayers((list) => list.map((p, j) => (j === i ? { ...p, [key]: value } : p)));
-  // A pasted STEAM_0:1:... or [U:1:...] becomes SteamID64 when the field is left
+  // STEAM_0:1:... or [U:1:...] -> SteamID64 on blur
   const normalize = (i: number) =>
     setPlayers((list) => list.map((p, j) => (j === i ? { ...p, steamid: toSteamId64(p.steamid) ?? p.steamid.trim() } : p)));
 
   const save = async () => {
-    // Empty rows are dropped; a row with a name but no SteamID is an error from the server
+    // empty rows dropped; a name without SteamID is rejected by the server
     const body: TeamInput = { name, tag, flag, players: players.filter((p) => p.steamid.trim() || p.name.trim()) };
     setBusy(true);
     setError('');
@@ -269,7 +266,6 @@ function TeamDialog({ team, onClose, onSaved }: { team: Team | null; onClose: ()
 export const teamInitials = (team: { name: string; tag?: string }) =>
   (team.tag?.trim() || team.name.trim().split(/\s+/).map((w) => w[0]).join('')).slice(0, 3).toUpperCase() || '?';
 
-// Quatrix design tokens, the same as on the Match setup page
 const CARD = 'bg-card rounded-2xl border border-gray-800 shadow-2xl';
 const BTN = 'inline-flex items-center justify-center gap-2 px-5 py-1.5 text-sm rounded-xl font-bold h-[38px] transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap';
 const ICON_BTN = 'flex items-center justify-center p-2 rounded-xl border border-gray-800 text-gray-400 hover:text-white hover:bg-white/5 active:scale-95 transition-all shrink-0';

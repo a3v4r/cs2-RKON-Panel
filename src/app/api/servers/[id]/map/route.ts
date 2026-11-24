@@ -5,7 +5,7 @@ import { servers } from '@/server/store';
 
 type Params = { params: Promise<{ id: string }> };
 
-// Change the map (stock or workshop); the map's config is applied once it has loaded
+// stock or workshop; the map config is applied once it loads
 export async function POST(req: Request, { params }: Params) {
   const user = await requireUser();
   if (user instanceof NextResponse) return user;

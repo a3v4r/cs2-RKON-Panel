@@ -12,7 +12,6 @@ const idOf = async (params: Params['params']) => {
   return `${scope}/${name}`;
 };
 
-// Download the archive
 export async function GET(_req: Request, { params }: Params) {
   const user = await requireUser();
   if (user instanceof NextResponse) return user;
@@ -30,7 +29,6 @@ export async function GET(_req: Request, { params }: Params) {
   }
 }
 
-// Restore from the archive
 export async function POST(_req: Request, { params }: Params) {
   const user = await requireUser();
   if (user instanceof NextResponse) return user;

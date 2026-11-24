@@ -7,7 +7,7 @@ const SERVERDATA_AUTH_RESPONSE = 2;
 const SERVERDATA_EXECCOMMAND = 2;
 
 const CONNECT_TIMEOUT_MS = 4000;
-const FIRST_REPLY_TIMEOUT_MS = 1500; // commands like "say" never answer
+const FIRST_REPLY_TIMEOUT_MS = 1500; // "say" etc. never answer
 const QUIET_AFTER_REPLY_MS = 250;
 const TOTAL_TIMEOUT_MS = 8000;
 

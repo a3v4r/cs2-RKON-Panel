@@ -20,7 +20,7 @@ export async function GET(_req: Request, { params }: Params) {
   return NextResponse.json(listBackups(scope));
 }
 
-// JSON body: create a backup now. multipart/form-data with "backup": upload an external zip.
+// JSON body: back up now. multipart "backup": upload an external zip.
 export async function POST(req: Request, { params }: Params) {
   const user = await requireUser();
   if (user instanceof NextResponse) return user;

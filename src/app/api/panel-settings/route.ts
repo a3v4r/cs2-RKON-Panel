@@ -29,7 +29,7 @@ export async function GET() {
   return NextResponse.json(view());
 }
 
-// Any subset of: cs2Dir, steamcmd, panelName, defaultPort, chatPrefix
+// any subset of: cs2Dir, steamcmd, panelName, defaultPort, chatPrefix
 export async function PUT(req: Request) {
   const user = await requireUser();
   if (user instanceof NextResponse) return user;
@@ -54,12 +54,12 @@ export async function PUT(req: Request) {
   return NextResponse.json(view());
 }
 
-// Plugin configs for the next start; MatchZy on running servers right away (WeaponPaints reads it on start)
+// plugin configs apply on next start; MatchZy also on running servers (WeaponPaints reads on start)
 async function applyChatPrefixNow() {
   try {
     applyChatPrefix();
   } catch {
-    // config written again on the next server start
+    // rewritten on next server start
   }
   const states = allStates();
   await Promise.allSettled(servers.list()

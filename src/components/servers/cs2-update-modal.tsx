@@ -21,11 +21,11 @@ interface UpdateInfo {
   installed: boolean;
   steamcmd: string;
   steamcmdFound: boolean;
-  // Only when the panel runs as Matchdesk.exe: Windows firewall rules for it and for cs2.exe
+  // Matchdesk.exe only: firewall rules for it and cs2.exe
   firewall: { app: boolean; cs2: boolean | null } | null;
 }
 
-// "Install / update CS2": steamcmd app_update 730 validate into the server folder (steamcmd is downloaded when missing)
+// steamcmd app_update 730 validate into the server folder; steamcmd downloaded if missing
 export function Cs2UpdateModal({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const [info, setInfo] = React.useState<UpdateInfo | null>(null);
   const [error, setError] = React.useState('');
@@ -62,7 +62,7 @@ export function Cs2UpdateModal({ open, onOpenChange }: { open: boolean; onOpenCh
 
   const running = info?.running ?? false;
   const finished = !running && info?.finishedAt;
-  // No cs2.exe yet: the same steamcmd run installs it from scratch
+  // no cs2.exe yet: same steamcmd run installs it
   const install = info ? !info.installed : false;
 
   return (

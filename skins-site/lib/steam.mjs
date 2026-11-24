@@ -1,4 +1,3 @@
-// Name and avatar from the public profile; cached, the page works without them
 const profiles = new Map();
 const PROFILE_TTL_MS = 3600_000;
 
@@ -17,7 +16,7 @@ export async function steamProfile(steamId) {
     const avatar = cdata(xml, 'avatarMedium');
     profile = { name: cdata(xml, 'steamID'), avatar: avatar?.startsWith('https://') ? avatar : null };
   } catch {
-    // Steam is slow or down: show the SteamID instead
+    // Steam slow or down: page falls back to the SteamID
   }
   profiles.set(steamId, { at: Date.now(), profile });
   return profile;

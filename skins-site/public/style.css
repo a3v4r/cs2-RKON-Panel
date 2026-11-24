@@ -37,7 +37,7 @@ h3 { margin: 0; font-size: 18px; }
 .error { color: var(--danger); }
 .boot { padding: 40vh 16px; text-align: center; color: var(--muted); }
 
-/* ---- header ---- */
+/* header */
 .top {
   position: sticky; top: 0; z-index: 20;
   display: flex; align-items: center; gap: 16px;
@@ -69,7 +69,7 @@ h3 { margin: 0; font-size: 18px; }
 .link { background: none; border: 0; color: var(--muted); cursor: pointer; padding: 4px; }
 .link:hover { color: var(--text); }
 
-/* ---- layout ---- */
+/* layout */
 .layout { display: grid; grid-template-columns: 220px 1fr; max-width: 1480px; margin: 0 auto; }
 nav.side {
   position: sticky; top: 57px; align-self: start;
@@ -93,7 +93,7 @@ nav.side a.active { background: var(--panel-2); color: var(--text); box-shadow: 
 .search:focus, input:focus-visible { border-color: var(--accent); }
 .empty { text-align: center; padding: 30px 0; }
 
-/* ---- tiles ---- */
+/* tiles */
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
 .grid-top { margin-bottom: 12px; }
 .grid-small { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
@@ -123,7 +123,7 @@ nav.side a.active { background: var(--panel-2); color: var(--text); box-shadow: 
 .badge-t { background: var(--t); color: #1d1405; }
 .badge-ct { background: var(--ct); color: #06121f; }
 
-/* ---- modal ---- */
+/* modal */
 .overlay {
   position: fixed; inset: 0; z-index: 50;
   background: rgba(5, 7, 10, .7); backdrop-filter: blur(4px);
@@ -201,7 +201,7 @@ nav.side a.active { background: var(--panel-2); color: var(--text); box-shadow: 
 .btn.ghost.busy::after { border-color: var(--text); border-right-color: transparent; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ---- login ---- */
+/* login */
 .login { min-height: 100vh; display: grid; place-items: center; padding: 16px;
   background: radial-gradient(circle at 30% 20%, rgba(240, 160, 48, .12), transparent 45%), radial-gradient(circle at 80% 90%, rgba(91, 157, 232, .1), transparent 45%);
 }
@@ -214,7 +214,7 @@ nav.side a.active { background: var(--panel-2); color: var(--text); box-shadow: 
   width: 28px; height: 28px; margin: 4px auto 0; border-radius: 50%;
   border: 3px solid var(--line); border-top-color: var(--accent); animation: spin .8s linear infinite;
 }
-/* ---- toast ---- */
+/* toast */
 .toast {
   position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px); z-index: 80;
   background: var(--panel-3); border: 1px solid var(--line); border-left: 4px solid var(--ok);
@@ -224,7 +224,7 @@ nav.side a.active { background: var(--panel-2); color: var(--text); box-shadow: 
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 .toast.error { border-left-color: var(--danger); }
 
-/* ---- phones ---- */
+/* phones */
 @media (max-width: 860px) {
   .top { flex-wrap: wrap; padding: 10px 16px; gap: 10px; }
   .side-switch { order: 3; width: 100%; margin: 0; }

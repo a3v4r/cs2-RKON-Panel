@@ -6,8 +6,7 @@ import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { useT } from '@/lib/i18n'
 
-// User Management, laid out as the Quatrix Users page (table + modal). Everyone has full access: the shared
-// account admin (password in matchdesk.ini) and personal accounts added here (no open registration).
+// Everyone has full access: shared admin (password in matchdesk.ini) plus personal accounts. No open registration.
 
 interface User {
   id: number

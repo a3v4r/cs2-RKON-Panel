@@ -4,7 +4,6 @@ import { unban } from '@/server/players';
 
 type Params = { params: Promise<{ id: string }> };
 
-// Unban
 export async function DELETE(_req: Request, { params }: Params) {
   const user = await requireUser();
   if (user instanceof NextResponse) return user;

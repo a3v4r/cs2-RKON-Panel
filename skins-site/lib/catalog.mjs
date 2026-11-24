@@ -3,13 +3,12 @@ import path from 'node:path';
 import { config } from './config.mjs';
 import { localImage, imageName } from './images.mjs';
 
-// Item lists the plugin itself uses (its data folder), in the configured language
-// Every picture is fetched in advance (~1.4 GB with 9 600+ stickers), stickers last
+// images to prefetch, ~1.4 GB; stickers load last so they queue last
 const prefetch = new Set();
 
-// Music ("Valve — CS:GO") and a few stickers use long dashes: shown as a plain hyphen
+// long dashes (U+2013/U+2014) in music and some sticker names -> plain hyphen
 const NAME_FIELDS = ['name', 'paint_name', 'agent_name'];
-const plainDashes = (text) => text.replace(/\s*[–—]\s*/g, ' - ');
+const plainDashes = (text) => text.replace(/\s*[\u2013\u2014]\s*/g, ' - ');
 
 function load(kind) {
   for (const lang of [config.language, 'en']) {
@@ -102,7 +101,6 @@ function build() {
 
 export const catalog = build();
 
-// Fast checks for incoming saves
 export const weaponByDefindex = new Map(catalog.weapons.map((w) => [w.defindex, w]));
 export const knifeClasses = new Set(catalog.weapons.filter((w) => w.category === 'knives').map((w) => w.class));
 export const paintsByDefindex = new Map(Object.entries(catalog.skins).map(([d, list]) => [Number(d), new Set(list.map((s) => s.paint))]));
@@ -112,7 +110,7 @@ export const pinIds = new Set(catalog.pins.map((p) => p.id));
 export const keychainIds = new Set(catalog.keychains.map((k) => k.id));
 export const agentModels = new Map(catalog.agents.map((a) => [a.model, a.team]));
 
-// 9 600+ stickers: searched on the server, not sent to the page whole
+// 9600+ stickers: searched server-side, too many to send to the page
 const stickers = load('stickers').map((s) => ({ id: Number(s.id), name: String(s.name), image: s.image ?? '' }));
 const stickerById = new Map(stickers.map((s) => [s.id, s]));
 const stickerSearch = stickers.map((s) => s.name.toLowerCase());

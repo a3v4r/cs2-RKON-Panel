@@ -10,7 +10,7 @@ import { CustomSelect } from '@/components/ui/custom-select';
 import { STOCK_MAPS, mapImage } from '@/lib/maps';
 
 interface CreateServerWizardProps {
-  // Panel-run server to edit; without it a new one is created
+  // panel-run server to edit; absent = create new
   server?: ServerProfile | null;
   servers: ServerProfile[];
   onDone: () => void;
@@ -125,7 +125,7 @@ function editForm(server: ServerProfile): Form {
   };
 }
 
-// "Create New CS2 Instance" from Quatrix: a three-step wizard. The panel writes the cfg and starts cs2.exe itself.
+// Three-step wizard. The panel writes the cfg and starts cs2.exe itself.
 export function CreateServerWizard({ server, servers, onDone }: CreateServerWizardProps) {
   const { t, lang } = useT();
   const editing = !!server?.managed;
@@ -137,7 +137,7 @@ export function CreateServerWizard({ server, servers, onDone }: CreateServerWiza
 
   React.useEffect(() => {
     api<{ addresses: string[] }>('/api/network').then((n) => setInterfaces(n.addresses)).catch(() => {});
-    // Ports of a new server start from the default port set in the panel settings
+    // new server ports start from the default port in panel settings
     if (!editing) api<{ defaultPort: number }>('/api/panel-settings').then((st) => setForm(newForm(servers, st.defaultPort))).catch(() => {});
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -184,7 +184,7 @@ export function CreateServerWizard({ server, servers, onDone }: CreateServerWiza
         try {
           await db_helper.serverProcess(saved.id, 'start');
         } catch (e) {
-          // The server is created; why it did not start is shown in the list as well
+          // server is created; the start error also shows in the list
           alert(`${t('Сервер создан, но не запустился', 'The server was created but did not start')}: ${(e as Error).message}`);
         }
       }
@@ -230,7 +230,6 @@ export function CreateServerWizard({ server, servers, onDone }: CreateServerWiza
       </div>
 
       <div className="bg-card rounded-2xl border border-gray-800 overflow-hidden shadow-2xl">
-        {/* Stepper */}
         <div className="px-4 md:px-8 py-6 border-b border-gray-800 bg-card">
           <div className="flex justify-between items-center max-w-2xl">
             {steps.map((label, i) => (

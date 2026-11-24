@@ -33,7 +33,7 @@ export function ServerModal({ open, onOpenChange, onSave, server }: ServerModalP
 
   useEffect(() => {
     if (server) {
-      // The stored password is never sent to the browser: empty field = keep it
+      // stored password never reaches the browser: empty = keep
       setFormData({ ...server, rcon_password: '' })
     } else {
       setFormData({

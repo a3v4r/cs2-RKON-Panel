@@ -48,12 +48,11 @@ export default function Home() {
   const [serverInfo, setServerInfo] = useState<any>(INITIAL_INFO);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingServer, setEditingServer] = useState<ServerProfile | null>(null);
-  // "Create server" dialog: new server (null) or launch settings of a panel-run one
+  // create dialog: null = new server, else a panel-run one to edit
   const [createOpen, setCreateOpen] = useState(false);
   const [editingManaged, setEditingManaged] = useState<ServerProfile | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [me, setMe] = useState<{ name?: string } | null>(null);
-  // Ping and player count of the selected server over the last minutes, for the overview charts
   const [history, setHistory] = useState<ServerSample[]>([]);
 
   const loadServers = async () => {
@@ -77,7 +76,6 @@ export default function Home() {
     try { localStorage.setItem(ACTIVE_SERVER_KEY, String(id)); } catch {}
   };
 
-  // Poll server info
   React.useEffect(() => {
     if (!activeServerId) return;
     
@@ -99,7 +97,7 @@ export default function Home() {
           name: server.name,
           status: 'offline'
         });
-        // A dropped server shows up on the charts as a fall to zero
+        // offline shows on the charts as a drop to zero
         setHistory((h) => [...h.slice(-(HISTORY_POINTS - 1)), { t: Date.now(), ping: 0, players: 0 }]);
       }
     };
@@ -152,7 +150,7 @@ export default function Home() {
     if (confirm(t('Удалить этот сервер?', 'Delete this server?'))) {
       try {
         await db_helper.deleteServer(id);
-        // loadServers moves the selection to another server if this one was selected
+        // loadServers moves the selection off this server
         await loadServers();
       } catch (error) {
         alert(`${t('Не удалось удалить сервер', 'Could not delete the server')}: ${(error as Error).message}`);
@@ -201,8 +199,8 @@ export default function Home() {
       selectedServer.id!,
       `matchzy_loadmatch_url "${url}"`
     );
-    // MatchZy loads the config before answering, so the server must now report this match id;
-    // it refuses (in its console reply) while another match is loaded, including the ~2 min after a match ends.
+    // MatchZy loads the config before replying, so the server must now report this match id.
+    // Refused (in the console reply) while another match is loaded, incl. ~2 min after a match ends.
     const status = await sendRconCommand(selectedServer.id!, 'get5_status')
       .then((out) => JSON.parse(out.slice(out.indexOf('{'))))
       .catch(() => null);
@@ -227,7 +225,6 @@ export default function Home() {
 
   return (
     <div className="flex h-[100dvh] w-full bg-background text-white">
-      {/* Sidebar: static on desktop, drawer on phones */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden" onClick={() => setSidebarOpen(false)} />
       )}
@@ -240,9 +237,7 @@ export default function Home() {
         />
       </div>
 
-      {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Phone top bar */}
         <header className="flex items-center justify-between gap-3 px-4 py-3 bg-sidebar border-b border-border md:hidden">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-8 h-8 shrink-0 rounded-lg bg-gradient-to-br from-primary to-blue-700 flex items-center justify-center">
@@ -260,8 +255,7 @@ export default function Home() {
         </header>
 
         <div className="flex-1 flex flex-col overflow-auto">
-          {/* Page header: title on the left; language, server and status on the right, as in Quatrix.
-              The Servers page draws its own header with the Instances toolbar. */}
+          {/* Servers page draws its own header */}
           {activeTab !== 'servers' && (<header className="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4 px-3 md:px-6 pt-3 md:pt-6">
             <div className="hidden md:block min-w-0">
               <h1 className="text-2xl font-bold text-white tracking-tight">{(SECTIONS[activeTab].title ?? SECTIONS[activeTab].label)[lang]}</h1>

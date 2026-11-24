@@ -6,8 +6,7 @@ import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { useT } from '@/lib/i18n'
 
-// The Agent tab: a chat with a language model that reads the servers through the panel (src/server/agent.ts).
-// Actions it proposes (RCON, start / stop) wait for "Run". The conversation is kept in this browser.
+// LLM agent over the panel API (src/server/agent.ts). Proposed RCON / start / stop wait for "Run"; chat kept in this browser.
 
 interface ToolCall { id: string; type: 'function'; function: { name: string; arguments: string } }
 interface Message { role: 'user' | 'assistant' | 'tool'; content: string | null; tool_calls?: ToolCall[]; tool_call_id?: string }
@@ -40,7 +39,7 @@ export function AgentView({ selectedServerId }: { selectedServerId?: number | nu
   const [busy, setBusy] = React.useState(false)
   const [error, setError] = React.useState('')
   const listRef = React.useRef<HTMLDivElement>(null)
-  // The saved conversation is read once; saving before that would overwrite it with the empty start state
+  // load the saved chat first, or the empty initial state overwrites it
   const [loaded, setLoaded] = React.useState(false)
 
   React.useEffect(() => {
@@ -76,7 +75,7 @@ export function AgentView({ selectedServerId }: { selectedServerId?: number | nu
         const data = await res.json().catch(() => ({}))
         throw new Error(data.error || `HTTP ${res.status}`)
       }
-      // One JSON event per line: each new message as the agent works, then the whole conversation
+      // NDJSON: one event per new message, then the full conversation
       const reader = res.body.getReader()
       const decoder = new TextDecoder()
       let buffer = ''
@@ -98,7 +97,7 @@ export function AgentView({ selectedServerId }: { selectedServerId?: number | nu
       if (!done) throw new Error(t('Связь с панелью оборвалась посреди ответа', 'The connection to the panel dropped mid-answer'))
     } catch (e) {
       setError((e as Error).message)
-      // Decisions not sent: offer them again
+      // decisions not sent, offer them again
       if (decided) setPending(pending)
     } finally {
       setBusy(false)
@@ -126,14 +125,13 @@ export function AgentView({ selectedServerId }: { selectedServerId?: number | nu
     setError('')
   }
 
-  // Results of tool calls, to show under each call
   const results = React.useMemo(() => {
     const map = new Map<string, string>()
     for (const m of messages) if (m.role === 'tool' && m.tool_call_id) map.set(m.tool_call_id, m.content ?? '')
     return map
   }, [messages])
 
-  // Calls of the last assistant message still running (no result yet, not waiting for the user)
+  // calls of the last message still running (no result, not awaiting the user)
   const pendingIds = new Set(pending.map((p) => p.id))
   const running = busy && messages.some((m) => m.tool_calls?.some((c) => !results.has(c.id) && !pendingIds.has(c.id)))
 

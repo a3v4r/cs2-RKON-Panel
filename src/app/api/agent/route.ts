@@ -4,10 +4,10 @@ import { SessionUser } from '@/server/session';
 import { agentTurn, agentView, listModels, saveAgentSettings } from '@/server/agent';
 
 export const dynamic = 'force-dynamic';
-// A turn may take several model calls
+// a turn may take several model calls
 export const maxDuration = 300;
 
-// Only the shared account admin may use the agent: it can do anything the panel can, with that account's rights
+// shared admin only: the agent can do anything the panel can, with that account
 async function requireAdmin() {
   const user = await requireUser();
   if (user instanceof NextResponse) return user;
@@ -21,7 +21,7 @@ export async function GET() {
   return NextResponse.json(agentView());
 }
 
-// Connection settings: { baseUrl?, apiKey?, model? }
+// body: { baseUrl?, apiKey?, model? }
 export async function PUT(req: Request) {
   const user = await requireAdmin();
   if (user instanceof NextResponse) return user;
@@ -32,7 +32,7 @@ export async function PUT(req: Request) {
   }
 }
 
-// { action: 'models' } | { messages, decisions? } - one turn of the chat
+// { action: 'models' } | { messages, decisions? } - one chat turn
 export async function POST(req: Request) {
   const user = await requireAdmin();
   if (user instanceof NextResponse) return user;
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
     const ctx = { cookie: req.headers.get('cookie') ?? undefined, selectedServerId: Number(body.selectedServerId) || undefined };
     if (!body.stream) return NextResponse.json(await agentTurn(body.messages, body.decisions, user, ctx));
 
-    // The chat shows the steps as they happen: one JSON event per line, the whole conversation at the end
+    // NDJSON: steps as they happen, full conversation at the end
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {

@@ -10,7 +10,6 @@ const LANGS: { id: Lang; flag: string; label: string }[] = [
   { id: 'en', flag: '🇬🇧', label: 'English' },
 ];
 
-// Language dropdown, styled as the one on the Quatrix dashboard
 export function LanguageMenu() {
   const { lang, setLang, t } = useT();
   const [open, setOpen] = React.useState(false);

@@ -5,14 +5,13 @@ export interface ServerProfile {
   name: string;
   host: string;
   port: number;
-  // Only sent when saving; the panel server never returns it (has_password instead)
+  // only sent when saving; the server returns has_password instead
   rcon_password: string;
   has_password?: boolean;
   country_code?: string;
   created_at?: string;
-  // Set for servers the panel starts itself on its own PC
   managed?: ManagedConfig;
-  // Server without MatchZy (Vanilla mode); missing = MatchZy ('matchzy' is only sent to switch back)
+  // missing = MatchZy ('matchzy' only sent to switch back)
   mode?: 'vanilla' | 'matchzy';
 }
 
@@ -23,19 +22,19 @@ export interface ManagedConfig {
   password: string;
   bindIp: string;
   autoRestart: boolean;
-  // Game mode (game_type / game_mode), as the Quatrix "Game Alias"
+  // game_type / game_mode
   gameMode?: GameMode;
-  // Workshop map id to start with instead of `map` (host_workshop_map)
+  // host_workshop_map, used instead of `map`
   workshopMap?: string;
-  gslt?: string; // Game Server Login Token (sv_setsteamaccount)
+  gslt?: string; // sv_setsteamaccount
   vac?: boolean; // false = -insecure
   hibernate?: boolean; // sv_hibernate_when_empty
   tv?: boolean; // tv_enable (GOTV)
   lan?: boolean; // sv_lan
   priority?: Priority; // Windows process priority of cs2.exe
-  extraArgs?: string; // more launch arguments
-  extraCfg?: string; // more lines for the server cfg
-  hideConsole?: boolean; // start cs2.exe without a console window (default: hidden)
+  extraArgs?: string;
+  extraCfg?: string;
+  hideConsole?: boolean; // hidden by default
 }
 
 export const GAME_MODES = ['competitive', 'wingman', 'casual', 'deathmatch', 'armsrace', 'demolition', 'training', 'custom'] as const;

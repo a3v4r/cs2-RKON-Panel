@@ -9,8 +9,8 @@ export const dynamic = 'force-dynamic';
 
 type Params = { params: Promise<{ id: string }> };
 
-// Live match view: the current state from the game server (get5_status, A2S) plus what MatchZy events told us
-// (player stats, rounds, kills). Events only arrive for matches started from the panel.
+// get5_status + A2S, plus MatchZy events (stats, rounds, kills).
+// Events only arrive for matches started from the panel.
 export async function GET(_req: Request, { params }: Params) {
   const user = await requireUser();
   if (user instanceof NextResponse) return user;
@@ -38,13 +38,13 @@ export async function GET(_req: Request, { params }: Params) {
           matchid: status.matchid,
           mapNumber: status.map_number,
           round: status.round_number,
-          // Our MatchZy fork only: what the in-game timer shows (phase, seconds left)
+          // our MatchZy fork only: in-game timer (phase, seconds left)
           clock: status.round_clock ?? null,
           team1: status.team1 ? { name: status.team1.name, score: status.team1.current_map_score, series: status.team1.series_score, side: status.team1.side } : null,
           team2: status.team2 ? { name: status.team2.name, score: status.team2.current_map_score, series: status.team2.series_score, side: status.team2.side } : null,
         }
       : null,
-    // Stats of the match currently on the server, or of the last finished one when nothing is loaded
+    // current match, or the last finished one when nothing is loaded
     live: sameMatch || !status || status.gamestate === 'none' ? live : null,
   });
 }

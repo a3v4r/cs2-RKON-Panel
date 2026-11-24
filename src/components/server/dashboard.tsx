@@ -47,16 +47,15 @@ interface ServerDashboardProps {
   onSendCommand: (command: string) => Promise<string>;
   onNavigate: (section: Section) => void;
   onAddServer: () => void;
-  // Custom quick commands can be added/removed by admins only
   canManage: boolean;
-  // Server without MatchZy: start and pauses by plain cvars
+  // no MatchZy: start and pauses via plain cvars
   vanilla?: boolean;
 }
 
 export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate, onAddServer, canManage, vanilla }: ServerDashboardProps) {
   const { t, locale, lang } = useT();
   const control = controlCommands(vanilla ? 'vanilla' : 'matchzy');
-  // MatchZy knife round toggle: the state is known only from the server's answer to the last toggle
+  // knife state is known only from the reply to the last toggle
   const [knife, setKnife] = React.useState<boolean | null>(null);
   const toggleKnife = async () => {
     try {
@@ -65,13 +64,12 @@ export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate
       setKnife(null);
     }
   };
-  // Average of the ping chart (the samples while the server answered)
+  // only samples where the server answered
   const pings = history.filter((s) => s.ping > 0).map((s) => s.ping);
   const avgPing = pings.length ? Math.round(pings.reduce((a, b) => a + b, 0) / pings.length) : null;
   const [system, setSystem] = React.useState<SystemInfo | null>(null);
   const [audit, setAudit] = React.useState<AuditEntry[] | null>(null);
 
-  // Panel PC load and the latest judge actions refresh while the overview is open
   React.useEffect(() => {
     if (!canManage) return;
     const load = () => {
@@ -127,7 +125,6 @@ export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate
 
   return (
     <div className="w-full p-3 md:p-6 flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {/* Stats Summary Cards, as on the Quatrix dashboard */}
       <div className="order-1 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard
           title={t('Статус', 'Status')}
@@ -147,8 +144,7 @@ export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate
         <StatCard title={t('Пинг', 'Ping')} value={t(`${serverInfo.ping} мс`, `${serverInfo.ping} ms`)} icon={<Wifi size={18} />} color="text-blue-500" description={avgPing === null ? t('Задержка до сервера', 'Latency to the server') : t(`в среднем ${avgPing} мс (по графику)`, `${avgPing} ms on average (chart)`)} />
       </div>
 
-      {/* Real-time monitoring cards, as the Quatrix CPU / RAM / Network / Disk cards */}
-      {/* Four in a row only from 1400px: narrower, the titles and values do not fit side by side */}
+      {/* 4 columns only from 1400px, titles and values do not fit narrower */}
       <div className="order-3 md:order-2 grid grid-cols-1 md:grid-cols-2 min-[1400px]:grid-cols-4 gap-4 md:gap-6">
         <ChartCard
           title={t('Пинг', 'Ping')}
@@ -191,7 +187,6 @@ export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate
         />
       </div>
 
-      {/* Quick Actions: our match controls in a Quatrix card container */}
       <div className="order-2 md:order-3 p-4 sm:p-6 bg-card rounded-2xl border border-gray-800/60 shadow-lg shadow-black/20 flex flex-col">
         <div className="flex items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-3 min-w-0">
@@ -272,14 +267,12 @@ export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate
         )}
       </div>
 
-      {/* Team names before the start, from the team library */}
       {canManage && (
         <div className="order-2 md:order-3">
           <TeamNamesCard onSendCommand={onSendCommand} onOpenLibrary={() => onNavigate('teams')} />
         </div>
       )}
 
-      {/* Shortcuts, as the Quatrix Quick Actions bar */}
       <div className="order-4">
         <SectionLabel>{t('Быстрый переход', 'Shortcuts')}</SectionLabel>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
@@ -290,7 +283,6 @@ export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate
         </div>
       </div>
 
-      {/* Latest judge actions, as the Quatrix activity feed */}
       {canManage && (
         <div className="order-5">
           <SectionLabel>{t('Последние действия', 'Recent actions')}</SectionLabel>
@@ -345,12 +337,11 @@ export function ServerDashboard({ serverInfo, history, onSendCommand, onNavigate
   );
 }
 
-// Section heading above a block, as "QUICK ACTIONS" on the Quatrix dashboard
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return <h2 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4 pl-1">{children}</h2>;
 }
 
-// Tailwind needs the full class names in the source, so every chart color is spelled out
+// full class names so Tailwind picks them up
 const CHART_TONES = {
   blue: { hex: '#3b82f6', chip: 'bg-blue-500/10 text-blue-500 group-hover:bg-blue-500/20', value: 'text-blue-500', border: 'hover:border-blue-500/30', glow: 'bg-blue-500/5 group-hover:bg-blue-500/10' },
   purple: { hex: '#a855f7', chip: 'bg-purple-500/10 text-purple-500 group-hover:bg-purple-500/20', value: 'text-purple-500', border: 'hover:border-purple-500/30', glow: 'bg-purple-500/5 group-hover:bg-purple-500/10' },
@@ -358,7 +349,7 @@ const CHART_TONES = {
   orange: { hex: '#f97316', chip: 'bg-orange-500/10 text-orange-500 group-hover:bg-orange-500/20', value: 'text-orange-500', border: 'hover:border-orange-500/30', glow: 'bg-orange-500/5 group-hover:bg-orange-500/10' },
 } as const;
 
-// Smooth line through the points without overshoot (monotone cubic, the curve recharts draws for type="monotone")
+// monotone cubic, no overshoot (same as recharts type="monotone")
 function monotonePath(pts: number[][]) {
   const n = pts.length;
   if (n < 3) return pts.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
@@ -381,7 +372,6 @@ function monotonePath(pts: number[][]) {
   return d;
 }
 
-// Monitoring card with a filled area chart, as the Quatrix CPU / RAM / Network / Disk cards
 function ChartCard({ title, subtitle, value, unit, icon, tone, data, max }: {
   title: string; subtitle: string; value: string; unit: string; icon: React.ReactNode; tone: keyof typeof CHART_TONES; data: { t: number; v: number }[]; max?: number;
 }) {
@@ -413,7 +403,7 @@ function ChartCard({ title, subtitle, value, unit, icon, tone, data, max }: {
           <div className="flex items-center gap-3 min-w-0">
             <div className={cn('p-2.5 rounded-xl transition-colors shrink-0', c.chip)}>{icon}</div>
             <div className="min-w-0">
-              {/* Wraps at spaces instead of running into the value */}
+              {/* wrap at spaces, not into the value */}
               <h3 className="text-xs font-black text-white uppercase tracking-wider leading-tight">{title}</h3>
               <p className="text-[9px] text-gray-500 font-bold truncate">{subtitle}</p>
             </div>
@@ -476,7 +466,6 @@ function ChartCard({ title, subtitle, value, unit, icon, tone, data, max }: {
   );
 }
 
-// Navigation tile, as the Quatrix Quick Actions buttons
 function ShortcutTile({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick: () => void }) {
   return (
     <button
@@ -491,7 +480,6 @@ function ShortcutTile({ icon, label, onClick }: { icon: React.ReactNode; label: 
   );
 }
 
-// Summary card, as the Quatrix Servers / Players / Uptime / Maps cards
 function StatCard({ title, value, icon, description, color }: { title: string, value: string, icon: React.ReactNode, description: string, color: string }) {
   return (
     <div className="p-4 sm:p-6 bg-card rounded-2xl border border-gray-800/60 hover:border-white/10 transition-all hover:translate-y-[-2px] group shadow-lg shadow-black/20 min-w-0">

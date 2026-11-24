@@ -19,7 +19,6 @@ interface CustomSelectProps<V extends string | number> {
   className?: string;
 }
 
-// The Quatrix CustomSelect: a button with the chosen option and a dropdown list under it
 export function CustomSelect<V extends string | number>({ options, value, onChange, placeholder, icon, size = 'md', className }: CustomSelectProps<V>) {
   const [open, setOpen] = React.useState(false);
   const ref = React.useRef<HTMLDivElement>(null);

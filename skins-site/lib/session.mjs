@@ -1,8 +1,7 @@
 import crypto from 'node:crypto';
 import { config } from './config.mjs';
 
-// Login cookie: SteamID + how he logged in, signed. No Max-Age: the browser drops it when closed
-// (club PCs are shared). The site also checks on every request that the player is still on the server.
+// steamid.kind.hmac. No Max-Age so it dies with the browser (shared club PCs)
 const COOKIE = 'skins_session';
 const KINDS = new Set(['game', 'dev']);
 
@@ -19,7 +18,6 @@ export function parseCookies(req) {
   return out;
 }
 
-// { steamId, kind } of the logged-in player, or null
 export function readSession(req) {
   const value = parseCookies(req)[COOKIE];
   if (!value) return null;

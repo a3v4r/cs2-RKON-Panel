@@ -8,9 +8,6 @@ import { useT } from '@/lib/i18n';
 import { CustomSelect } from '@/components/ui/custom-select';
 import { teamsApi } from '@/lib/teams';
 
-// Player Management from the Quatrix Players page (Live Players / Join Logs / Ban History),
-// laid out like the Match, Console and Chat pages: stat tiles on top, one card with the tabs.
-
 interface LivePlayer { userid: number; name: string; steamid: string; address: string; connected: string; ping: number; state: string }
 interface JoinEvent { t: number; name: string; steamid: string; event: 'join' | 'leave'; address?: string; reason?: string }
 interface Ban { id: number; steamid: string; name: string; reason: string; minutes: number; created_at: string; expires_at?: string; by: string; unbanned_at?: string; active: boolean }
@@ -38,7 +35,6 @@ export function PlayersView({ serverId }: { serverId: number }) {
   const [refreshing, setRefreshing] = React.useState(false);
   const [banFor, setBanFor] = React.useState<LivePlayer | null>(null);
   const [toast, setToast] = React.useState<{ ok: boolean; text: string } | null>(null);
-  // Team of each SteamID from the team library, shown next to the player's name
   const [rosterTeam, setRosterTeam] = React.useState<Map<string, string>>(new Map());
 
   React.useEffect(() => {
@@ -123,7 +119,6 @@ export function PlayersView({ serverId }: { serverId: number }) {
 
   return (
     <div className="p-3 md:p-6 space-y-4 md:space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {/* Stat tiles, as on the Overview */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard title={t('Игроков онлайн', 'Active Players')} value={String(livePlayers.length)} icon={<Users size={18} />} color="text-primary" description={t('без ботов и GOTV', 'no bots or GOTV')} />
         <StatCard title={t('Средний пинг', 'Average ping')} value={avgPing === null ? '-' : t(`${avgPing} мс`, `${avgPing} ms`)} icon={<Wifi size={18} />} color="text-green-500" description={t('по игрокам онлайн', 'of the players online')} />
@@ -132,7 +127,6 @@ export function PlayersView({ serverId }: { serverId: number }) {
       </div>
 
       <section className={cn(card, 'overflow-hidden')}>
-        {/* Header: tabs as the Servers view switch, search and refresh */}
         <div className="p-4 sm:px-6 border-b border-gray-800/60 flex flex-col lg:flex-row lg:items-center gap-3">
           <div className="grid grid-cols-3 sm:flex bg-background/50 border border-gray-800 rounded-xl p-[3px] shadow-sm shadow-black/20">
             {tabs.map((item) => (
@@ -374,7 +368,6 @@ function EmptyRow({ cols, text, icon }: { cols: number; text: string; icon?: Rea
   );
 }
 
-// Stat tile as on the Overview
 function StatCard({ title, value, icon, description, color }: { title: string; value: string; icon: React.ReactNode; description: string; color: string }) {
   return (
     <div className="p-4 sm:p-6 bg-card rounded-2xl border border-gray-800/60 hover:border-white/10 transition-all hover:translate-y-[-2px] group shadow-lg shadow-black/20 min-w-0">

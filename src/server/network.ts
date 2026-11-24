@@ -1,7 +1,6 @@
 import dgram from 'node:dgram';
 import os from 'node:os';
 
-// All LAN IPv4 addresses of this machine (for showing the panel/phone URL).
 export function lanAddresses(): string[] {
   return Object.values(os.networkInterfaces())
     .flat()
@@ -9,7 +8,7 @@ export function lanAddresses(): string[] {
     .map((a) => a.address);
 }
 
-// The address of the default-route interface: a UDP "connect" picks the route without sending anything.
+// UDP "connect" picks the route without sending anything
 export function primaryAddress(): Promise<string> {
   return new Promise((resolve) => {
     const fallback = lanAddresses()[0] ?? '127.0.0.1';
@@ -25,8 +24,8 @@ export function primaryAddress(): Promise<string> {
 
 const isLoopback = (host: string) => host === 'localhost' || host.startsWith('127.') || host === '::1';
 
-// Address of this machine as seen from the game server at `host` (MatchZy downloads match configs from it):
-// loopback when the game server runs here, else our address in the same /24, else the default-route one.
+// address the game server at `host` reaches us on (MatchZy fetches match configs):
+// loopback if local, else ours in the same /24, else the default-route one
 export async function addressFor(host: string): Promise<string> {
   const own = lanAddresses();
   if (isLoopback(host) || own.includes(host)) return '127.0.0.1';

@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 
 type Params = { params: Promise<{ serverId: string; map: string }> };
 
-// Config of one map on one server; the panel sends it over RCON after the map has loaded
+// sent over RCON after the map loads
 export async function GET(_req: Request, { params }: Params) {
   const user = await requireUser();
   if (user instanceof NextResponse) return user;

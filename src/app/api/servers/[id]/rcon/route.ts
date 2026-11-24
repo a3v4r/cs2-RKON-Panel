@@ -5,7 +5,7 @@ import { servers } from '@/server/store';
 
 type Params = { params: Promise<{ id: string }> };
 
-// Read-only polling commands are not worth an audit line
+// read-only polling commands are not worth an audit line
 const QUIET_COMMANDS = new Set(['status', 'get5_status', 'hostname']);
 
 export async function POST(req: Request, { params }: Params) {

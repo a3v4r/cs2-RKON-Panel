@@ -28,11 +28,9 @@ const TEAM_CHIP: Record<string, string> = {
   TERRORIST: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
 };
 
-// Quatrix IconButton, variant secondary, size md
 const iconBtn = 'flex items-center justify-center transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed group p-2 rounded-xl w-[34px] h-[34px] shrink-0 bg-card border border-gray-800 hover:border-primary/50 text-gray-400 hover:text-primary shadow-xl';
 
-// Live in-game chat, laid out as the Quatrix chat page: avatar, name (click = filter), ALL/TEAM, time, message.
-// `footer` is the message box under the history.
+// `footer`: message box under the history
 export function ChatHistory({ serverId, managed, footer }: { serverId: number; managed?: boolean; footer?: React.ReactNode }) {
   const { t, locale } = useT();
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
@@ -52,7 +50,7 @@ export function ChatHistory({ serverId, managed, footer }: { serverId: number; m
     setMessages((prev) => (full ? fresh : fresh.length ? [...prev, ...fresh].slice(-KEEP) : prev));
   }, [serverId]);
 
-  // Ask the game server to send its log (with the chat) to the panel; harmless to repeat
+  // ask the server to send its log (with chat) here; safe to repeat
   const connect = React.useCallback(async () => {
     setAttach({ state: 'busy' });
     try {
@@ -65,7 +63,7 @@ export function ChatHistory({ serverId, managed, footer }: { serverId: number; m
 
   React.useEffect(() => {
     poll(true);
-    // A server the panel starts gets the log settings in its cfg; others are asked over RCON
+    // panel-started servers get log settings in cfg, others over RCON
     if (managed) setAttach({ state: 'ok' });
     else connect();
     const timer = setInterval(() => poll(), POLL_MS);
@@ -82,7 +80,7 @@ export function ChatHistory({ serverId, managed, footer }: { serverId: number; m
     ? messages.filter((m) => m.name.toLowerCase().includes(q) || m.text.toLowerCase().includes(q) || m.steamid.toLowerCase().includes(q))
     : messages;
 
-  // Follow new messages unless the referee scrolled up to read
+  // autoscroll unless scrolled up
   React.useEffect(() => {
     const el = listRef.current;
     if (el && stickRef.current) el.scrollTop = el.scrollHeight;
@@ -98,7 +96,7 @@ export function ChatHistory({ serverId, managed, footer }: { serverId: number; m
       setCopied(id);
       setTimeout(() => setCopied(null), 1500);
     } catch {
-      // nothing to show: the id stays visible to copy by hand
+      // id stays visible to copy by hand
     }
   };
 
@@ -107,7 +105,6 @@ export function ChatHistory({ serverId, managed, footer }: { serverId: number; m
 
   return (
     <section className="bg-card rounded-2xl border border-gray-800 shadow-2xl flex flex-col overflow-hidden h-[70dvh] xl:h-[calc(100dvh-10rem)] min-h-[460px] min-w-0">
-      {/* Header as on the Match and Console pages: icon title, the chat log connection, search and buttons */}
       <div className="p-4 sm:px-6 border-b border-gray-800/60 flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-3 min-w-0 mr-auto">
           <div className="p-2.5 rounded-xl bg-primary/10 text-primary shrink-0"><MessageSquare size={18} /></div>
@@ -146,7 +143,6 @@ export function ChatHistory({ serverId, managed, footer }: { serverId: number; m
         </div>
       </div>
 
-      {/* Messages */}
       <div ref={listRef} onScroll={onScroll} className="flex-1 overflow-y-auto p-3 sm:p-4 custom-scrollbar bg-black/40">
         {shown.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-gray-500 gap-4 py-10">

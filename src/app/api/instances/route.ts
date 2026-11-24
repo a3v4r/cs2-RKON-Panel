@@ -6,7 +6,6 @@ import { cs2Paths } from '@/server/panel-settings';
 
 export const dynamic = 'force-dynamic';
 
-// Process state of the servers the panel runs, and whether CS2 is found on this PC
 export async function GET() {
   const user = await requireUser();
   if (user instanceof NextResponse) return user;

@@ -1,7 +1,6 @@
 import os from 'node:os';
 
-// CPU and RAM of the PC the panel runs on (often the same PC as the game servers), sampled in the
-// background so every judge sees the same last minutes, even right after opening the page.
+// sampled in the background so every judge sees the same last minutes, even right after opening the page
 const SAMPLE_MS = 5_000;
 const KEEP = 120; // 10 minutes
 
@@ -33,7 +32,7 @@ function sample() {
   const now = cpuTimes();
   const prev = g.systemPrevCpu;
   g.systemPrevCpu = now;
-  if (!prev) return; // the first reading only sets the baseline
+  if (!prev) return; // first sample is the baseline
   const total = now.total - prev.total;
   const cpu = total > 0 ? (1 - (now.idle - prev.idle) / total) * 100 : 0;
   const mem = (1 - os.freemem() / os.totalmem()) * 100;

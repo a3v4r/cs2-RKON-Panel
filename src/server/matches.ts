@@ -1,4 +1,4 @@
-// Match configs handed to MatchZy via matchzy_loadmatch_url, kept per match id (memory only, like the desktop app).
+// match configs for matchzy_loadmatch_url, memory only
 const globalForMatches = globalThis as unknown as { matchConfigs?: Map<string, string> };
 const configs = (globalForMatches.matchConfigs ??= new Map<string, string>());
 

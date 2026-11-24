@@ -19,7 +19,6 @@ if (!pluginDir) {
   process.exit(1);
 }
 
-// Signs the login cookie; made once and kept next to the app
 function loadSecret() {
   if (raw.sessionSecret) return raw.sessionSecret;
   const secretFile = path.join(root, '.secret');
@@ -36,7 +35,7 @@ function currentServers() {
       servers = { mtimeMs, list: Array.isArray(list) ? list : [] };
     }
   } catch {
-    // keep the last good list while the file is being rewritten
+    // mid-write: keep the last good list
   }
   return servers.list;
 }
@@ -44,19 +43,18 @@ function currentServers() {
 export const config = {
   port,
   host: raw.host ?? '0.0.0.0',
-  // Address players open (shown in the log; https:// makes the login cookie Secure)
+  // https:// makes the cookie Secure
   publicUrl: String(raw.publicUrl ?? (port === 80 ? 'http://localhost' : `http://localhost:${port}`)).replace(/\/+$/, ''),
   database: raw.database ?? path.join(pluginDir, 'weapon_paints.db'),
   dataDir: raw.dataDir ?? path.join(pluginDir, 'data'),
   language: raw.language ?? 'ru',
-  // Copies of item pictures, so the LAN does not wait for GitHub (~1.4 GB)
+  // local image mirror, ~1.4 GB
   imageCacheDir: raw.imageCacheDir ?? path.join(root, 'image-cache'),
-  // Servers sharing this plugin: after a save the player gets the skin at once on the one he plays on.
-  // Read again when the file changes: Matchdesk rewrites it when servers are added or edited
+  // RCON targets for css_wp_reload. Re-read on change: Matchdesk rewrites the file when servers change
   get servers() {
     return currentServers();
   },
-  // Login as any SteamID without Steam, from this computer only. For testing; keep it off
+  // /auth/dev: any SteamID, localhost only. Testing only
   devLogin: raw.devLogin === true,
   secret: loadSecret(),
 };

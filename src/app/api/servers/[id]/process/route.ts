@@ -9,7 +9,6 @@ type Params = { params: Promise<{ id: string }> };
 
 const ACTIONS = { start: startServer, stop: stopServer, restart: restartServer } as const;
 
-// Start / stop / restart a server the panel runs on this PC
 export async function POST(req: Request, { params }: Params) {
   const user = await requireUser();
   if (user instanceof NextResponse) return user;

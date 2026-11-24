@@ -17,7 +17,6 @@ export async function POST(req: Request) {
   if (user instanceof NextResponse) return user;
   const body = await req.json();
 
-  // A server the panel creates and starts on this PC
   if (body.managed) {
     if (!body.name) return NextResponse.json({ error: 'Нужно название' }, { status: 400 });
     const port = Number(body.port);

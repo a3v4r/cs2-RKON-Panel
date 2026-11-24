@@ -7,13 +7,12 @@ import { rconCommand } from './rcon';
 import { eventToken } from './session';
 import { StoredServer } from './store';
 
-// In-game chat history, as on the Quatrix chat page. CS2 sends its log to the panel over HTTP
-// (logaddress_add_http); the say / say_team lines are kept here, the rest of the log is ignored.
+// CS2 log arrives over HTTP (logaddress_add_http); only say / say_team are kept
 
 export interface ChatMessage {
-  t: number; // when the panel received it, ms
+  t: number; // received at, ms
   name: string;
-  steamid: string; // SteamID64 when the log has one, else as logged (BOT, Console)
+  steamid: string; // SteamID64, or as logged (BOT, Console)
   team: string; // CT, TERRORIST, Spectator, Console...
   type: 'say' | 'say_team';
   text: string;
@@ -27,7 +26,7 @@ const logs = (g.chatLogs ??= new Map<number, ChatMessage[]>());
 const dir = () => path.join(dataDir(), 'chat');
 const file = (serverId: number) => path.join(dir(), `${serverId}.jsonl`);
 
-// A deleted server's ID is given to the next new one: its chat must not carry over
+// server IDs get reused
 export function clearChat(serverId: number) {
   logs.delete(serverId);
   fs.rmSync(file(serverId), { force: true });
@@ -50,10 +49,10 @@ function save(serverId: number, added: ChatMessage[], list: ChatMessage[]) {
   try {
     fs.mkdirSync(dir(), { recursive: true });
     fs.appendFileSync(file(serverId), added.map((m) => JSON.stringify(m)).join('\n') + '\n');
-    // Keep the file from growing forever: rewrite it with the kept messages once it is twice as long
+    // compact once the file is about twice the kept size
     if (fs.statSync(file(serverId)).size > 400_000) fs.writeFileSync(file(serverId), list.map((m) => JSON.stringify(m)).join('\n') + '\n');
   } catch {
-    // history on disk is a convenience; the live list still works
+    // best effort, the in-memory list still works
   }
 }
 
@@ -65,13 +64,12 @@ function steam64(id: string) {
 
 // 11/21/2026 - 18:04:20.123 - "Player<2><[U:1:12345]><CT>" say "gg wp"
 const SAY = /"(.*)<\d+><([^>]*)><([^>]*)>" (say|say_team) "(.*)"\s*$/;
-// CS2 logs `say` from the server console (and the panel's Chat) without SteamID and team:
+// console say (incl. the panel's Chat) has no SteamID or team:
 // 11/21/2026 - 15:48:40: "Console<0>" say "text"
 const CONSOLE_SAY = /"Console<\d+>" (say) "(.*)"\s*$/;
 
 export function ingestLog(serverId: number, body: string) {
   const lines = body.split(/\r?\n/);
-  // Joins, leaves and kicking banned players (Players page)
   ingestPlayerLines(serverId, lines);
   const added: ChatMessage[] = [];
   const now = Date.now();
@@ -97,18 +95,17 @@ export function chatSince(serverId: number, since = 0) {
 
 const port = () => Number(process.env.PORT || 3000);
 
-// Where the game server sends its log; the per-server token stands in for a login (the server cannot log in)
+// token instead of a login: the game server can't log in
 export async function chatLogUrl(server: StoredServer) {
   const host = server.managed ? '127.0.0.1' : await addressFor(server.host);
   return `http://${host}:${port()}/api/logs/${server.id}/${eventToken(server.id)}`;
 }
 
-// cfg lines for servers the panel starts itself
 export async function chatCfgLines(server: StoredServer) {
   return ['log on', 'logaddress_delall_http', `logaddress_add_http "${await chatLogUrl(server)}"`];
 }
 
-// For servers started elsewhere: turn logging on over RCON (it lasts until the server restarts)
+// servers started elsewhere; lasts until their restart
 export async function attachChat(server: StoredServer) {
   for (const command of await chatCfgLines(server)) {
     await rconCommand(server.host, server.port, server.rcon_password, command);

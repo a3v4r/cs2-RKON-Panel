@@ -2,8 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { dataDir } from './accounts';
 
-// Live match state built from MatchZy events (remote log), one per game server.
-// Saved to disk so a panel restart in the middle of a match keeps the stats.
+// live match state from MatchZy events, per server; kept on disk to survive a panel restart mid-match
 
 export interface PlayerStats {
   kills: number;
@@ -77,7 +76,7 @@ export interface LiveState {
   kills: LiveKill[];
   maps: LiveMapResult[];
   finished: boolean;
-  // Which team plays CT on the current half, learned from round results (kill feed colours)
+  // team on CT this half, from round results (kill feed colours)
   ctTeam: 'team1' | 'team2' | null;
   updatedAt: string;
 }
@@ -105,7 +104,7 @@ const globalForLive = globalThis as unknown as { liveStates?: Map<number, LiveSt
 const states = (globalForLive.liveStates ??= new Map<number, LiveState>());
 const file = (serverId: number) => path.join(dataDir(), `live-${serverId}.json`);
 
-// A deleted server's ID is given to the next new one: its match must not carry over
+// server IDs get reused
 export function clearLive(serverId: number) {
   states.delete(serverId);
   fs.rmSync(file(serverId), { force: true });
@@ -129,7 +128,7 @@ function save(serverId: number, state: LiveState) {
     fs.mkdirSync(dataDir(), { recursive: true });
     fs.writeFileSync(file(serverId), JSON.stringify(state));
   } catch {
-    // stats are a convenience: never fail the event
+    // never fail the event
   }
 }
 
@@ -142,14 +141,14 @@ function readTeam(team: any, previous: LiveTeam): LiveTeam {
     scoreCt: team.score_ct ?? previous.scoreCt,
     scoreT: team.score_t ?? previous.scoreT,
     seriesScore: team.series_score ?? previous.seriesScore,
-    side: previous.side, // not in MatchZy stats; the live route takes it from get5_status
+    side: previous.side, // not in MatchZy stats; live route takes it from get5_status
     players: Array.isArray(team.players)
       ? team.players.map((p: any) => ({ steamid: String(p.steamid ?? ''), name: String(p.name ?? ''), stats: p.stats ?? {} }))
       : previous.players,
   };
 }
 
-// Winner.side is the game's team number: "3" = CT, "2" = T
+// game team number: "3" = CT, "2" = T
 const sideName = (side: unknown) => (String(side) === '3' ? 'ct' : String(side) === '2' ? 't' : '');
 
 const otherTeam = (team: 'team1' | 'team2') => (team === 'team1' ? 'team2' : 'team1');
@@ -169,7 +168,6 @@ export function applyEvent(serverId: number, event: any) {
   if (!name) return;
   let state = getLive(serverId) ?? fresh();
 
-  // A different match id means a new match on this server
   if (event.matchid != null && state.matchid != null && event.matchid !== state.matchid) state = fresh();
 
   switch (name) {
@@ -214,7 +212,6 @@ export function applyEvent(serverId: number, event: any) {
       state.kills = state.kills.slice(-KILLS_KEPT);
       break;
     case 'backup_loaded':
-      // A round was restored: drop the rounds and kills after it
       state.rounds = state.rounds.filter((r) => r.round < (event.round_number ?? 0));
       state.kills = state.kills.filter((k) => k.round < (event.round_number ?? 0));
       break;
@@ -236,12 +233,12 @@ export function applyEvent(serverId: number, event: any) {
       if (event.team2_series_score != null) state.team2.seriesScore = event.team2_series_score;
       break;
     default:
-      return; // other events do not change what the panel shows
+      return;
   }
   save(serverId, state);
 }
 
-// The map name is not in the events; the live route fills it from A2S
+// map isn't in the events; live route fills it from A2S
 export function setMapName(serverId: number, mapName: string) {
   const state = getLive(serverId);
   if (state && state.mapName !== mapName) {

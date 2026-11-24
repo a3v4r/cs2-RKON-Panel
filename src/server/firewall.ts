@@ -2,14 +2,11 @@ import { execFile } from 'node:child_process';
 import fs from 'node:fs';
 import { cs2Paths } from './panel-settings';
 
-// Windows firewall rules for Matchdesk.exe (the panel and the skins site) and the panel's cs2.exe.
-// Matchdesk.exe adds them itself when started with --firewall as administrator (launcher/main.cjs);
-// here the panel only checks them and starts that, so Windows asks for permission on this PC.
+// Matchdesk.exe --firewall (as admin, launcher/main.cjs) adds the rules; here we only check and launch it
 
 const RULE_APP = 'Matchdesk';
 const RULE_CS2 = 'Matchdesk CS2 Server';
 
-// Run as Matchdesk.exe (not plain node / npm run dev)
 export const isExe = () => process.env.MATCHDESK_EXE === '1';
 
 function run(file: string, args: string[]): Promise<{ code: number; out: string }> {
@@ -20,13 +17,12 @@ function run(file: string, args: string[]): Promise<{ code: number; out: string 
   });
 }
 
-// A rule with this name that allows exactly this program
 async function ruleOk(name: string, program: string) {
   const r = await run('netsh', ['advfirewall', 'firewall', 'show', 'rule', `name=${name}`, 'verbose']);
   return r.code === 0 && r.out.toLowerCase().includes(program.toLowerCase());
 }
 
-// The install window asks every second: netsh at most every 10 seconds
+// install window polls every second, netsh at most every 10 s
 const g = globalThis as unknown as { firewallCache?: { at: number; view: { app: boolean; cs2: boolean | null } } };
 
 export async function firewallView() {

@@ -8,9 +8,7 @@ import { cs2Paths, readSettings } from './panel-settings';
 import { isEnabled, isInstalled, pluginJobRunning } from './plugins';
 import { servers } from './store';
 
-// The skins website (skins-site/ next to the panel) for players: the panel runs it as a separate process
-// on port 80 while WeaponPaints is on and hands it the servers, so there is nothing to set up by hand.
-// It is a separate process on purpose: players open it, and it must not expose the panel itself.
+// separate process on port 80 on purpose: players open it, it must not expose the panel
 
 export const DEFAULT_SKINS_PORT = 80;
 const SYNC_MS = 15_000;
@@ -27,7 +25,7 @@ interface Site {
   startedAt?: number;
   log: string[];
   stopping?: boolean;
-  paused?: boolean; // a plugin job moves the WeaponPaints folder: the site must not hold its database
+  paused?: boolean; // plugin job moves the WeaponPaints folder, the site must release its DB
 }
 
 const g = globalThis as unknown as { skinsSite?: Site; skinsSiteTimer?: NodeJS.Timeout };
@@ -50,8 +48,6 @@ function addLog(text: string) {
   if (s.log.length > LOG_LINES) s.log.splice(0, s.log.length - LOG_LINES);
 }
 
-// ---- Address players open, as the plugin's !site shows it
-
 const isPrivate = (ip: string) => /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(ip);
 
 function lanIp() {
@@ -61,12 +57,10 @@ function lanIp() {
 
 export function skinsSiteAddress(port = skinsSitePort()) {
   const name = os.hostname().toLowerCase();
-  // Generated names like DESKTOP-7H3K2LF are hard to type: the LAN IP then
+  // generated names like DESKTOP-7H3K2LF are hard to type: use the LAN IP
   const host = /^(desktop|win|laptop)-[a-z0-9]{5,}$/.test(name) ? lanIp() ?? name : name;
   return port === 80 ? `${host}/` : `${host}:${port}/`;
 }
-
-// ---- Files the site reads
 
 function secret() {
   const file = path.join(workDir(), 'secret');
@@ -74,7 +68,7 @@ function secret() {
   return fs.readFileSync(file, 'utf8').trim();
 }
 
-// Rewritten only on a change: the site re-reads the server list when the file changes
+// only on change: the site reloads servers when the file changes
 function writeConfig(port: number) {
   fs.mkdirSync(workDir(), { recursive: true });
   const config = {
@@ -103,19 +97,17 @@ function writeConfig(port: number) {
   }
 }
 
-// !site and the in-game menu pictures: "auto" works for port 80, any other port needs the full address
+// !site and menu pictures: "auto" only works on port 80
 function syncPluginWebsite(port: number) {
   const file = path.join(cs2Paths().csgo, 'addons', 'counterstrikesharp', 'configs', 'plugins', 'WeaponPaints', 'WeaponPaints.json');
   if (!fs.existsSync(file)) return;
   const value = port === 80 ? 'auto' : `http://${lanIp() ?? skinsSiteAddress(port).split(':')[0]}:${port}/`;
-  // CounterStrikeSharp starts the file with a // comment, so it is edited as text, not JSON.parse
+  // CounterStrikeSharp puts a // comment at the top, so edit as text, not JSON.parse
   const text = fs.readFileSync(file, 'utf8');
   const re = /"Website"\s*:\s*"(?:[^"\\]|\\.)*"/;
   const next = re.test(text) ? text.replace(re, `"Website": ${JSON.stringify(value)}`) : text.replace('{', `{\n  "Website": ${JSON.stringify(value)},`);
   if (next !== text) fs.writeFileSync(file, next);
 }
-
-// ---- Process
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -128,7 +120,7 @@ function alive(pid: number) {
   }
 }
 
-// A site left running by a panel that was closed: stop it, or it keeps the port
+// a site left by a closed panel keeps the port
 async function killLeftover() {
   let pid = 0;
   try {
@@ -143,7 +135,7 @@ async function killLeftover() {
       `(Get-CimInstance Win32_Process -Filter "ProcessId=${pid}").CommandLine`],
     { windowsHide: true, timeout: 20_000 }, (err, out) => resolve(err ? '' : out));
   });
-  // Only our own server.mjs: the PID may belong to another program by now
+  // PID may belong to another program by now
   if (!commandLine.includes(path.join(siteDir(), 'server.mjs'))) return;
   try {
     process.kill(pid);
@@ -159,14 +151,14 @@ function start(port: number) {
   writeConfig(port);
   syncPluginWebsite(port);
 
-  // Only what the site needs: not the panel's passwords
+  // only what the site needs, not the panel's passwords
   const env: Record<string, string> = { SKINS_CONFIG: configFile(), NODE_ENV: 'production', ...(process.env.MATCHDESK_EXE ? { MATCHDESK_EXE: '1' } : {}) };
   for (const key of ['SystemRoot', 'PATH', 'Path', 'TEMP', 'TMP', 'USERPROFILE', 'APPDATA', 'LOCALAPPDATA', 'COMPUTERNAME']) {
     const value = process.env[key];
     if (value) env[key] = value;
   }
 
-  // Matchdesk.exe runs the panel's scripts itself (launcher/main.cjs); plain node takes the file
+  // Matchdesk.exe runs scripts itself (launcher/main.cjs), plain node takes the file
   const args = process.env.MATCHDESK_EXE === '1' ? ['--run-script', script] : ['--disable-warning=ExperimentalWarning', script];
   const child = spawn(process.execPath, args, {
     cwd: siteDir(), env: env as unknown as NodeJS.ProcessEnv, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'],
@@ -210,8 +202,6 @@ async function stop() {
   await Promise.race([exited, sleep(STOP_WAIT_MS)]);
 }
 
-// ---- What should run, checked on a timer and after changes
-
 function why(): string | null {
   if (!skinsSiteEnabled()) return 'Выключен в настройках';
   if (site().paused || pluginJobRunning()) return 'Остановлен на время работы с плагинами';
@@ -236,7 +226,7 @@ export function syncSkinsSite(): Promise<void> {
       }
       if (s.child && s.port !== port) await stop();
       if (s.child) {
-        writeConfig(port); // new or edited servers
+        writeConfig(port);
         return;
       }
       await killLeftover();
@@ -255,7 +245,6 @@ export async function restartSkinsSite() {
   await syncSkinsSite();
 }
 
-// Plugin jobs move or overwrite the WeaponPaints folder, which the site keeps open
 export async function pauseSkinsSite() {
   site().paused = true;
   await syncing;

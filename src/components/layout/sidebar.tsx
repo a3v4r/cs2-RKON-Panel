@@ -27,7 +27,7 @@ import { Text, useT } from '@/lib/i18n';
 
 export type Section = 'dashboard' | 'servers' | 'live' | 'console' | 'chat' | 'maps' | 'players' | 'match' | 'teams' | 'agent' | 'settings' | 'users' | 'backups' | 'general-settings';
 
-// label: menu item; title: page heading when it differs (as the Quatrix page titles)
+// title: page heading, if different from label
 export const SECTIONS: Record<Section, { label: Text; title?: Text; hint: Text; icon: LucideIcon }> = {
   dashboard: { label: { ru: 'Обзор', en: 'Overview' }, hint: { ru: 'Состояние сервера и быстрые действия', en: 'Server status and quick actions' }, icon: LayoutDashboard },
   servers: { label: { ru: 'Серверы', en: 'Servers' }, hint: { ru: 'Все серверы панели: состояние, запуск и настройки', en: 'All panel servers: status, start and settings' }, icon: Layers },
@@ -45,11 +45,9 @@ export const SECTIONS: Record<Section, { label: Text; title?: Text; hint: Text; 
   'general-settings': { label: { ru: 'Настройки', en: 'Settings' }, hint: { ru: 'Настройки панели, сервера CS2 и журнал действий', en: 'Configure your panel settings and security preferences' }, icon: Settings },
 };
 
-// Sections that work with one chosen server (the server is picked in their page header)
 export const SERVER_SECTIONS: Section[] = ['dashboard', 'live', 'console', 'chat', 'maps', 'players', 'match', 'settings'];
 
 const NAV: Section[] = ['dashboard', 'servers', 'live', 'console', 'chat', 'maps', 'players', 'match', 'teams', 'agent'];
-// The panel's own pages, in the Quatrix order
 const PANEL_NAV: Section[] = ['users', 'backups', 'general-settings'];
 
 interface SidebarProps {
@@ -61,7 +59,6 @@ interface SidebarProps {
 
 export function Sidebar({ activeSection, onSelectSection, onClose, user }: SidebarProps) {
   const { t } = useT();
-  // Panel name from the settings, as in Quatrix; refreshed when the settings page saves
   const [panelName, setPanelName] = React.useState('');
   React.useEffect(() => {
     const load = () => { api<{ panelName: string }>('/api/panel-settings').then((s) => setPanelName(s.panelName)).catch(() => {}); };
@@ -73,7 +70,6 @@ export function Sidebar({ activeSection, onSelectSection, onClose, user }: Sideb
   const name = panelName || 'Matchdesk';
   return (
     <aside className="flex flex-col h-[100dvh] w-64 bg-sidebar text-gray-400 border-r border-gray-800 shrink-0">
-      {/* Logo */}
       <div className="p-6 hidden md:flex items-center gap-3">
         <div className="shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-blue-700 flex items-center justify-center shadow-lg shadow-primary/30">
           <Crosshair size={22} className="text-white" />
@@ -81,7 +77,6 @@ export function Sidebar({ activeSection, onSelectSection, onClose, user }: Sideb
         <span className="text-lg font-bold text-white tracking-tight whitespace-nowrap truncate">{name}</span>
       </div>
 
-      {/* Phone sidebar header */}
       <div className="p-6 md:hidden flex items-center justify-between border-b border-gray-800/50 mb-4">
         <div className="flex items-center gap-3 min-w-0">
           <div className="shrink-0 w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-blue-700 flex items-center justify-center">
@@ -94,7 +89,6 @@ export function Sidebar({ activeSection, onSelectSection, onClose, user }: Sideb
         </button>
       </div>
 
-      {/* Sections */}
       <nav className="flex-1 px-4 space-y-1 overflow-y-auto" aria-label={t('Разделы', 'Main navigation')}>
         {NAV.filter((id) => id !== 'agent' || !user.name).map((id) => (
           <NavItem key={id} section={id} active={activeSection === id || (id === 'servers' && activeSection === 'settings')} onClick={() => onSelectSection(id)} />
@@ -105,7 +99,6 @@ export function Sidebar({ activeSection, onSelectSection, onClose, user }: Sideb
         ))}
       </nav>
 
-      {/* User */}
       <div className="p-4 border-t border-gray-800">
         <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/5">
           <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -136,7 +129,6 @@ export function Sidebar({ activeSection, onSelectSection, onClose, user }: Sideb
   );
 }
 
-// Initials as in Quatrix: first letters of up to two words
 function getInitials(name: string) {
   if (!name) return 'U';
   return name.split(' ').filter(Boolean).map((n) => n[0]).join('').toUpperCase().substring(0, 2);

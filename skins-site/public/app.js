@@ -1,5 +1,3 @@
-// Skin picker: one page, no framework. Talks to the site's /api.
-
 const T = 2;
 const CT = 3;
 const SIDE_NAME = { [T]: 'T', [CT]: 'CT' };
@@ -33,8 +31,6 @@ const state = {
   side: readSide(),
 };
 
-// ---- small helpers -------------------------------------------------------
-
 function readSide() {
   try {
     return Number(localStorage.getItem('side')) === T ? T : CT;
@@ -48,7 +44,7 @@ function saveSide(side) {
   try { localStorage.setItem('side', String(side)); } catch { /* private mode */ }
 }
 
-// h('div.card', { onclick }, child, ...) -> element; text children become text nodes (no HTML injection)
+// h('div.card', props, ...children); strings become text nodes, never HTML
 function h(tag, props = {}, ...children) {
   const [name, ...classes] = tag.split('.');
   const el = document.createElement(name || 'div');
@@ -96,8 +92,6 @@ function toast(text, kind = 'ok') {
   toastTimer = setTimeout(() => { el.className = 'toast'; }, 4000);
 }
 
-// ---- what the player has -----------------------------------------------
-
 const weaponBy = (defindex) => state.catalog.weapons.find((w) => w.defindex === defindex);
 const weaponByClass = (cls) => state.catalog.weapons.find((w) => w.class === cls);
 const skinOf = (defindex, team) => state.loadout.skins.find((s) => s.defindex === defindex && s.team === team) ?? null;
@@ -115,16 +109,13 @@ function gloveOf(team) {
   return state.catalog.gloves.find((g) => g.defindex === defindex && g.paint === paint) ?? null;
 }
 
-// Sides (T/CT) that have this exact item on
 function sidesWith(test) {
   return [T, CT].filter(test);
 }
 
-// ---- layout ----------------------------------------------------------------
-
 const app = document.getElementById('app');
 
-// No session: find the player who plays from this computer; keep trying until he joins the server
+// polls /auth/auto until the player joins from this PC
 let loginTimer;
 function renderLogin() {
   state.me = null;
@@ -190,7 +181,6 @@ function sideBadges(sides) {
   return h('div.badges', {}, sides.map((s) => h(`span.badge.badge-${SIDE_NAME[s].toLowerCase()}`, {}, SIDE_NAME[s])));
 }
 
-// A tile: picture, title, subtitle; equipped sides as badges
 function tile({ image, title, subtitle, sides = [], onclick, href, wide = false }) {
   const tag = href ? 'a' : 'button';
   return h(`${tag}.tile`, { href, type: href ? null : 'button', onclick, class: [sides.length ? 'equipped' : '', wide ? 'wide' : ''].join(' ') },
@@ -199,8 +189,6 @@ function tile({ image, title, subtitle, sides = [], onclick, href, wide = false 
     sideBadges(sides),
   );
 }
-
-// ---- pages ---------------------------------------------------------------
 
 function weaponTile(w) {
   const skin = skinOf(w.defindex, state.side);
@@ -250,7 +238,7 @@ function overviewPage() {
   );
 }
 
-// A page with a search box and a grid that re-renders without losing focus
+// only the grid re-renders, so the search box keeps focus
 function searchPage({ title, back, subtitle, items, toTile, placeholder = 'Поиск', extra = null }) {
   const grid = h('div.grid');
   const empty = h('p.muted.empty', { hidden: true }, 'Ничего не найдено');
@@ -409,8 +397,6 @@ function notFound() {
   return h('div.page', {}, h('h1', {}, 'Нет такой страницы'), h('a', { href: '#/' }, 'К снаряжению'));
 }
 
-// ---- editor (modal) ------------------------------------------------------
-
 const modalRoot = document.getElementById('modal-root');
 
 function closeModal() {
@@ -431,7 +417,7 @@ function modal(content, { onclose } = {}) {
 
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && modalRoot.firstChild) {
-    // The sticker picker sits on top of the editor: close only it
+    // close the top picker, not the editor
     const pickers = modalRoot.querySelectorAll('.picker-layer');
     if (pickers.length) pickers[pickers.length - 1].remove();
     else closeModal();
@@ -489,7 +475,6 @@ function seedControl(initial) {
   };
 }
 
-// Sticker / keychain picker over the editor
 function openPicker({ title, search, onpick, allowRemove }) {
   const grid = h('div.grid.grid-small');
   const status = h('p.muted.empty');
@@ -617,7 +602,6 @@ function skinEditor(w, s) {
     const cur = skinOf(w.defindex, side);
     return isDefault ? !cur : cur?.paint === s.paint;
   });
-  // Start from what the player has on this skin now (the shown side first)
   const existing = [state.side, T, CT].map((side) => skinOf(w.defindex, side)).find((x) => x && x.paint === s.paint);
 
   const sides = sidesControl(onSides.length ? onSides : []);
@@ -684,8 +668,6 @@ function glovesEditor(g) {
   return editorShell({ image: g.image, title: g.name, subtitle: g.type, fields: [sides.el, wear.el, seed.el], actions: [apply] });
 }
 
-// ---- routing -------------------------------------------------------------
-
 function route() {
   const parts = location.hash.replace(/^#\/?/, '').split('/');
   if (parts[0] === 'c') return { nav: parts[1], page: () => categoryPage(parts[1]) };
@@ -724,7 +706,7 @@ async function start() {
   watchSession();
 }
 
-// Shared club PCs: once the player leaves the server (or another sits down), show the next one's page
+// shared club PCs: back to login once the player leaves or someone else sits down
 let sessionTimer;
 function watchSession() {
   clearInterval(sessionTimer);

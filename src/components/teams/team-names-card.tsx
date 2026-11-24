@@ -7,9 +7,8 @@ import { useT } from '@/lib/i18n';
 import { CustomSelect } from '@/components/ui/custom-select';
 import { Team, teamsApi } from '@/lib/teams';
 
-// Team names on the scoreboard without a MatchZy match (mp_teamname_1/2, mp_teamflag_1/2).
-// A loaded MatchZy match sets them from its config itself.
-// stacked: the two teams one under the other on wide screens, where the card sits in a narrow side column
+// Scoreboard names without a MatchZy match (mp_teamname_1/2, mp_teamflag_1/2); a loaded match sets its own.
+// stacked: teams one under the other, for the narrow side column on wide screens
 export function TeamNamesCard({ onSendCommand, onOpenLibrary, stacked }: { onSendCommand: (command: string) => Promise<string>; onOpenLibrary: () => void; stacked?: boolean }) {
   const { t } = useT();
   const [library, setLibrary] = React.useState<Team[]>([]);
@@ -27,7 +26,7 @@ export function TeamNamesCard({ onSendCommand, onOpenLibrary, stacked }: { onSen
   };
   const setName = (i: number, name: string) => setSlots((s) => s.map((slot, j) => (j === i ? { ...slot, name } : slot)));
 
-  // Quotes and ; would break the console command
+  // quotes and ; would break the console command
   const clean = (text: string) => text.replace(/["';]/g, '').trim();
 
   const apply = async () => {

@@ -6,8 +6,6 @@ import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { useT } from '@/lib/i18n'
 
-// Backup Management, laid out as the Quatrix Backups page (table, schedule modal)
-
 type Scope = 'panel' | 'cs2'
 
 interface Backup {

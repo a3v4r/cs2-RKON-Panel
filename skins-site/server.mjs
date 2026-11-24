@@ -69,8 +69,6 @@ async function readJson(req) {
   }
 }
 
-// ---- input checks -------------------------------------------------------
-
 function teamsOf(body) {
   const teams = Array.isArray(body.teams) ? [...new Set(body.teams.map(Number))] : [];
   if (teams.length === 0 || teams.some((t) => t !== 2 && t !== 3)) throw new HttpError(400, 'Выберите сторону: T, CT или обе');
@@ -95,8 +93,7 @@ function nametagOf(v) {
   return text;
 }
 
-// ---- RCON: give the player his new items right away ---------------------
-
+// apply now instead of on the next !wp or reconnect
 async function applyInGame(steamId) {
   const list = config.servers;
   const results = await Promise.allSettled(list.map((s) =>
@@ -119,8 +116,6 @@ function loadoutFor(steamId) {
   loadout.stickerInfo = Object.fromEntries([...ids].map((id) => [id, stickerInfo(id)]).filter(([, v]) => v));
   return loadout;
 }
-
-// ---- routes -------------------------------------------------------------
 
 const catalogJson = JSON.stringify(catalog);
 
@@ -158,7 +153,7 @@ async function api(req, res, url, steamId) {
       if (keychain && !keychainIds.has(keychain)) throw new HttpError(400, 'Нет такого брелока');
       const isKnife = weapon.category === 'knives';
       if (paint === 0) {
-        // No skin: the plain weapon; for a knife, the plain knife of this type
+        // paint 0: vanilla, but a knife still keeps its type
         if (isKnife) db.saveKnife(steamId, teams, weapon.class);
         db.removeSkin(steamId, teams, defindex);
         return send(req, res, 200, await afterSave(steamId));
@@ -218,7 +213,7 @@ async function api(req, res, url, steamId) {
       const teams = teamsOf(body);
       const model = body.model ? String(body.model) : null;
       if (model && !agentModels.has(model)) throw new HttpError(400, 'Нет такого агента');
-      // An agent belongs to one side
+      // agent's own side, not body.teams
       db.saveAgent(steamId, model ? [agentModels.get(model)] : teams, model);
       return send(req, res, 200, await afterSave(steamId));
     }
@@ -226,9 +221,7 @@ async function api(req, res, url, steamId) {
   throw new HttpError(404, 'Нет такого адреса');
 }
 
-// ---- who is at this computer ----------------------------------------------
-// The club PCs are shared: a login holds only while its player is on the server
-// and plays from the same computer the browser runs on.
+// shared club PCs: a login holds only while its player is on a server from the browser's machine
 
 const PRESENCE_TTL_MS = 10_000;
 const presence = new Map(); // steamId -> { ip, at }
@@ -239,13 +232,12 @@ const normalizeIp = (ip) => {
 };
 const clientIp = (req) => normalizeIp(req.socket.remoteAddress);
 
-// Addresses of this machine: a player on it (game via 127.0.0.1) may open the site by its LAN address
+// game on this host connects via 127.0.0.1, the browser may use a LAN IP
 const OWN_ADDRESSES = new Set(['127.0.0.1',
   ...Object.values(os.networkInterfaces()).flat().filter((a) => a?.family === 'IPv4').map((a) => a.address)]);
 const sameComputer = (gameIp, browserIp) =>
   gameIp === browserIp || (OWN_ADDRESSES.has(gameIp) && OWN_ADDRESSES.has(browserIp));
 
-// RCON to every server; first answer matching `pattern` wins
 async function askServers(command, pattern) {
   const list = config.servers;
   const results = await Promise.allSettled(list.map((s) =>
@@ -264,7 +256,6 @@ async function askServers(command, pattern) {
   return null;
 }
 
-// IP the player plays from, or null when he is not on any server
 const IP_RE = String.raw`(\d{1,3}(?:\.\d{1,3}){3})`;
 async function gameIp(steamId) {
   const cached = presence.get(steamId);
@@ -275,7 +266,7 @@ async function gameIp(steamId) {
   return ip;
 }
 
-// Nothing to type: the player who plays from this computer is the one at this browser
+// no credentials: whoever plays from this IP is the one at this browser
 async function autoLogin(req, res) {
   if (config.servers.length === 0) throw new HttpError(503, 'В настройках сайта нет серверов');
   const ip = clientIp(req);
@@ -288,7 +279,6 @@ async function autoLogin(req, res) {
   send(req, res, 200, { ok: true }, undefined, { 'set-cookie': sessionCookie(m[1], 'game') });
 }
 
-// SteamID of the player at this browser, or 401
 async function currentPlayer(req) {
   const session = readSession(req);
   if (!session) throw new HttpError(401, 'Не вошли');
@@ -308,7 +298,7 @@ async function handle(req, res) {
     return send(req, res, 200, fs.readFileSync(path.join(PUBLIC_DIR, file)), type, { 'cache-control': 'no-cache' });
   }
 
-  // Item pictures: open to everyone, the in-game menu loads them too
+  // no auth: the in-game menu loads these too
   if (req.method === 'GET' && url.pathname === '/img/ok') return send(req, res, 200, 'ok', 'text/plain; charset=utf-8');
   if (req.method === 'GET' && url.pathname.startsWith('/img/')) {
     const data = await getImage(url.pathname.slice(5)).catch(() => null);

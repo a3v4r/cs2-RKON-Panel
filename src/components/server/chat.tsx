@@ -24,13 +24,12 @@ interface AutoMessage {
 interface ServerChatProps {
   serverId: number;
   onBroadcast: (message: string) => Promise<string>;
-  // Started by the panel: the chat log is set up in its cfg
+  // chat log already set up in its cfg
   managed?: boolean;
 }
 
 const INTERVALS = [1, 2, 3, 5, 10, 15, 30, 60];
 
-// Quatrix styles: cards, form inputs, Button (md) and IconButton (sm, ghost)
 const card = 'bg-card border border-gray-800 rounded-2xl p-4 sm:p-6 shadow-2xl';
 const field = 'w-full bg-background/50 border border-gray-800 rounded-xl px-4 py-3 text-sm text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-600';
 const btn = 'flex items-center justify-center transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap px-5 py-1.5 text-sm rounded-xl font-bold h-[34px]';
@@ -39,7 +38,6 @@ const btnSecondary = 'bg-gray-800 hover:bg-gray-700 text-white border border-gra
 const btnGhost = 'text-gray-400 hover:text-white hover:bg-white/5 active:scale-95';
 const iconBtnSm = 'flex items-center justify-center transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed p-1 rounded-lg w-7 h-7 shrink-0 text-gray-400 hover:text-white hover:bg-white/5';
 
-// Quatrix Switch (track + thumb on a hidden checkbox)
 function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (checked: boolean) => void; label: string }) {
   return (
     <label className="flex items-start gap-3 cursor-pointer group select-none" title={label}>
@@ -157,7 +155,6 @@ export function ServerChat({ serverId, onBroadcast, managed }: ServerChatProps) 
       </div>
 
       <div className="space-y-4 md:space-y-6 min-w-0">
-        {/* Auto messages */}
         <section className={card}>
           <CardHeader icon={<Clock size={18} />} title={t('Автосообщения', 'Auto messages')} subtitle={t('шлёт сервер панели, даже без браузера', 'sent by the panel, no browser needed')} />
           <div className="mt-5 space-y-2">
@@ -224,7 +221,6 @@ export function ServerChat({ serverId, onBroadcast, managed }: ServerChatProps) 
           )}
         </section>
 
-        {/* Templates */}
         <section className={card}>
           <div className="flex items-center justify-between gap-2 mb-5">
             <CardHeader icon={<Save size={18} />} title={t('Шаблоны', 'Templates')} subtitle={t('вставить или отправить сразу', 'insert or send at once')} />
@@ -299,7 +295,6 @@ export function ServerChat({ serverId, onBroadcast, managed }: ServerChatProps) 
   );
 }
 
-// Header as on the Match and Console pages
 function CardHeader({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle?: string }) {
   return (
     <div className="flex items-center gap-3 min-w-0">

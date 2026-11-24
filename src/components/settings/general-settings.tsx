@@ -11,8 +11,6 @@ import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { useT } from '@/lib/i18n'
 
-// Panel settings, laid out as the Quatrix Settings page: a card with tabs and a Save footer
-
 type Tab = 'general' | 'server_engine' | 'plugins' | 'system_health' | 'log'
 
 interface PanelSettings {

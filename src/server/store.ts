@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-// Panel data lives in JSON files next to the server (PANEL_DATA_DIR), shared by everyone who opens the panel.
+// JSON files in PANEL_DATA_DIR, shared by everyone using the panel
 export interface StoredServer {
   id: number;
   name: string;
@@ -10,9 +10,9 @@ export interface StoredServer {
   rcon_password: string;
   country_code?: string;
   created_at: string;
-  // Set for servers the panel itself starts on this PC (instead of the tournament kit's .bat files)
+  // only for servers the panel starts itself
   managed?: ManagedConfig;
-  // Server without MatchZy: rules, knife round and pauses by plain cvars (see lib/vanilla.ts)
+  // no MatchZy: rules, knife round, pauses via plain cvars (lib/vanilla.ts)
   mode?: 'vanilla';
 }
 
@@ -20,22 +20,21 @@ export interface ManagedConfig {
   tvPort: number;
   map: string;
   maxPlayers: number;
-  password: string; // sv_password for players, empty = none
+  password: string; // sv_password, empty = none
   bindIp: string;
   autoRestart: boolean;
-  // Game mode (game_type / game_mode), as the Quatrix "Game Alias"
   gameMode?: GameMode;
-  // Workshop map id to start with instead of `map` (host_workshop_map)
+  // host_workshop_map, used instead of `map`
   workshopMap?: string;
-  gslt?: string; // Game Server Login Token (sv_setsteamaccount)
+  gslt?: string; // sv_setsteamaccount
   vac?: boolean; // false = -insecure
   hibernate?: boolean; // sv_hibernate_when_empty
   tv?: boolean; // tv_enable (GOTV)
   lan?: boolean; // sv_lan
-  priority?: Priority; // Windows process priority of cs2.exe
-  extraArgs?: string; // more launch arguments
-  extraCfg?: string; // more lines for the server cfg
-  hideConsole?: boolean; // start cs2.exe without a console window (default: hidden)
+  priority?: Priority;
+  extraArgs?: string;
+  extraCfg?: string;
+  hideConsole?: boolean; // default: hidden
 }
 
 export const GAME_MODES = ['competitive', 'wingman', 'casual', 'deathmatch', 'armsrace', 'demolition', 'training', 'custom'] as const;
@@ -107,7 +106,7 @@ export const commands = {
   },
 };
 
-// Without the RCON password: it never leaves the panel server.
+// rcon password never leaves the panel server
 export function publicServer({ rcon_password, ...rest }: StoredServer) {
   return { ...rest, has_password: rcon_password !== '' };
 }
@@ -119,7 +118,6 @@ export interface StoredTemplate {
   created_at: string;
 }
 
-// Chat templates, shared by all judges
 export const templates = {
   list: () => read<StoredTemplate>('templates.json'),
   add(name: string, message: string) {
@@ -142,12 +140,11 @@ export interface StoredTeam {
   id: number;
   name: string;
   tag: string;
-  flag: string; // two-letter country code (mp_teamflag), empty = none
+  flag: string; // mp_teamflag, two letters, empty = none
   players: TeamPlayer[];
   created_at: string;
 }
 
-// Team library: saved teams with their rosters, shared by all judges
 export const teams = {
   list: () => read<StoredTeam>('teams.json').sort((a, b) => a.name.localeCompare(b.name)),
   get: (id: number) => read<StoredTeam>('teams.json').find((t) => t.id === id),
@@ -176,11 +173,10 @@ export interface StoredAutoMessage {
   message: string;
   intervalMinutes: number;
   enabled: boolean;
-  // Interval counts from here after a restart or re-enable
+  // interval counts from here after a restart or re-enable
   updated_at: string;
 }
 
-// Messages the panel server repeats in a game server's chat (see scheduler.ts)
 export const autoMessages = {
   list: () => read<StoredAutoMessage>('auto-messages.json'),
   forServer: (serverId: number) => read<StoredAutoMessage>('auto-messages.json').filter((m) => m.serverId === serverId),

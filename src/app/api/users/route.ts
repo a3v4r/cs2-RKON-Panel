@@ -5,7 +5,7 @@ import { createUser, listUsers, publicUser } from '@/server/users';
 
 export const dynamic = 'force-dynamic';
 
-// Personal accounts, plus the shared account admin (switched on when it has a password)
+// personal accounts plus the shared admin (on when it has a password)
 export async function GET() {
   const user = await requireUser();
   if (user instanceof NextResponse) return user;

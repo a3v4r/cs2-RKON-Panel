@@ -1,9 +1,8 @@
-// Vanilla mode: servers without MatchZy, where the panel has only RCON. Match rules go to the server as cvars
-// (no .cfg files to put on the server), the knife round is run by hand. No imports: used by routes and the browser.
+// Vanilla mode: no MatchZy, RCON only. Rules go as cvars (no .cfg on the server), knife round by hand.
+// No imports: used by routes and the browser.
 
 export type ServerMode = 'matchzy' | 'vanilla';
 
-// Quick actions on the Overview and Console
 export function controlCommands(mode: ServerMode | undefined) {
   return mode === 'vanilla'
     ? { start: 'mp_warmup_end', pause: 'mp_pause_match', unpause: 'mp_unpause_match' }
@@ -12,8 +11,8 @@ export function controlCommands(mode: ServerMode | undefined) {
 
 export type RulesetId = '5v5' | '2v2';
 
-// Competitive rules close to the ESL configs (MR12 / wingman MR8). Every cvar the knife round changes is here too,
-// so applying the rules after the knife round takes it back.
+// Close to ESL configs (MR12 / wingman MR8). Has every cvar the knife round changes,
+// so applying the rules afterwards undoes it.
 const RULES: Record<RulesetId, Record<string, string | number>> = {
   '5v5': {
     mp_maxrounds: 24,
@@ -60,7 +59,7 @@ const COMMON: Record<string, string | number> = {
   mp_death_drop_gun: 1,
   mp_ct_default_secondary: 'weapon_hkp2000',
   mp_t_default_secondary: 'weapon_glock',
-  // Round backups for the rollback (mp_backup_restore_load_file)
+  // round backups for rollback (mp_backup_restore_load_file)
   mp_backup_round_auto: 1,
 };
 
@@ -80,14 +79,13 @@ const cvars = (values: Record<string, string | number>) =>
 const rules = (id: RulesetId) => cvars({ ...COMMON, ...RULES[id] });
 
 export const vanillaSteps = {
-  // Rules applied, endless warmup until the judge starts
   warmup: (id: RulesetId) => [...rules(id), 'mp_warmup_pausetimer 1', 'mp_warmup_start'],
   knife: (id: RulesetId) => [
     ...rules(id), ...cvars(KNIFE),
     'mp_warmup_pausetimer 0', 'mp_warmup_end', 'mp_restartgame 1',
     'say Ножевой раунд / Knife round',
   ],
-  // Straight from warmup, or after the knife round (swap = the knife winners take the other side)
+  // from warmup or after the knife round (swap = knife winners take the other side)
   live: (id: RulesetId, swap: boolean) => [
     ...rules(id),
     ...(swap ? ['mp_swapteams'] : []),
@@ -96,7 +94,7 @@ export const vanillaSteps = {
   ],
 };
 
-// A long line of cvars goes in several RCON commands joined by ';' (the console line has a length limit)
+// console line length is limited, so long cvar lists go in several RCON commands
 export function batchCommands(commands: string[], maxLength = 400): string[] {
   const batches: string[] = [];
   let current = '';
@@ -113,7 +111,7 @@ export function batchCommands(commands: string[], maxLength = 400): string[] {
   return batches;
 }
 
-// mp_backup_restore_list_files output: file names like backup_round05.txt (the state at the start of round 6)
+// mp_backup_restore_list_files: backup_round05.txt = state at the start of round 6
 export function parseBackupFiles(output: string): { file: string; round: number }[] {
   const found = new Map<string, number>();
   for (const match of output.matchAll(/([\w.-]*_round(\d+)\.txt)/g)) found.set(match[1], Number(match[2]));
@@ -122,8 +120,8 @@ export function parseBackupFiles(output: string): { file: string; round: number 
 
 export const backupFileName = (playedRounds: number) => `backup_round${String(playedRounds).padStart(2, '0')}.txt`;
 
-// MatchZy css_roundknife answers the console with the new state: "Ножевой раунд теперь Включен!" / "Knife round is now Enabled!"
-// (with chat colour codes). There is no way to read the state without toggling it.
+// css_roundknife replies with the new state ("Ножевой раунд теперь Включен!" / "Knife round is now Enabled!",
+// with colour codes). The state cannot be read without toggling.
 export function parseKnifeReply(output: string): boolean | null {
   const text = output.replace(/[\x00-\x1f]/g, ' ');
   if (/выключен|disabled/i.test(text)) return false;

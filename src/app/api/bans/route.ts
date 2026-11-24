@@ -4,7 +4,6 @@ import { isActive, listBans } from '@/server/players';
 
 export const dynamic = 'force-dynamic';
 
-// The panel's ban list (all servers), newest first, with whether each ban still holds
 export async function GET() {
   const user = await requireUser();
   if (user instanceof NextResponse) return user;

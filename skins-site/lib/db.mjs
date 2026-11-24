@@ -1,11 +1,11 @@
 import { DatabaseSync } from 'node:sqlite';
 import { config } from './config.mjs';
 
-// The plugin's own database file: the game server reads what the site writes here
+// WeaponPaints' own DB: the plugin reads what we write
 const db = new DatabaseSync(config.database, { timeout: 5000 });
 db.exec('PRAGMA journal_mode = WAL');
 
-// Same tables the plugin creates, in case the site starts before the plugin ever did
+// plugin's schema, in case the site runs before the plugin ever has
 db.exec(`
 CREATE TABLE IF NOT EXISTS wp_player_skins (
   steamid varchar(18) NOT NULL, weapon_team int(1) NOT NULL, weapon_defindex int(6) NOT NULL,
@@ -36,7 +36,7 @@ function tx(fn) {
 
 const stickerId = (value) => Number(String(value ?? '0').split(';')[0]) || 0;
 
-// Everything the player has picked, per team (2 = T, 3 = CT)
+// team: 2 = T, 3 = CT
 export function getLoadout(steamId) {
   const skins = db.prepare('SELECT * FROM wp_player_skins WHERE steamid = ?').all(steamId).map((r) => ({
     team: Number(r.weapon_team),
@@ -95,7 +95,7 @@ function skinParams(steamId, team, s) {
   };
 }
 
-// A weapon skin; for a knife skin the knife itself is switched too
+// knife skins also need the knife row
 export function saveSkin(steamId, teams, skin, knifeClass) {
   tx(() => {
     for (const team of teams) {
@@ -109,7 +109,7 @@ export function removeSkin(steamId, teams, defindex) {
   tx(() => { for (const team of teams) deleteSkin.run(steamId, team, defindex); });
 }
 
-// null: the default knife
+// null = default knife
 export function saveKnife(steamId, teams, knifeClass) {
   tx(() => {
     for (const team of teams) {
@@ -119,7 +119,7 @@ export function saveKnife(steamId, teams, knifeClass) {
   });
 }
 
-// Gloves are a type (gloves table) plus a paint on that type (skins table); null glove: the default ones
+// type in wp_player_gloves, paint in wp_player_skins; null = default gloves
 export function saveGloves(steamId, teams, glove) {
   tx(() => {
     for (const team of teams) {
@@ -141,7 +141,6 @@ export function savePin(steamId, teams, id) {
   tx(() => { for (const team of teams) (id ? upsertPin.run(steamId, team, id) : deletePin.run(steamId, team)); });
 }
 
-// One row holds both sides
 export function saveAgent(steamId, teams, model) {
   tx(() => {
     const row = db.prepare('SELECT agent_ct, agent_t FROM wp_player_agents WHERE steamid = ?').get(steamId);

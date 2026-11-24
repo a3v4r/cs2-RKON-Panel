@@ -14,8 +14,7 @@ import { useT } from '@/lib/i18n';
 import { mapImage } from '@/lib/maps';
 import { Cs2UpdateModal } from './cs2-update-modal';
 
-// Server Instances, ported from the Quatrix Instances page with its ServerCard and ServerRow.
-// Servers the panel starts itself have Start / Stop / Restart; servers connected by address are marked Remote.
+// panel-run servers get Start / Stop / Restart; ones added by address are Remote
 
 interface ServersViewProps {
   servers: ServerProfile[];
@@ -43,7 +42,7 @@ function statusOf(live: Live, proc?: Proc): Status {
     if (proc.state === 'stopped') return 'OFFLINE';
     if (proc.state === 'starting') return 'STARTING';
     if (proc.state === 'stopping') return 'STOPPING';
-    return live.state === 'online' ? 'ONLINE' : 'STARTING'; // the process runs, CS2 is still loading
+    return live.state === 'online' ? 'ONLINE' : 'STARTING'; // process up, CS2 still loading
   }
   return live.state === 'online' ? 'ONLINE' : live.state === 'offline' ? 'OFFLINE' : 'CHECKING';
 }

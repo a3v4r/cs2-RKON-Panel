@@ -7,8 +7,6 @@ import { api } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { useT } from '@/lib/i18n'
 
-// The skins website for players, run by the panel next to WeaponPaints (src/server/skins-site.ts)
-
 interface View {
   enabled: boolean
   port: number

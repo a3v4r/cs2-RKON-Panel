@@ -1,8 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-// Plugin messages in Russian (MatchZy takes lang/ru.json). CounterStrikeSharp creates core.json only on its
-// first start, so it is made from core.example.json when missing. Without CounterStrikeSharp nothing is done.
+// MatchZy uses lang/ru.json; CounterStrikeSharp creates core.json only on first start, hence core.example.json
 export function ensureRussian(csgo: string) {
   const dir = path.join(csgo, 'addons', 'counterstrikesharp', 'configs');
   const core = path.join(dir, 'core.json');
